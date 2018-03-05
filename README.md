@@ -8,23 +8,25 @@ It also contains the interpreter for the Monax packages specification language '
 
 We're going to need four (4) binaries:
 
-First, ensure you have `go` installed and `$GOPATH` set
 
 ```
 burrow
-burrow-client (maybe?)
 bos
 monax-keys
 solc
 ```
 
-For `burrow` and `burrow-client`:
+First, ensure you have `go` installed and `$GOPATH` set
+
+For `burrow`:
 
 ```
 go get github.com/hyperledger/burrow
 cd $GOPATH/src/github.com/hyperledger/burrow
 make build
 ```
+
+which will put the `burrow` binary in `/bin`. Move it onto your `$PATH`
 
 For `bos` and `monax-keys`:
 
@@ -34,9 +36,11 @@ cd $GOPATH/src/github.com/monax/bosmarmot
 make build
 ```
 
+and move these onto you `$PATH` as well.
+
 To install the solidity compiler - `solc` - see [here](https://solidity.readthedocs.io/en/develop/installing-solidity.html) for platform specific instructions.
 
-## Configre
+## Configure
 
 The end result will be a `burrow.toml` which contains the genesis spec and burrow configuration options required when starting the `burrow` node.
 
@@ -45,10 +49,10 @@ The end result will be a `burrow.toml` which contains the genesis spec and burro
 First, let's create some accounts. In this case, we're creating one of each a Participant and Full account:
 
 ```
-burrow spec --participant-accounts=1 --full-accounts=1 > accounts.json
+burrow spec --participant-accounts=1 --full-accounts=1 > genesis-spec.json
 ```
 
-and writing the output to an `accounts.json`. This file should look like:
+and writing the output to an `genesis-spec.json`. This file should look like:
 
 ```
 {
@@ -82,13 +86,13 @@ Because the next command will be making keys, let's open a new terminal window a
 monax-keys server
 ```
 
-Then, we pass the `accounts.json` in the following command:
+Then, we pass the `genesis-spec.json` in the following command:
 
 ```
-burrow configure --genesis-spec=accounts.json --validator-index=0 > burrow.toml
+burrow configure --genesis-spec=genesis-spec.json --validator-index=0 > burrow.toml
 ```
 
-which creates `burrow.toml` in that looks like:
+which creates `burrow.toml` that looks like:
 
 ```
 ValidatorAddress = "0A40DC874BC932B78AC390EAD1C1BF33469597AB"
@@ -182,8 +186,7 @@ Recall that we ran `monax-keys server` to start the keys server. The previous co
 ls $HOME/.monax/keys/data
 ```
 
-will show you the existing keys that the `monax-keys server` can use to sign transactions.
-
+will show you the existing keys that the `monax-keys server` can use to sign transactions. In this example, signing happens under-the-hood.
 
 ## Run Burrow
 
@@ -193,10 +196,257 @@ In another (third) window, we run `burrow`:
 burrow
 ```
 
-and the logs will stream in. See further below for more information about configuring the logging.
+and the logs will stream in. See [burrow's README](https://github.com/hyperledger/burrow) for more information on tweaking the logs.
 
 ## Deploy Contracts
 
 Now that the burrow node is running, we can deploy contracts.
 
 For this step, we need two things: one or more solidity contracts, and an `epm.yaml`.
+
+Let's take a simple example, found in [this directory](monax/tests/jobs_fixtures/app06-deploy_basic_contract_and_different_solc_types_packed_unpacked/).
+
+The `epm.yaml` should look like:
+
+```
+jobs:
+
+- name: deployStorageK
+  deploy:
+      contract: storage.sol
+
+- name: setStorageBaseBool
+  set:
+      val: "true"
+
+- name: setStorageBool
+  call:
+      destination: $deployStorageK
+      function: setBool 
+      data:
+        - $setStorageBaseBool
+
+- name: queryStorageBool
+  query-contract:
+      destination: $deployStorageK
+      function: getBool
+
+- name: assertStorageBool
+  assert:
+      key: $queryStorageBool
+      relation: eq
+      val: $setStorageBaseBool
+
+# tests string bools: #71
+- name: setStorageBool2
+  call:
+      destination: $deployStorageK
+      function: setBool2 
+      data:
+        - true
+
+- name: queryStorageBool2
+  query-contract:
+      destination: $deployStorageK
+      function: getBool2
+
+- name: assertStorageBool2
+  assert:
+      key: $queryStorageBool2
+      relation: eq
+      val: "true"
+
+- name: setStorageBaseInt
+  set:
+      val: 50000
+
+- name: setStorageInt
+  call:
+      destination: $deployStorageK
+      function: setInt 
+      data:
+        - $setStorageBaseInt
+
+- name: queryStorageInt
+  query-contract:
+      destination: $deployStorageK
+      function: getInt
+
+- name: assertStorageInt
+  assert:
+      key: $queryStorageInt
+      relation: eq
+      val: $setStorageBaseInt
+
+- name: setStorageBaseUint
+  set:
+      val: 9999999
+
+- name: setStorageUint
+  call:
+      destination: $deployStorageK
+      function: setUint 
+      data:
+        - $setStorageBaseUint
+
+- name: queryStorageUint
+  query-contract:
+      destination: $deployStorageK
+      function: getUint
+
+- name: assertStorageUint
+  assert:
+      key: $queryStorageUint
+      relation: eq
+      val: $setStorageBaseUint
+
+- name: setStorageBaseAddress
+  set:
+      val: "1040E6521541DAB4E7EE57F21226DD17CE9F0FB7"
+
+- name: setStorageAddress
+  call:
+      destination: $deployStorageK
+      function: setAddress 
+      data:
+        - $setStorageBaseAddress
+
+- name: queryStorageAddress
+  query-contract:
+      destination: $deployStorageK
+      function: getAddress
+
+- name: assertStorageAddress
+  assert:
+      key: $queryStorageAddress
+      relation: eq
+      val: $setStorageBaseAddress
+
+- name: setStorageBaseBytes
+  set:
+      val: marmatoshi
+
+- name: setStorageBytes
+  call:
+      destination: $deployStorageK
+      function: setBytes 
+      data:
+        - $setStorageBaseBytes
+
+- name: queryStorageBytes
+  query-contract:
+      destination: $deployStorageK
+      function: getBytes
+
+- name: assertStorageBytes
+  assert:
+      key: $queryStorageBytes
+      relation: eq
+      val: $setStorageBaseBytes
+
+- name: setStorageBaseString
+  set:
+      val: nakaburrow
+
+- name: setStorageString
+  call:
+      destination: $deployStorageK
+      function: setString 
+      data:
+        - $setStorageBaseString
+
+- name: queryStorageString
+  query-contract:
+      destination: $deployStorageK
+      function: getString
+
+- name: assertStorageString
+  assert:
+      key: $queryStorageString
+      relation: eq
+      val: $setStorageBaseString
+```
+
+while our Solidity contract (`storage.sol`) looks like:
+
+```
+pragma solidity >=0.0.0;
+
+contract SimpleStorage {
+  bool storedBool;
+  bool storedBool2;
+  int storedInt;
+  uint storedUint;
+  address storedAddress;
+  bytes32 storedBytes;
+  string storedString;
+
+  function setBool(bool x) {
+    storedBool = x;
+  }
+
+  function getBool() constant returns (bool retBool) {
+    return storedBool;
+  }
+
+  function setBool2(bool x) {
+    storedBool2 = x;
+  }
+
+  function getBool2() constant returns (bool retBool) {
+    return storedBool2;
+  }
+
+  function setInt(int x) {
+    storedInt = x;
+  }
+
+  function getInt() constant returns (int retInt) {
+    return storedInt;
+  }
+
+  function setUint(uint x) {
+    storedUint = x;
+  }
+
+  function getUint() constant returns (uint retUint) {
+    return storedUint;
+  }
+
+  function setAddress(address x) {
+    storedAddress = x;
+  }
+
+  function getAddress() constant returns (address retAddress) {
+    return storedAddress;
+  }
+
+  function setBytes(bytes32 x) {
+    storedBytes = x;
+  }
+
+  function getBytes() constant returns (bytes32 retBytes) {
+    return storedBytes;
+  }
+
+  function setString(string x) {
+    storedString = x;
+  }
+
+  function getString() constant returns (string retString) {
+    return storedString;
+  }
+}
+```
+
+Both files (`epm.yaml` & `storage.sol`) should be in the same directory with nothing else in it.
+
+From inside that directory, we are ready to deploy.
+
+```
+bos pkgs do --keys="http://localhost:4767" --chain-url="tcp://localhost:46657" --address=0A40DC874BC932B78AC390EAD1C1BF33469597AB
+```
+
+where the field in `--address` is the `ValidatorAddress` at the top of your `burrow.toml`.
+
+That's it! You've succesfully deployed (and tested) a Soldity contract to a Burrow node.
