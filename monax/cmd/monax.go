@@ -131,20 +131,3 @@ func ArgCheck(num int, comp string, cmd *cobra.Command, args []string) error {
 	}
 	return nil
 }
-
-//restrict flag behaviour when needed (rare but used sometimes)
-func FlagCheck(num int, comp string, cmd *cobra.Command, flags []string) error {
-	switch comp {
-	case "eq":
-		if len(flags) != num {
-			cmd.Help()
-			return fmt.Errorf("\n**Note** you sent our marmots the wrong number of flags.\nPlease send the marmots %d flags only.", num)
-		}
-	case "ge":
-		if len(flags) < num {
-			cmd.Help()
-			return fmt.Errorf("\n**Note** you sent our marmots the wrong number of flags.\nPlease send the marmots at least %d flag(s).", num)
-		}
-	}
-	return nil
-}

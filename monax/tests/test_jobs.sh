@@ -114,9 +114,9 @@ run_test(){
   echo
   cat readme.md
   echo
-  echo \$ ${bos_bin} pkgs do --keys="http://:$keys_port" --chain-url="tcp://:$rpc_tm_port" --address "$key1_addr" \
+  echo \$ ${bos_bin} pkgs --keys="http://:$keys_port" --chain-url="tcp://:$rpc_tm_port" --address "$key1_addr" \
     --set "addr1=$key1_addr" --set "addr2=$key2_addr" --set "addr2_pub=$key2_pub" #--debug
-  ${bos_bin} pkgs do --keys="http://:$keys_port" --chain-url="tcp://:$rpc_tm_port" --address "$key1_addr" \
+  ${bos_bin} pkgs --keys="http://:$keys_port" --chain-url="tcp://:$rpc_tm_port" --address "$key1_addr" \
     --set "addr1=$key1_addr" --set "addr2=$key2_addr" --set "addr2_pub=$key2_pub" #--debug
   test_exit=$?
 
