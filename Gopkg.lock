@@ -189,7 +189,7 @@
     "sync",
     "txs"
   ]
-  revision = "6ee7a0eaf5bfa328db6beedab0f01fa1a659a941"
+  revision = "caa3a29d1ce76f45e1ef3c0075f6258e5d509f9a"
 
 [[projects]]
   name = "github.com/inconshreveable/mousetrap"
