@@ -80,16 +80,16 @@ and writing the output to an `genesis-spec.json`. This file should look like:
 
 ```
 
-Because the next command will be making keys, let's open a new terminal window and start the keys server:
+Because the next command will be making keys, let's start keys server:
 
 ```
-monax-keys server
+monax-keys server 2>keys.log &
 ```
 
 Then, we pass the `genesis-spec.json` in the following command:
 
 ```
-burrow configure --genesis-spec=genesis-spec.json --validator-index=0 > burrow.toml
+burrow configure --genesis-spec=genesis-spec.json > burrow.toml
 ```
 
 which creates `burrow.toml` that looks like:
@@ -196,13 +196,13 @@ will show you the existing keys that the `monax-keys server` can use to sign tra
 
 ## Run Burrow
 
-In another (third) window, we run `burrow`:
+Now we can run `burrow`:
 
 ```
-burrow
+burrow start --validator-index=0 2>burrow.log &
 ```
 
-and the logs will stream in. See [burrow's README](https://github.com/hyperledger/burrow) for more information on tweaking the logs.
+See [burrow's README](https://github.com/hyperledger/burrow) for more information on tweaking the logs.
 
 ## Deploy Contracts
 
