@@ -95,11 +95,9 @@ burrow configure --genesis-spec=genesis-spec.json --validator-index=0 > burrow.t
 which creates `burrow.toml` that looks like:
 
 ```
-ValidatorAddress = "0A40DC874BC932B78AC390EAD1C1BF33469597AB"
-
 [GenesisDoc]
-  GenesisTime = 2018-02-20T14:13:41Z
-  ChainName = "BurrowChain_2A0FC2"
+  GenesisTime = 2018-05-24T16:12:34Z
+  ChainName = "BurrowChain_2BE507"
   [GenesisDoc.GlobalPermissions]
     Roles = []
     [GenesisDoc.GlobalPermissions.Base]
@@ -107,8 +105,8 @@ ValidatorAddress = "0A40DC874BC932B78AC390EAD1C1BF33469597AB"
       SetBit = 16383
 
   [[GenesisDoc.Accounts]]
-    Address = "0A40DC874BC932B78AC390EAD1C1BF33469597AB"
-    PublicKey = "{\"type\":\"ed25519\",\"data\":\"CF6D9A53B8BD4F08BD31C1F5643FA1688B9145DB1A644BD9E3A8AC3801FB69DB\"}"
+    Address = "84276E34B8F3C4166F61878473AEC831A5CF5444"
+    PublicKey = "{\"type\":\"ed25519\",\"data\":\"8C245576A2A0299DF0B760C55EF366D281B914FADBE03571FC1901FCAADA067F\"}"
     Amount = 99999999999999
     Name = "Full_0"
     [GenesisDoc.Accounts.Permissions]
@@ -117,8 +115,8 @@ ValidatorAddress = "0A40DC874BC932B78AC390EAD1C1BF33469597AB"
         SetBit = 16383
 
   [[GenesisDoc.Accounts]]
-    Address = "179955FD376C71A793886CCB0FDBE011CC6537E0"
-    PublicKey = "{\"type\":\"ed25519\",\"data\":\"09781EA8C79C238A1D91992D29E330F7011ADF1B16118AFD0E17D2F3004A2F40\"}"
+    Address = "8F573B59FE9D0886CB525069E7E16C1997E8A126"
+    PublicKey = "{\"type\":\"ed25519\",\"data\":\"15989611C2670C248F81070F7E94E824B527E6CA80C4F4EE05414C82F9DA18E3\"}"
     Amount = 9999999999
     Name = "Participant_0"
     [GenesisDoc.Accounts.Permissions]
@@ -127,18 +125,19 @@ ValidatorAddress = "0A40DC874BC932B78AC390EAD1C1BF33469597AB"
         SetBit = 2118
 
   [[GenesisDoc.Validators]]
-    Address = "0A40DC874BC932B78AC390EAD1C1BF33469597AB"
-    PublicKey = "{\"type\":\"ed25519\",\"data\":\"CF6D9A53B8BD4F08BD31C1F5643FA1688B9145DB1A644BD9E3A8AC3801FB69DB\"}"
+    Address = "84276E34B8F3C4166F61878473AEC831A5CF5444"
+    PublicKey = "{\"type\":\"ed25519\",\"data\":\"8C245576A2A0299DF0B760C55EF366D281B914FADBE03571FC1901FCAADA067F\"}"
     Amount = 9999999999
     Name = "Full_0"
 
     [[GenesisDoc.Validators.UnbondTo]]
-      Address = "0A40DC874BC932B78AC390EAD1C1BF33469597AB"
-      PublicKey = "{\"type\":\"ed25519\",\"data\":\"CF6D9A53B8BD4F08BD31C1F5643FA1688B9145DB1A644BD9E3A8AC3801FB69DB\"}"
+      Address = "84276E34B8F3C4166F61878473AEC831A5CF5444"
+      PublicKey = "{\"type\":\"ed25519\",\"data\":\"8C245576A2A0299DF0B760C55EF366D281B914FADBE03571FC1901FCAADA067F\"}"
       Amount = 9999999999
 
 [Tendermint]
   Seeds = ""
+  PersistentPeers = ""
   ListenAddress = "tcp://0.0.0.0:46656"
   Moniker = ""
   TendermintRoot = ".burrow"
@@ -148,10 +147,10 @@ ValidatorAddress = "0A40DC874BC932B78AC390EAD1C1BF33469597AB"
 
 [RPC]
   [RPC.V0]
+    Disabled = false
     [RPC.V0.Server]
-      ChainId = ""
       [RPC.V0.Server.bind]
-        address = ""
+        address = "localhost"
         port = 1337
       [RPC.V0.Server.TLS]
         tls = false
@@ -169,13 +168,20 @@ ValidatorAddress = "0A40DC874BC932B78AC390EAD1C1BF33469597AB"
         read_buffer_size = 4096
         write_buffer_size = 4096
   [RPC.TM]
-    ListenAddress = ":46657"
+    Disabled = false
+    ListenAddress = "tcp://localhost:46657"
+  [RPC.Profiler]
+    Disabled = true
+    ListenAddress = "tcp://localhost:6060"
 
 [Logging]
+  ExcludeTrace = false
+  NonBlocking = false
   [Logging.RootSink]
     [Logging.RootSink.Output]
       OutputType = "stderr"
-      Format = ""
+      Format = "json"
+
 ```
 
 ## Keys
