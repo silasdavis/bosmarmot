@@ -4,14 +4,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/monax/bosmarmot/monax/definitions"
-	"github.com/monax/bosmarmot/monax/log"
-	"github.com/monax/bosmarmot/monax/util"
+	"github.com/monax/bosmarmot/pkgs/definitions"
+	log "github.com/sirupsen/logrus"
 )
 
-func RunJobs(do *definitions.Do) error {
+func RunJobs(do *definitions.Packages) error {
 	var err error
-	var dup bool = false
 	// ADD DefaultAddr and DefaultSet to jobs array....
 	// These work in reverse order and the addendums to the
 	// the ordering from the loading process is lifo
@@ -19,27 +17,11 @@ func RunJobs(do *definitions.Do) error {
 		defaultSetJobs(do)
 	}
 
-	if do.DefaultAddr != "" {
+	if do.Address != "" {
 		defaultAddrJob(do)
 	}
 
-	for index, job := range do.Package.Jobs {
-		for _, checkForDup := range do.Package.Jobs[0:index] {
-			if checkForDup.JobName == job.JobName {
-				dup = true
-				break
-			}
-		}
-		if do.Overwrite && dup {
-			log.WithField("Overwriting job name", job.JobName)
-		} else if !do.Overwrite && dup {
-			overwriteWarning := "You are about to overwrite a previous job name, continue?"
-
-			if util.QueryYesOrNo(overwriteWarning, []int{}...) == util.No {
-				continue
-			}
-		}
-
+	for _, job := range do.Package.Jobs {
 		switch {
 		// Util jobs
 		case job.Account != nil:
@@ -127,20 +109,20 @@ func announce(job, typ string) {
 	log.WithField("=>", typ).Info("Type")
 }
 
-func defaultAddrJob(do *definitions.Do) {
+func defaultAddrJob(do *definitions.Packages) {
 	oldJobs := do.Package.Jobs
 
 	newJob := &definitions.Job{
 		JobName: "defaultAddr",
 		Account: &definitions.Account{
-			Address: do.DefaultAddr,
+			Address: do.Address,
 		},
 	}
 
 	do.Package.Jobs = append([]*definitions.Job{newJob}, oldJobs...)
 }
 
-func defaultSetJobs(do *definitions.Do) {
+func defaultSetJobs(do *definitions.Packages) {
 	oldJobs := do.Package.Jobs
 
 	newJobs := []*definitions.Job{}
@@ -160,7 +142,7 @@ func defaultSetJobs(do *definitions.Do) {
 	do.Package.Jobs = append(newJobs, oldJobs...)
 }
 
-func postProcess(do *definitions.Do) error {
+func postProcess(do *definitions.Packages) error {
 	// check do.YAMLPath and do.DefaultOutput
 	// get the epm.yaml
 	var yaml string

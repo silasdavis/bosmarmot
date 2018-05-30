@@ -8,13 +8,13 @@ import (
 	acm "github.com/hyperledger/burrow/account"
 	"github.com/hyperledger/burrow/client"
 	"github.com/hyperledger/burrow/logging"
-	"github.com/monax/bosmarmot/monax/definitions"
-	"github.com/monax/bosmarmot/monax/log"
-	"github.com/monax/bosmarmot/monax/pkgs/abi"
-	"github.com/monax/bosmarmot/monax/util"
+	"github.com/monax/bosmarmot/pkgs/abi"
+	"github.com/monax/bosmarmot/pkgs/definitions"
+	"github.com/monax/bosmarmot/pkgs/util"
+	log "github.com/sirupsen/logrus"
 )
 
-func QueryContractJob(query *definitions.QueryContract, do *definitions.Do) (string, []*definitions.Variable, error) {
+func QueryContractJob(query *definitions.QueryContract, do *definitions.Packages) (string, []*definitions.Variable, error) {
 	// Preprocess variables. We don't preprocess data as it is processed by ReadAbiFormulateCall
 	query.Source, _ = util.PreProcess(query.Source, do)
 	query.Destination, _ = util.PreProcess(query.Destination, do)
@@ -89,7 +89,7 @@ func QueryContractJob(query *definitions.QueryContract, do *definitions.Do) (str
 	return result2, query.Variables, nil
 }
 
-func QueryAccountJob(query *definitions.QueryAccount, do *definitions.Do) (string, error) {
+func QueryAccountJob(query *definitions.QueryAccount, do *definitions.Packages) (string, error) {
 	// Preprocess variables
 	query.Account, _ = util.PreProcess(query.Account, do)
 	query.Field, _ = util.PreProcess(query.Field, do)
@@ -112,7 +112,7 @@ func QueryAccountJob(query *definitions.QueryAccount, do *definitions.Do) (strin
 	return result, nil
 }
 
-func QueryNameJob(query *definitions.QueryName, do *definitions.Do) (string, error) {
+func QueryNameJob(query *definitions.QueryName, do *definitions.Packages) (string, error) {
 	// Preprocess variables
 	query.Name, _ = util.PreProcess(query.Name, do)
 	query.Field, _ = util.PreProcess(query.Field, do)
@@ -135,7 +135,7 @@ func QueryNameJob(query *definitions.QueryName, do *definitions.Do) (string, err
 	return result, nil
 }
 
-func QueryValsJob(query *definitions.QueryVals, do *definitions.Do) (string, error) {
+func QueryValsJob(query *definitions.QueryVals, do *definitions.Packages) (string, error) {
 	var result string
 
 	// Preprocess variables
@@ -156,7 +156,7 @@ func QueryValsJob(query *definitions.QueryVals, do *definitions.Do) (string, err
 	return result, nil
 }
 
-func AssertJob(assertion *definitions.Assert, do *definitions.Do) (string, error) {
+func AssertJob(assertion *definitions.Assert, do *definitions.Packages) (string, error) {
 	var result string
 	// Preprocess variables
 	assertion.Key, _ = util.PreProcess(assertion.Key, do)

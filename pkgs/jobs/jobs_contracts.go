@@ -13,14 +13,14 @@ import (
 	"github.com/hyperledger/burrow/keys"
 	"github.com/hyperledger/burrow/logging"
 	"github.com/hyperledger/burrow/txs"
-	compilers "github.com/monax/bosmarmot/compilers/perform"
-	"github.com/monax/bosmarmot/monax/definitions"
-	"github.com/monax/bosmarmot/monax/log"
-	"github.com/monax/bosmarmot/monax/pkgs/abi"
-	"github.com/monax/bosmarmot/monax/util"
+	"github.com/monax/bosmarmot/pkgs/abi"
+	compilers "github.com/monax/bosmarmot/pkgs/compile"
+	"github.com/monax/bosmarmot/pkgs/definitions"
+	"github.com/monax/bosmarmot/pkgs/util"
+	log "github.com/sirupsen/logrus"
 )
 
-func DeployJob(deploy *definitions.Deploy, do *definitions.Do) (result string, err error) {
+func DeployJob(deploy *definitions.Deploy, do *definitions.Packages) (result string, err error) {
 	// Preprocess variables
 	deploy.Source, _ = util.PreProcess(deploy.Source, do)
 	deploy.Contract, _ = util.PreProcess(deploy.Contract, do)
@@ -159,7 +159,7 @@ func matchInstanceName(objectName, deployInstance string) bool {
 }
 
 // TODO [rj] refactor to remove [contractPath] from functions signature => only used in a single error throw.
-func deployContract(deploy *definitions.Deploy, do *definitions.Do, compilersResponse compilers.ResponseItem) (string, error) {
+func deployContract(deploy *definitions.Deploy, do *definitions.Packages, compilersResponse compilers.ResponseItem) (string, error) {
 	log.WithField("=>", string(compilersResponse.ABI)).Debug("ABI Specification (From Compilers)")
 	contractCode := compilersResponse.Bytecode
 
@@ -240,7 +240,7 @@ func deployContract(deploy *definitions.Deploy, do *definitions.Do, compilersRes
 	return result, err
 }
 
-func deployRaw(do *definitions.Do, deploy *definitions.Deploy, contractName, contractCode string) (*txs.CallTx, error) {
+func deployRaw(do *definitions.Packages, deploy *definitions.Deploy, contractName, contractCode string) (*txs.CallTx, error) {
 
 	// Deploy contract
 	log.WithFields(log.Fields{
@@ -264,7 +264,7 @@ func deployRaw(do *definitions.Do, deploy *definitions.Deploy, contractName, con
 	return tx, err
 }
 
-func CallJob(call *definitions.Call, do *definitions.Do) (string, []*definitions.Variable, error) {
+func CallJob(call *definitions.Call, do *definitions.Packages) (string, []*definitions.Variable, error) {
 	var err error
 	var callData string
 	var callDataArray []string
@@ -378,7 +378,7 @@ func CallJob(call *definitions.Call, do *definitions.Do) (string, []*definitions
 	return result, call.Variables, nil
 }
 
-func deployFinalize(do *definitions.Do, tx interface{}) (string, error) {
+func deployFinalize(do *definitions.Packages, tx interface{}) (string, error) {
 	nodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
 	_, chainID, _, err := nodeClient.ChainId()
 	if err != nil {

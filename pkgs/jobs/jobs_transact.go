@@ -11,12 +11,12 @@ import (
 	"github.com/hyperledger/burrow/keys"
 	"github.com/hyperledger/burrow/logging"
 	"github.com/hyperledger/burrow/txs"
-	"github.com/monax/bosmarmot/monax/definitions"
-	"github.com/monax/bosmarmot/monax/log"
-	"github.com/monax/bosmarmot/monax/util"
+	"github.com/monax/bosmarmot/pkgs/definitions"
+	"github.com/monax/bosmarmot/pkgs/util"
+	log "github.com/sirupsen/logrus"
 )
 
-func SendJob(send *definitions.Send, do *definitions.Do) (string, error) {
+func SendJob(send *definitions.Send, do *definitions.Packages) (string, error) {
 
 	// Process Variables
 	send.Source, _ = util.PreProcess(send.Source, do)
@@ -56,7 +56,7 @@ func SendJob(send *definitions.Send, do *definitions.Do) (string, error) {
 	return txFinalize(do, tx)
 }
 
-func RegisterNameJob(name *definitions.RegisterName, do *definitions.Do) (string, error) {
+func RegisterNameJob(name *definitions.RegisterName, do *definitions.Packages) (string, error) {
 	// Process Variables
 	name.DataFile, _ = util.PreProcess(name.DataFile, do)
 
@@ -127,7 +127,7 @@ func RegisterNameJob(name *definitions.RegisterName, do *definitions.Do) (string
 }
 
 // Runs an individual nametx.
-func registerNameTx(name *definitions.RegisterName, do *definitions.Do) (string, error) {
+func registerNameTx(name *definitions.RegisterName, do *definitions.Packages) (string, error) {
 	// Process Variables
 	name.Source, _ = util.PreProcess(name.Source, do)
 	name.Name, _ = util.PreProcess(name.Name, do)
@@ -170,7 +170,7 @@ func registerNameTx(name *definitions.RegisterName, do *definitions.Do) (string,
 	return txFinalize(do, tx)
 }
 
-func PermissionJob(perm *definitions.Permission, do *definitions.Do) (string, error) {
+func PermissionJob(perm *definitions.Permission, do *definitions.Packages) (string, error) {
 	// Process Variables
 	perm.Source, _ = util.PreProcess(perm.Source, do)
 	perm.Action, _ = util.PreProcess(perm.Action, do)
@@ -217,7 +217,7 @@ func PermissionJob(perm *definitions.Permission, do *definitions.Do) (string, er
 	return txFinalize(do, tx)
 }
 
-func BondJob(bond *definitions.Bond, do *definitions.Do) (string, error) {
+func BondJob(bond *definitions.Bond, do *definitions.Packages) (string, error) {
 	// Process Variables
 	bond.Account, _ = util.PreProcess(bond.Account, do)
 	bond.Amount, _ = util.PreProcess(bond.Amount, do)
@@ -244,7 +244,7 @@ func BondJob(bond *definitions.Bond, do *definitions.Do) (string, error) {
 	return txFinalize(do, tx)
 }
 
-func UnbondJob(unbond *definitions.Unbond, do *definitions.Do) (string, error) {
+func UnbondJob(unbond *definitions.Unbond, do *definitions.Packages) (string, error) {
 	// Process Variables
 	var err error
 	unbond.Account, err = util.PreProcess(unbond.Account, do)
@@ -286,7 +286,7 @@ func UnbondJob(unbond *definitions.Unbond, do *definitions.Do) (string, error) {
 	return txFinalize(do, tx)
 }
 
-func RebondJob(rebond *definitions.Rebond, do *definitions.Do) (string, error) {
+func RebondJob(rebond *definitions.Rebond, do *definitions.Packages) (string, error) {
 	// Process Variables
 	var err error
 	rebond.Account, err = util.PreProcess(rebond.Account, do)
@@ -328,7 +328,7 @@ func RebondJob(rebond *definitions.Rebond, do *definitions.Do) (string, error) {
 	return txFinalize(do, tx)
 }
 
-func txFinalize(do *definitions.Do, tx interface{}) (string, error) {
+func txFinalize(do *definitions.Packages, tx interface{}) (string, error) {
 	var result string
 
 	nodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())

@@ -8,16 +8,16 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/monax/bosmarmot/monax/definitions"
-	"github.com/monax/bosmarmot/monax/log"
-	"github.com/monax/bosmarmot/monax/util"
+	"github.com/monax/bosmarmot/pkgs/definitions"
+	"github.com/monax/bosmarmot/pkgs/util"
+	log "github.com/sirupsen/logrus"
 
 	ethAbi "github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 )
 
-func ReadAbiFormulateCall(abiLocation string, funcName string, args []string, do *definitions.Do) ([]byte, error) {
+func ReadAbiFormulateCall(abiLocation string, funcName string, args []string, do *definitions.Packages) ([]byte, error) {
 	abiSpecBytes, err := util.ReadAbi(do.ABIPath, abiLocation)
 	if err != nil {
 		return []byte{}, err
@@ -31,7 +31,7 @@ func ReadAbiFormulateCall(abiLocation string, funcName string, args []string, do
 	return Packer(abiSpecBytes, funcName, args...)
 }
 
-func ReadAndDecodeContractReturn(abiLocation, funcName string, resultRaw []byte, do *definitions.Do) ([]*definitions.Variable, error) {
+func ReadAndDecodeContractReturn(abiLocation, funcName string, resultRaw []byte, do *definitions.Packages) ([]*definitions.Variable, error) {
 	abiSpecBytes, err := util.ReadAbi(do.ABIPath, abiLocation)
 	if err != nil {
 		return nil, err

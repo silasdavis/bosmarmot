@@ -2,13 +2,13 @@ package jobs
 
 import (
 	acm "github.com/hyperledger/burrow/account"
-	"github.com/monax/bosmarmot/monax/definitions"
-	"github.com/monax/bosmarmot/monax/keys"
-	"github.com/monax/bosmarmot/monax/log"
-	"github.com/monax/bosmarmot/monax/util"
+	"github.com/monax/bosmarmot/pkgs/definitions"
+	"github.com/monax/bosmarmot/pkgs/keys"
+	"github.com/monax/bosmarmot/pkgs/util"
+	log "github.com/sirupsen/logrus"
 )
 
-func SetAccountJob(account *definitions.Account, do *definitions.Do) (string, error) {
+func SetAccountJob(account *definitions.Account, do *definitions.Packages) (string, error) {
 	var result string
 	var err error
 
@@ -23,7 +23,7 @@ func SetAccountJob(account *definitions.Account, do *definitions.Do) (string, er
 	if err != nil {
 		return "", err
 	}
-	// Set the public key from monax-keys
+	// Set the public key from burrow keys
 	keyClient, err := keys.InitKeyClient(do.Signer)
 	if err != nil {
 		return util.KeysErrorHandler(do, err)
@@ -40,7 +40,7 @@ func SetAccountJob(account *definitions.Account, do *definitions.Do) (string, er
 	return result, nil
 }
 
-func SetValJob(set *definitions.SetJob, do *definitions.Do) (string, error) {
+func SetValJob(set *definitions.SetJob, do *definitions.Packages) (string, error) {
 	var result string
 	set.Value, _ = util.PreProcess(set.Value, do)
 	log.WithField("=>", set.Value).Info("Setting Variable")
