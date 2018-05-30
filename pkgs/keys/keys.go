@@ -3,13 +3,11 @@ package keys
 import (
 	"fmt"
 	"io/ioutil"
-	"net/url"
 	"time"
 
 	"github.com/hyperledger/burrow/keys"
 	"github.com/hyperledger/burrow/logging"
-	mkeys "github.com/monax/bosmarmot/keys/monax-keys"
-	"github.com/monax/bosmarmot/monax/log"
+	log "github.com/sirupsen/logrus"
 )
 
 type LocalKeyClient struct {
@@ -39,13 +37,6 @@ func InitKeyClient(keysUrl string) (*LocalKeyClient, error) {
 	aliveCh := make(chan struct{})
 	localKeyClient := NewKeyClient(keysUrl)
 	err := localKeyClient.HealthCheck()
-	if err != nil {
-		uri, err := url.Parse(keysUrl)
-		if err != nil {
-			return nil, err
-		}
-		go mkeys.StartServer(uri.Hostname(), uri.Port())
-	}
 
 	go func() {
 		for err != nil {
