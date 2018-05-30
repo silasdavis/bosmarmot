@@ -1,11 +1,11 @@
-package loaders
+package pkgs
 
 import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/monax/bosmarmot/monax/definitions"
-	"github.com/monax/bosmarmot/monax/log"
+	"github.com/monax/bosmarmot/pkgs/definitions"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -40,7 +40,7 @@ func LoadPackage(fileName string) (*definitions.Package, error) {
 
 	// marshall file
 	if err := epmJobs.Unmarshal(pkg); err != nil {
-		return nil, fmt.Errorf(`Sorry, the marmots could not figure that monax jobs file out. 
+		return nil, fmt.Errorf(`Sorry, the marmots could not figure that monax jobs file out.
 			Please check that your epm.yaml is properly formatted: %v`, err)
 	}
 

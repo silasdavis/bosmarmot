@@ -3,7 +3,7 @@
 package main
 
 import (
-	"github.com/monax/bosmarmot/monax/cmd"
+	"github.com/monax/bosmarmot/cmd"
 )
 
 func main() {

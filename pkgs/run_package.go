@@ -5,13 +5,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/monax/bosmarmot/monax/definitions"
-	"github.com/monax/bosmarmot/monax/loaders"
-	"github.com/monax/bosmarmot/monax/log"
-	"github.com/monax/bosmarmot/monax/pkgs/jobs"
+	"github.com/monax/bosmarmot/pkgs/definitions"
+	"github.com/monax/bosmarmot/pkgs/jobs"
+	log "github.com/sirupsen/logrus"
 )
 
-func RunPackage(do *definitions.Do) error {
+func RunPackage(do *definitions.Packages) error {
 	var gotwd string
 	if do.Path == "" {
 		var err error
@@ -60,7 +59,7 @@ func RunPackage(do *definitions.Do) error {
 	var err error
 	// Load the package if it doesn't exist
 	if do.Package == nil {
-		do.Package, err = loaders.LoadPackage(do.YAMLPath)
+		do.Package, err = LoadPackage(do.YAMLPath)
 		if err != nil {
 			return err
 		}
@@ -77,7 +76,7 @@ func RunPackage(do *definitions.Do) error {
 	return jobs.RunJobs(do)
 }
 
-func printPathPackage(do *definitions.Do) {
+func printPathPackage(do *definitions.Packages) {
 	log.WithField("=>", do.ChainURL).Info("With ChainURL")
 	log.WithField("=>", do.Signer).Info("Using Signer at")
 }
