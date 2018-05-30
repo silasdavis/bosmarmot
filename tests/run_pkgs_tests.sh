@@ -13,7 +13,7 @@
 # ----------------------------------------------------------
 # USAGE
 
-# test_jobs.sh [appXX]
+# run_pkgs_tests.sh [appXX]
 
 # Various required binaries locations can be provided by wrapper
 bos_bin=${bos_bin:-bos}
