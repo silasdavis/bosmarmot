@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/monax/bosmarmot/monax/definitions"
-	"github.com/monax/bosmarmot/monax/log"
+	"github.com/monax/bosmarmot/pkgs/definitions"
+	log "github.com/sirupsen/logrus"
 )
 
-func PreProcess(toProcess string, do *definitions.Do) (string, error) {
+func PreProcess(toProcess string, do *definitions.Packages) (string, error) {
 	// $block.... $account.... etc. should be caught. hell$$o should not
 	// :$libAddr needs to be caught
 	catchEr := regexp.MustCompile(`(^|\s|:)\$([a-zA-Z0-9_.]+)`)
@@ -80,7 +80,7 @@ func PreProcess(toProcess string, do *definitions.Do) (string, error) {
 	return toProcess, nil
 }
 
-func replaceBlockVariable(toReplace string, do *definitions.Do) (string, error) {
+func replaceBlockVariable(toReplace string, do *definitions.Packages) (string, error) {
 	log.WithFields(log.Fields{
 		"var": toReplace,
 	}).Debug("Correcting $block variable")
@@ -132,7 +132,7 @@ func replaceBlockVariable(toReplace string, do *definitions.Do) (string, error) 
 	return toReplace, nil
 }
 
-func PreProcessInputData(function string, data interface{}, do *definitions.Do, constructor bool) (string, []string, error) {
+func PreProcessInputData(function string, data interface{}, do *definitions.Packages, constructor bool) (string, []string, error) {
 	var callDataArray []string
 	var callArray []string
 	if function == "" && !constructor {
@@ -194,7 +194,7 @@ func PreProcessInputData(function string, data interface{}, do *definitions.Do, 
 	return function, callDataArray, nil
 }
 
-func PreProcessLibs(libs string, do *definitions.Do) (string, error) {
+func PreProcessLibs(libs string, do *definitions.Packages) (string, error) {
 	libraries, _ := PreProcess(libs, do)
 	if libraries != "" {
 		pairs := strings.Split(libraries, ",")

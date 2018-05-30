@@ -2,13 +2,30 @@ package util
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 
-	"github.com/monax/bosmarmot/monax/definitions"
-	"github.com/monax/bosmarmot/monax/log"
+	"github.com/monax/bosmarmot/pkgs/definitions"
+	log "github.com/sirupsen/logrus"
 )
 
-func MintChainErrorHandler(do *definitions.Do, err error) (string, error) {
+func Exit(err error) {
+	status := 0
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		status = 1
+	}
+	os.Exit(status)
+}
+
+func IfExit(err error) {
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
+func MintChainErrorHandler(do *definitions.Packages, err error) (string, error) {
 	log.WithFields(log.Fields{
 		"defAddr": do.Package.Account,
 		"rawErr":  err,
@@ -27,7 +44,7 @@ Debugging this error is tricky, but don't worry the marmot recovery checklist is
 `, err, do.Package.Account)
 }
 
-func KeysErrorHandler(do *definitions.Do, err error) (string, error) {
+func KeysErrorHandler(do *definitions.Packages, err error) (string, error) {
 	log.WithFields(log.Fields{
 		"defAddr": do.Package.Account,
 	}).Error("")
@@ -60,7 +77,7 @@ Debugging this error is tricky, but don't worry the marmot recovery checklist is
 `, err, do.Package.Account, do.Package.Account)
 }
 
-func ABIErrorHandler(do *definitions.Do, err error, call *definitions.Call, query *definitions.QueryContract) (string, error) {
+func ABIErrorHandler(do *definitions.Packages, err error, call *definitions.Call, query *definitions.QueryContract) (string, error) {
 	switch {
 	case call != nil:
 		log.WithFields(log.Fields{

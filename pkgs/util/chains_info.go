@@ -5,14 +5,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/monax/bosmarmot/monax/definitions"
+	"github.com/monax/bosmarmot/pkgs/definitions"
 
 	acm "github.com/hyperledger/burrow/account"
 	"github.com/hyperledger/burrow/client"
 	"github.com/hyperledger/burrow/logging"
 )
 
-func GetBlockHeight(do *definitions.Do) (latestBlockHeight uint64, err error) {
+func GetBlockHeight(do *definitions.Packages) (latestBlockHeight uint64, err error) {
 	nodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
 	// NOTE: NodeInfo is no longer exposed through Status();
 	// other values are currently not use by the package manager
@@ -24,7 +24,7 @@ func GetBlockHeight(do *definitions.Do) (latestBlockHeight uint64, err error) {
 	return
 }
 
-func AccountsInfo(account, field string, do *definitions.Do) (string, error) {
+func AccountsInfo(account, field string, do *definitions.Packages) (string, error) {
 
 	address, err := acm.AddressFromHexString(account)
 	if err != nil {
@@ -67,7 +67,7 @@ func AccountsInfo(account, field string, do *definitions.Do) (string, error) {
 	return s, nil
 }
 
-func NamesInfo(name, field string, do *definitions.Do) (string, error) {
+func NamesInfo(name, field string, do *definitions.Packages) (string, error) {
 	nodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
 	owner, data, expirationBlock, err := nodeClient.GetName(name)
 	if err != nil {
@@ -88,7 +88,7 @@ func NamesInfo(name, field string, do *definitions.Do) (string, error) {
 	}
 }
 
-func ValidatorsInfo(field string, do *definitions.Do) (string, error) {
+func ValidatorsInfo(field string, do *definitions.Packages) (string, error) {
 	nodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
 	_, bondedValidators, unbondingValidators, err := nodeClient.ListValidators()
 	if err != nil {
