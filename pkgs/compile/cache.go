@@ -1,4 +1,4 @@
-package perform
+package compile
 
 import (
 	"encoding/json"
@@ -6,14 +6,14 @@ import (
 	"os"
 	"path"
 
-	"github.com/monax/bosmarmot/compilers/definitions"
+	"github.com/monax/bosmarmot/pkgs/util"
 )
 
 // check/cache all includes, hash the code, return whether or not there was a full cache hit
-func CheckCached(includes map[string]*definitions.IncludedFiles, lang string) bool {
+func CheckCached(includes map[string]*util.IncludedFiles, lang string) bool {
 	cached := true
 	for name, metadata := range includes {
-		hashPath := path.Join(definitions.Languages[lang].CacheDir, name)
+		hashPath := path.Join(util.Languages[lang].CacheDir, name)
 		if _, scriptErr := os.Stat(hashPath); os.IsNotExist(scriptErr) {
 			cached = false
 			break
@@ -34,12 +34,12 @@ func CheckCached(includes map[string]*definitions.IncludedFiles, lang string) bo
 }
 
 // return cached byte code as a response
-func CachedResponse(includes map[string]*definitions.IncludedFiles, lang string) (*Response, error) {
+func CachedResponse(includes map[string]*util.IncludedFiles, lang string) (*Response, error) {
 
 	var resp *Response
 	var respItemArray []ResponseItem
 	for name, metadata := range includes {
-		dir := path.Join(definitions.Languages[lang].CacheDir, name)
+		dir := path.Join(util.Languages[lang].CacheDir, name)
 		for _, object := range metadata.ObjectNames {
 			jsonBytes, err := ioutil.ReadFile(path.Join(dir, object+".json"))
 			if err != nil {

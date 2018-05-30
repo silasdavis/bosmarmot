@@ -1,4 +1,4 @@
-package util
+package compile
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/monax/bosmarmot/compilers/definitions"
+	"github.com/monax/bosmarmot/pkgs/util"
 )
 
 var (
@@ -38,7 +38,7 @@ func ClearCache(dir string) error {
 func LangFromFile(filename string) (string, error) {
 	ext := path.Ext(filename)
 	ext = strings.Trim(ext, ".")
-	if _, ok := definitions.Languages[ext]; ok {
+	if _, ok := util.Languages[ext]; ok {
 		return ext, nil
 	}
 	return "", unknownLang(ext)

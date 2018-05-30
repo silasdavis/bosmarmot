@@ -1,4 +1,4 @@
-package perform
+package compile
 
 import (
 	"bytes"
@@ -10,10 +10,8 @@ import (
 	"path"
 	"strings"
 
-	"github.com/monax/bosmarmot/compilers/definitions"
-	"github.com/monax/bosmarmot/compilers/util"
-	"github.com/monax/bosmarmot/monax/config"
-	"github.com/monax/bosmarmot/monax/log"
+	"github.com/monax/bosmarmot/pkgs/util"
+	log "github.com/sirupsen/logrus"
 )
 
 type Response struct {
@@ -35,10 +33,10 @@ type ResponseItem struct {
 	ABI        string `json:"abi"` // json encoded
 }
 
-func (resp Response) CacheNewResponse(req definitions.Request) {
+func (resp Response) CacheNewResponse(req util.Request) {
 	objects := resp.Objects
 	//log.Debug(objects)
-	cacheLocation := definitions.Languages[req.Language].CacheDir
+	cacheLocation := util.Languages[req.Language].CacheDir
 	cur, _ := os.Getwd()
 	os.Chdir(cacheLocation)
 	defer func() {
@@ -60,7 +58,7 @@ func (resp Response) CacheNewResponse(req definitions.Request) {
 	}
 }
 
-func linkBinaries(req *definitions.BinaryRequest) *BinaryResponse {
+func linkBinaries(req *util.BinaryRequest) *BinaryResponse {
 	// purely for solidity and solidity alone as this is soon to be deprecated.
 	if req.Libraries == "" {
 		return &BinaryResponse{
@@ -97,7 +95,7 @@ func RequestBinaryLinkage(file string, libraries string) (*BinaryResponse, error
 	if err != nil {
 		return &BinaryResponse{}, err
 	}
-	request := &definitions.BinaryRequest{
+	request := &util.BinaryRequest{
 		BinaryFile: string(code),
 		Libraries:  libraries,
 	}
@@ -106,7 +104,7 @@ func RequestBinaryLinkage(file string, libraries string) (*BinaryResponse, error
 
 //todo: Might also need to add in a map of library names to addrs
 func RequestCompile(file string, optimize bool, libraries string) (*Response, error) {
-	config.InitMonaxDir()
+	util.InitScratchDir()
 	request, err := CreateRequest(file, libraries, optimize)
 	if err != nil {
 		return nil, err
@@ -144,13 +142,13 @@ func RequestCompile(file string, optimize bool, libraries string) (*Response, er
 }
 
 // Compile takes a dir and some code, replaces all includes, checks cache, compiles, caches
-func compile(req *definitions.Request) *Response {
+func compile(req *util.Request) *Response {
 
-	if _, ok := definitions.Languages[req.Language]; !ok {
+	if _, ok := util.Languages[req.Language]; !ok {
 		return compilerResponse("", "", "", "", "", fmt.Errorf("No script provided"))
 	}
 
-	lang := definitions.Languages[req.Language]
+	lang := util.Languages[req.Language]
 
 	includes := []string{}
 	currentDir, _ := os.Getwd()
@@ -158,7 +156,7 @@ func compile(req *definitions.Request) *Response {
 
 	for k, v := range req.Includes {
 		os.Chdir(lang.CacheDir)
-		file, err := util.CreateTemporaryFile(k, v.Script)
+		file, err := CreateTemporaryFile(k, v.Script)
 		if err != nil {
 			return compilerResponse("", "", "", "", "", err)
 		}
@@ -167,7 +165,7 @@ func compile(req *definitions.Request) *Response {
 		log.WithField("Filepath of include: ", file.Name()).Debug("To Cache")
 	}
 
-	libsFile, err := util.CreateTemporaryFile("monax-libs", []byte(req.Libraries))
+	libsFile, err := CreateTemporaryFile("monax-libs", []byte(req.Libraries))
 	if err != nil {
 		return compilerResponse("", "", "", "", "", err)
 	}
@@ -198,7 +196,7 @@ func compile(req *definitions.Request) *Response {
 		return compilerResponse("", "", "", "", "", fmt.Errorf("%v: %v", err, output))
 	}
 
-	solcResp := definitions.BlankSolcResponse()
+	solcResp := util.BlankSolcResponse()
 
 	//todo: provide unmarshalling for serpent and lll
 	log.WithField("Json: ", output).Debug("Command Output")
@@ -250,28 +248,28 @@ func runCommand(tokens ...string) (string, error) {
 	return s, err
 }
 
-func CreateRequest(file string, libraries string, optimize bool) (*definitions.Request, error) {
-	var includes = make(map[string]*definitions.IncludedFiles)
+func CreateRequest(file string, libraries string, optimize bool) (*util.Request, error) {
+	var includes = make(map[string]*util.IncludedFiles)
 
 	//maps hashes to original file name
 	var hashFileReplacement = make(map[string]string)
-	language, err := util.LangFromFile(file)
+	language, err := LangFromFile(file)
 	if err != nil {
-		return &definitions.Request{}, err
+		return &util.Request{}, err
 	}
-	compiler := &definitions.Compiler{
-		Config: definitions.Languages[language],
+	compiler := &util.Compiler{
+		Config: util.Languages[language],
 		Lang:   language,
 	}
 	code, err := ioutil.ReadFile(file)
 	if err != nil {
-		return &definitions.Request{}, err
+		return &util.Request{}, err
 	}
 	dir := path.Dir(file)
 	//log.Debug("Before parsing includes =>\n\n%s", string(code))
 	code, err = compiler.ReplaceIncludes(code, dir, file, includes, hashFileReplacement)
 	if err != nil {
-		return &definitions.Request{}, err
+		return &util.Request{}, err
 	}
 
 	return compiler.CompilerRequest(file, includes, libraries, optimize, hashFileReplacement), nil
