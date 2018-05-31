@@ -1,13 +1,17 @@
 # Bosmarmot
 
-Bosmarmot is a monorepo containing condensed and updated versions of the monax tooling. This repo intends to provide the basic tooling required to interact with a [Burrow](https://github.com/hyperledger/burrow) chain.
+|[![GoDoc](https://godoc.org/github.com/bosmarmot?status.png)](https://godoc.org/github.com/monax/bosmarmot/bos/cmd) | Linux |
+|---|-------|
+| Master | [![Circle CI](https://circleci.com/gh/monax/bosmarmot/tree/master.svg?style=svg)](https://circleci.com/gh/monax/bosmarmot/tree/master) |
+| Develop | [![Circle CI (develop)](https://circleci.com/gh/monax/bosmarmot/tree/develop.svg?style=svg)](https://circleci.com/gh/monax/bosmarmot/tree/develop) |
 
-It also contains the interpreter for the Monax packages specification language 'epm'. This README will cover setting up a Burrow chain with the Monax tooling from start to finish.
+Bosmarmot is a monorepo containing condensed and updated versions of the basic tooling required to interact with a [Burrow](https://github.com/hyperledger/burrow) chain.
+
+It also contains the interpreter for the burrow packages specification language (previously known as 'epm'). This README will cover setting up a Burrow chain with the bosmarmot tooling from start to finish.
 
 ## Install
 
 We're going to need four (4) binaries:
-
 
 ```
 burrow
@@ -36,7 +40,7 @@ cd $GOPATH/src/github.com/monax/bosmarmot
 make build
 ```
 
-and move these onto you `$PATH` as well.
+and move these onto your `$PATH` as well.
 
 To install the solidity compiler - `solc` - see [here](https://solidity.readthedocs.io/en/develop/installing-solidity.html) for platform specific instructions.
 
@@ -210,7 +214,7 @@ Now that the burrow node is running, we can deploy contracts.
 
 For this step, we need two things: one or more solidity contracts, and an `epm.yaml`.
 
-Let's take a simple example, found in [this directory](monax/tests/jobs_fixtures/app06-deploy_basic_contract_and_different_solc_types_packed_unpacked/).
+Let's take a simple example, found in [this directory](tests/jobs_fixtures/app06-deploy_basic_contract_and_different_solc_types_packed_unpacked/).
 
 The `epm.yaml` should look like:
 
@@ -228,7 +232,7 @@ jobs:
 - name: setStorageBool
   call:
       destination: $deployStorageK
-      function: setBool 
+      function: setBool
       data:
         - $setStorageBaseBool
 
@@ -247,7 +251,7 @@ jobs:
 - name: setStorageBool2
   call:
       destination: $deployStorageK
-      function: setBool2 
+      function: setBool2
       data:
         - true
 
@@ -269,7 +273,7 @@ jobs:
 - name: setStorageInt
   call:
       destination: $deployStorageK
-      function: setInt 
+      function: setInt
       data:
         - $setStorageBaseInt
 
@@ -291,7 +295,7 @@ jobs:
 - name: setStorageUint
   call:
       destination: $deployStorageK
-      function: setUint 
+      function: setUint
       data:
         - $setStorageBaseUint
 
@@ -313,7 +317,7 @@ jobs:
 - name: setStorageAddress
   call:
       destination: $deployStorageK
-      function: setAddress 
+      function: setAddress
       data:
         - $setStorageBaseAddress
 
@@ -335,7 +339,7 @@ jobs:
 - name: setStorageBytes
   call:
       destination: $deployStorageK
-      function: setBytes 
+      function: setBytes
       data:
         - $setStorageBaseBytes
 
@@ -357,7 +361,7 @@ jobs:
 - name: setStorageString
   call:
       destination: $deployStorageK
-      function: setString 
+      function: setString
       data:
         - $setStorageBaseString
 
