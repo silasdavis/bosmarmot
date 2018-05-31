@@ -8,9 +8,9 @@ import (
 	acm "github.com/hyperledger/burrow/account"
 	"github.com/hyperledger/burrow/client"
 	"github.com/hyperledger/burrow/logging"
-	"github.com/monax/bosmarmot/pkgs/abi"
-	"github.com/monax/bosmarmot/pkgs/definitions"
-	"github.com/monax/bosmarmot/pkgs/util"
+	"github.com/monax/bosmarmot/bos/abi"
+	"github.com/monax/bosmarmot/bos/definitions"
+	"github.com/monax/bosmarmot/bos/util"
 	log "github.com/sirupsen/logrus"
 )
 

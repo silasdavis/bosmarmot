@@ -11,8 +11,8 @@ import (
 	"github.com/hyperledger/burrow/keys"
 	"github.com/hyperledger/burrow/logging"
 	"github.com/hyperledger/burrow/txs"
-	"github.com/monax/bosmarmot/pkgs/definitions"
-	"github.com/monax/bosmarmot/pkgs/util"
+	"github.com/monax/bosmarmot/bos/definitions"
+	"github.com/monax/bosmarmot/bos/util"
 	log "github.com/sirupsen/logrus"
 )
 

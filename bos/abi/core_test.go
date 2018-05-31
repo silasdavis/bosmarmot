@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	pm "github.com/monax/bosmarmot/pkgs/definitions"
+	pm "github.com/monax/bosmarmot/bos/definitions"
 
 	"github.com/ethereum/go-ethereum/common"
 )

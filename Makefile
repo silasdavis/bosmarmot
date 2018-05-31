@@ -43,7 +43,7 @@ test_js:
 # Run tests
 .PHONY:	test_bos
 test_bos: check bin/solc
-	@hack/bin_wrapper.sh go test ${GOPACKAGES_NOVENDOR}
+	@tests/scripts/bin_wrapper.sh go test ${GOPACKAGES_NOVENDOR}
 
 .PHONY:	test
 test: test_bos
@@ -63,11 +63,11 @@ npm_install:
 # Run tests including integration tests
 .PHONY:	test_integration_bos
 test_integration_bos: build_bin bin/solc bin/burrow
-	@hack/bin_wrapper.sh tests/bos/run_pkgs_tests.sh
+	@tests/scripts/bin_wrapper.sh tests/bos/run_pkgs_tests.sh
 
 .PHONY:	test_integration_js
 test_integration_js: build_bin bin/solc bin/burrow
-	@cd legacy-contracts.js && TEST=record ../hack/bin_wrapper.sh npm test
+	@cd legacy-contracts.js && TEST=record ../tests/scripts/bin_wrapper.sh npm test
 
 .PHONY:	test_integration
 test_integration: test_integration_bos test_integration_js
@@ -75,11 +75,11 @@ test_integration: test_integration_bos test_integration_js
 # Use a provided/local Burrow
 .PHONY:	test_integration_js_no_burrow
 test_integration_js_no_burrow: build_bin bin/solc
-	@cd legacy-contracts.js && TEST=record ../hack/bin_wrapper.sh npm test
+	@cd legacy-contracts.js && TEST=record ../tests/scripts/bin_wrapper.sh npm test
 
 .PHONY:	test_integration_bos_no_burrow
 test_integration_bos_no_burrow: build_bin bin/solc
-	@hack/bin_wrapper.sh tests/bos/run_pkgs_tests.sh
+	@tests/scripts/bin_wrapper.sh tests/bos/run_pkgs_tests.sh
 
 PHONY:	test_integration_no_burrow
 test_integration_no_burrow: test_integration_bos_no_burrow test_integration_js_no_burrow
@@ -101,23 +101,23 @@ reinstall_vendor: erase_vendor
 # untracked ones)
 .PHONY: ensure_vendor
 ensure_vendor: reinstall_vendor
-	@hack/is_checkout_dirty.sh
+	@tests/scripts/is_checkout_dirty.sh
 
 ### Builds
 
 .PHONY: build_bin
 build_bin:
-	@go build -ldflags "-X github.com/monax/bosmarmot/project.commit=${COMMIT}" -o bin/bos ./cmd/bos
+	@go build -ldflags "-X github.com/monax/bosmarmot/project.commit=${COMMIT}" -o bin/bos ./bos/cmd/bos
 
-bin/solc: ./hack/deps/solc.sh
+bin/solc: ./tests/scripts/deps/solc.sh
 	@mkdir -p bin
-	@hack/deps/solc.sh bin/solc
+	@tests/scripts/deps/solc.sh bin/solc
 	@touch bin/solc
 
-hack/deps/burrow.sh: Gopkg.lock
+tests/scripts/deps/burrow.sh: Gopkg.lock
 	@go get -u github.com/golang/dep/cmd/dep
-	@hack/deps/burrow-gen.sh > hack/deps/burrow.sh
-	@chmod +x hack/deps/burrow.sh
+	@tests/scripts/deps/burrow-gen.sh > tests/scripts/deps/burrow.sh
+	@chmod +x tests/scripts/deps/burrow.sh
 
 .PHONY: burrow_local
 burrow_local:
@@ -125,13 +125,13 @@ burrow_local:
 	@mkdir -p .gopath_burrow/src/${BURROW_PACKAGE}
 	@cp -r ${GOPATH}/src/${BURROW_PACKAGE}/. .gopath_burrow/src/${BURROW_PACKAGE}
 
-bin/burrow: ./hack/deps/burrow.sh
+bin/burrow: ./tests/scripts/deps/burrow.sh
 	mkdir -p bin
 	@GOPATH="${REPO}/.gopath_burrow" \
-	hack/go_get_revision.sh \
+	tests/scripts/go_get_revision.sh \
 	https://github.com/hyperledger/burrow.git \
 	${BURROW_PACKAGE} \
-	$(shell ./hack/deps/burrow.sh) \
+	$(shell ./tests/scripts/deps/burrow.sh) \
 	"make build_db" && \
 	cp .gopath_burrow/src/${BURROW_PACKAGE}/bin/burrow ./bin/burrow
 
@@ -168,9 +168,9 @@ NOTES.md:  ./project/history.go ./project/cmd/notes/main.go
 # ./release/release.go
 .PHONY: tag_release
 tag_release: test check CHANGELOG.md build_bin
-	@hack/tag_release.sh
+	@tests/scripts/tag_release.sh
 
 # If the checked out commit is tagged with a version then release to github
 .PHONY: release
 release: NOTES.md
-	@hack/release.sh
+	@tests/scripts/release.sh

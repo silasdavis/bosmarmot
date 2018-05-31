@@ -6,7 +6,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/monax/bosmarmot/pkgs/util"
+	"github.com/monax/bosmarmot/bos/util"
 )
 
 // check/cache all includes, hash the code, return whether or not there was a full cache hit

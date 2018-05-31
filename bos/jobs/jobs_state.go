@@ -1,7 +1,7 @@
 package jobs
 
 import (
-	"github.com/monax/bosmarmot/pkgs/definitions"
+	"github.com/monax/bosmarmot/bos/definitions"
 )
 
 func DumpStateJob(dump *definitions.DumpState, do *definitions.Packages) (string, error) {

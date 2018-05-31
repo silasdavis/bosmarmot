@@ -5,7 +5,7 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/monax/bosmarmot/pkgs/definitions"
+	"github.com/monax/bosmarmot/bos/definitions"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -3,9 +3,9 @@ package commands
 import (
 	"fmt"
 
-	"github.com/monax/bosmarmot/pkgs"
-	"github.com/monax/bosmarmot/pkgs/definitions"
-	"github.com/monax/bosmarmot/pkgs/util"
+	"github.com/monax/bosmarmot/bos"
+	"github.com/monax/bosmarmot/bos/definitions"
+	"github.com/monax/bosmarmot/bos/util"
 	"github.com/monax/bosmarmot/project"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

@@ -10,7 +10,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/monax/bosmarmot/pkgs/util"
+	"github.com/monax/bosmarmot/bos/util"
 	log "github.com/sirupsen/logrus"
 )
 

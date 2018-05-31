@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/monax/bosmarmot/pkgs/definitions"
+	"github.com/monax/bosmarmot/bos/definitions"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )

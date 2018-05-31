@@ -13,10 +13,10 @@ import (
 	"github.com/hyperledger/burrow/keys"
 	"github.com/hyperledger/burrow/logging"
 	"github.com/hyperledger/burrow/txs"
-	"github.com/monax/bosmarmot/pkgs/abi"
-	compilers "github.com/monax/bosmarmot/pkgs/compile"
-	"github.com/monax/bosmarmot/pkgs/definitions"
-	"github.com/monax/bosmarmot/pkgs/util"
+	"github.com/monax/bosmarmot/bos/abi"
+	compilers "github.com/monax/bosmarmot/bos/compile"
+	"github.com/monax/bosmarmot/bos/definitions"
+	"github.com/monax/bosmarmot/bos/util"
 	log "github.com/sirupsen/logrus"
 )
 

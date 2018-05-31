@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/monax/bosmarmot/pkgs/definitions"
+	"github.com/monax/bosmarmot/bos/definitions"
 
 	acm "github.com/hyperledger/burrow/account"
 	"github.com/hyperledger/burrow/client"

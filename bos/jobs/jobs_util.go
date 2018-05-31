@@ -2,9 +2,9 @@ package jobs
 
 import (
 	acm "github.com/hyperledger/burrow/account"
-	"github.com/monax/bosmarmot/pkgs/definitions"
-	"github.com/monax/bosmarmot/pkgs/keys"
-	"github.com/monax/bosmarmot/pkgs/util"
+	"github.com/monax/bosmarmot/bos/definitions"
+	"github.com/monax/bosmarmot/bos/keys"
+	"github.com/monax/bosmarmot/bos/util"
 	log "github.com/sirupsen/logrus"
 )
 

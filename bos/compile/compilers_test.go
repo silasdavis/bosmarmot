@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/monax/bosmarmot/pkgs/util"
+	"github.com/monax/bosmarmot/bos/util"
 	"github.com/stretchr/testify/assert"
 )
 
