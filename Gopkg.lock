@@ -2,12 +2,6 @@
 
 
 [[projects]]
-  name = "github.com/BurntSushi/toml"
-  packages = ["."]
-  revision = "b26d9c308763d68093482582cea63d69be07a0f0"
-  version = "v0.3.0"
-
-[[projects]]
   name = "github.com/OneOfOne/xxhash"
   packages = ["."]
   revision = "4e9e81466dc37c9fd94ce9ecf42020ef54112203"
@@ -145,12 +139,6 @@
   revision = "ef8a98b0bbce4a65b5aa4c368430a80ddc533168"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/howeyc/gopass"
-  packages = ["."]
-  revision = "bf9dde6d0d2c004a008c27aaee91170c786f6db8"
-
-[[projects]]
   branch = "develop"
   name = "github.com/hyperledger/burrow"
   packages = [
@@ -258,10 +246,10 @@
   revision = "d932a24a8ccb8fcadc993e5c6c58f93dac168294"
 
 [[projects]]
-  name = "github.com/rs/cors"
+  name = "github.com/sirupsen/logrus"
   packages = ["."]
-  revision = "feef513b9575b32f84bafa580aad89b011259019"
-  version = "v1.3.0"
+  revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
+  version = "v1.0.5"
 
 [[projects]]
   name = "github.com/spf13/afero"
@@ -449,22 +437,6 @@
   version = "v1.1.1"
 
 [[projects]]
-  name = "github.com/wayn3h0/go-uuid"
-  packages = [
-    ".",
-    "internal/dcesecurity",
-    "internal/layout",
-    "internal/namebased",
-    "internal/namebased/md5",
-    "internal/namebased/sha1",
-    "internal/random",
-    "internal/timebased",
-    "internal/version"
-  ]
-  revision = "1622016a49b50139b1ac263e6ef2804226b3dec6"
-  version = "v2.2.1"
-
-[[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
   packages = [
@@ -475,11 +447,9 @@
     "nacl/secretbox",
     "openpgp/armor",
     "openpgp/errors",
-    "pbkdf2",
     "poly1305",
     "ripemd160",
     "salsa20/salsa",
-    "scrypt",
     "ssh/terminal"
   ]
   revision = "d6449816ce06963d9d136eee5a56fca5b0616e7e"
@@ -579,6 +549,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8f9f9572a5271fc56dec828c864297098fdfb363734e80c4dfe8f270001dce97"
+  inputs-digest = "a57cf62200a5914b7eff4a8fbc4d2dc5d054f2596bd1ddb2b5abf3a313964b30"
   solver-name = "gps-cdcl"
   solver-version = 1
