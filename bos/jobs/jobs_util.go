@@ -1,7 +1,7 @@
 package jobs
 
 import (
-	acm "github.com/hyperledger/burrow/account"
+	"github.com/hyperledger/burrow/crypto"
 	"github.com/monax/bosmarmot/bos/definitions"
 	"github.com/monax/bosmarmot/bos/keys"
 	"github.com/monax/bosmarmot/bos/util"
@@ -19,7 +19,7 @@ func SetAccountJob(account *definitions.Account, do *definitions.Packages) (stri
 	do.Package.Account = account.Address
 	log.WithField("=>", do.Package.Account).Info("Setting Account")
 
-	address, err := acm.AddressFromHexString(account.Address)
+	address, err := crypto.AddressFromHexString(account.Address)
 	if err != nil {
 		return "", err
 	}
@@ -33,7 +33,7 @@ func SetAccountJob(account *definitions.Account, do *definitions.Packages) (stri
 		return util.KeysErrorHandler(do, err)
 	}
 
-	do.PublicKey = publicKey.KeyString()
+	do.PublicKey = publicKey.String()
 
 	// Set result and return
 	result = account.Address

@@ -10,10 +10,10 @@
   },
   "Accounts": [
     {
-      "Address": "BE584820DC904A55449D7EB0C97607B40224B96E",
+      "Address": "8A9C43A627ABAED281FD201E83D73BB194F67597",
       "PublicKey": {
-        "type": "ed25519",
-        "data": "56F3B8ACAFC2162B73C8DF165FC972DBB26ABD18DE2793848E9174600E82CE67"
+        "CurveType": "ed25519",
+        "PublicKey": "732FF088400E4A4FAE5A23BB8589CCAED8884CC281ABA75CDBA20F7002071DCD"
       },
       "Amount": 9999999999,
       "Name": "Participant_0",
@@ -26,10 +26,10 @@
       }
     },
     {
-      "Address": "0CC835E75E6E3DD60195F2AF69B4AA9BEFFA6D2B",
+      "Address": "2BBDDF41C7C2B035731AC6EF448F681D5127E61F",
       "PublicKey": {
-        "type": "ed25519",
-        "data": "091CF7750C18B1378284B1AE477D00ABA41EC8EDA96D8CDB6D78156254170706"
+        "CurveType": "ed25519",
+        "PublicKey": "8BA5CB32C6A598813497FB99F17240F440E237A1204883A3F73F2B2C10F3FC77"
       },
       "Amount": 99999999999999,
       "Name": "Full_0",
@@ -44,19 +44,19 @@
   ],
   "Validators": [
     {
-      "Address": "0CC835E75E6E3DD60195F2AF69B4AA9BEFFA6D2B",
+      "Address": "2BBDDF41C7C2B035731AC6EF448F681D5127E61F",
       "PublicKey": {
-        "type": "ed25519",
-        "data": "091CF7750C18B1378284B1AE477D00ABA41EC8EDA96D8CDB6D78156254170706"
+        "CurveType": "ed25519",
+        "PublicKey": "8BA5CB32C6A598813497FB99F17240F440E237A1204883A3F73F2B2C10F3FC77"
       },
       "Amount": 9999999999,
       "Name": "Full_0",
       "UnbondTo": [
         {
-          "Address": "0CC835E75E6E3DD60195F2AF69B4AA9BEFFA6D2B",
+          "Address": "2BBDDF41C7C2B035731AC6EF448F681D5127E61F",
           "PublicKey": {
-            "type": "ed25519",
-            "data": "091CF7750C18B1378284B1AE477D00ABA41EC8EDA96D8CDB6D78156254170706"
+            "CurveType": "ed25519",
+            "PublicKey": "8BA5CB32C6A598813497FB99F17240F440E237A1204883A3F73F2B2C10F3FC77"
           },
           "Amount": 9999999999
         }

@@ -3,6 +3,6 @@
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Use keys, burrow, solc binaries in the repo's bin directory
-export PATH=$(readlink -f ${script_dir}/../bin):$PATH
+export PATH=$(readlink -f ${script_dir}/../../bin):$PATH
 
 "$@"

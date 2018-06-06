@@ -254,7 +254,10 @@ func deployRaw(do *definitions.Packages, deploy *definitions.Deploy, contractNam
 	}).Info()
 
 	monaxNodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
-	monaxKeyClient := keys.NewKeyClient(do.Signer, logging.NewNoopLogger())
+	monaxKeyClient, err := keys.NewRemoteKeyClient(do.Signer, logging.NewNoopLogger())
+	if err != nil {
+		return nil, err
+	}
 	tx, err := rpc.Call(monaxNodeClient, monaxKeyClient, do.PublicKey, deploy.Source, "", deploy.Amount,
 		deploy.Nonce, deploy.Gas, deploy.Fee, contractCode)
 	if err != nil {
@@ -321,7 +324,10 @@ func CallJob(call *definitions.Call, do *definitions.Packages) (string, []*defin
 	}).Info("Calling")
 
 	nodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
-	keyClient := keys.NewKeyClient(do.Signer, logging.NewNoopLogger())
+	keyClient, err := keys.NewRemoteKeyClient(do.Signer, logging.NewNoopLogger())
+	if err != nil {
+		return "", nil, err
+	}
 	tx, err := rpc.Call(nodeClient, keyClient, do.PublicKey, call.Source, call.Destination, call.Amount, call.Nonce, call.Gas, call.Fee, callData)
 	if err != nil {
 		return "", nil, err
@@ -384,7 +390,10 @@ func deployFinalize(do *definitions.Packages, tx interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	keyClient := keys.NewKeyClient(do.Signer, logging.NewNoopLogger())
+	keyClient, err := keys.NewRemoteKeyClient(do.Signer, logging.NewNoopLogger())
+	if err != nil {
+		return "", err
+	}
 	res, err := rpc.SignAndBroadcast(chainID, nodeClient, keyClient, tx.(txs.Tx), true, true, true)
 	if err != nil {
 		return util.MintChainErrorHandler(do, err)
