@@ -23,6 +23,7 @@ import (
 	"github.com/hyperledger/burrow/binary"
 	bcm "github.com/hyperledger/burrow/blockchain"
 	"github.com/hyperledger/burrow/consensus/tendermint/query"
+	"github.com/hyperledger/burrow/crypto"
 	"github.com/hyperledger/burrow/event"
 	"github.com/hyperledger/burrow/execution"
 	"github.com/hyperledger/burrow/keys"
@@ -222,7 +223,7 @@ func (s *Service) Genesis() (*ResultGenesis, error) {
 }
 
 // Accounts
-func (s *Service) GetAccount(address acm.Address) (*ResultGetAccount, error) {
+func (s *Service) GetAccount(address crypto.Address) (*ResultGetAccount, error) {
 	acc, err := s.state.GetAccount(address)
 	if err != nil {
 		return nil, err
@@ -248,7 +249,7 @@ func (s *Service) ListAccounts(predicate func(acm.Account) bool) (*ResultListAcc
 	}, nil
 }
 
-func (s *Service) GetStorage(address acm.Address, key []byte) (*ResultGetStorage, error) {
+func (s *Service) GetStorage(address crypto.Address, key []byte) (*ResultGetStorage, error) {
 	account, err := s.state.GetAccount(address)
 	if err != nil {
 		return nil, err
@@ -267,7 +268,7 @@ func (s *Service) GetStorage(address acm.Address, key []byte) (*ResultGetStorage
 	return &ResultGetStorage{Key: key, Value: value.UnpadLeft()}, nil
 }
 
-func (s *Service) DumpStorage(address acm.Address) (*ResultDumpStorage, error) {
+func (s *Service) DumpStorage(address crypto.Address) (*ResultDumpStorage, error) {
 	account, err := s.state.GetAccount(address)
 	if err != nil {
 		return nil, err
@@ -286,7 +287,7 @@ func (s *Service) DumpStorage(address acm.Address) (*ResultDumpStorage, error) {
 	}, nil
 }
 
-func (s *Service) GetAccountHumanReadable(address acm.Address) (*ResultGetAccountHumanReadable, error) {
+func (s *Service) GetAccountHumanReadable(address crypto.Address) (*ResultGetAccountHumanReadable, error) {
 	acc, err := s.state.GetAccount(address)
 	if err != nil {
 		return nil, err
@@ -344,8 +345,8 @@ func (s *Service) ListNames(predicate func(*execution.NameRegEntry) bool) (*Resu
 
 func (s *Service) GetBlock(height uint64) (*ResultGetBlock, error) {
 	return &ResultGetBlock{
-		Block:     s.nodeView.BlockStore().LoadBlock(int64(height)),
-		BlockMeta: s.nodeView.BlockStore().LoadBlockMeta(int64(height)),
+		Block:     &Block{s.nodeView.BlockStore().LoadBlock(int64(height))},
+		BlockMeta: &BlockMeta{s.nodeView.BlockStore().LoadBlockMeta(int64(height))},
 	}, nil
 }
 
@@ -400,7 +401,7 @@ func (s *Service) DumpConsensusState() (*ResultDumpConsensusState, error) {
 		return nil, err
 	}
 	return &ResultDumpConsensusState{
-		RoundState:      s.nodeView.RoundState(),
+		RoundState:      s.nodeView.RoundState().RoundStateSimple(),
 		PeerRoundStates: peerRoundState,
 	}, nil
 }
