@@ -11,12 +11,11 @@ It also contains the interpreter for the burrow packages specification language 
 
 ## Install
 
-We're going to need four (4) binaries:
+We're going to need three (3) binaries:
 
 ```
 burrow
 bos
-monax-keys
 solc
 ```
 
@@ -32,7 +31,7 @@ make build
 
 which will put the `burrow` binary in `/bin`. Move it onto your `$PATH`
 
-For `bos` and `monax-keys`:
+For `bos`:
 
 ```
 go get github.com/monax/bosmarmot
@@ -82,12 +81,6 @@ and writing the output to an `genesis-spec.json`. This file should look like:
 	]
 }
 
-```
-
-Because the next command will be making keys, let's start keys server:
-
-```
-monax-keys server 2>keys.log &
 ```
 
 Then, we pass the `genesis-spec.json` in the following command:
@@ -190,13 +183,13 @@ which creates `burrow.toml` that looks like:
 
 ## Keys
 
-Recall that we ran `monax-keys server` to start the keys server. The previous command (`burrow configure --genesis-spec`) created two keys. Let's look at them:
+The previous command (`burrow configure --genesis-spec`) created two keys. Let's look at them:
 
 ```
-ls $HOME/.monax/keys/data
+ls .keys/data
 ```
 
-will show you the existing keys that the `monax-keys server` can use to sign transactions. In this example, signing happens under-the-hood.
+will show you the existing keys that the `burrow` can use to sign transactions. In this example, signing happens under-the-hood.
 
 ## Run Burrow
 

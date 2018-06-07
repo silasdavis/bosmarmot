@@ -7,8 +7,8 @@ import (
 
 	"github.com/monax/bosmarmot/bos/definitions"
 
-	acm "github.com/hyperledger/burrow/account"
 	"github.com/hyperledger/burrow/client"
+	"github.com/hyperledger/burrow/crypto"
 	"github.com/hyperledger/burrow/logging"
 )
 
@@ -26,7 +26,7 @@ func GetBlockHeight(do *definitions.Packages) (latestBlockHeight uint64, err err
 
 func AccountsInfo(account, field string, do *definitions.Packages) (string, error) {
 
-	address, err := acm.AddressFromHexString(account)
+	address, err := crypto.AddressFromHexString(account)
 	if err != nil {
 		return "", fmt.Errorf("Account Addr %s is improper hex: %v", account, err)
 	}

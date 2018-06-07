@@ -41,7 +41,10 @@ func SendJob(send *definitions.Send, do *definitions.Packages) (string, error) {
 	}).Info("Sending Transaction")
 
 	monaxNodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
-	monaxKeyClient := keys.NewKeyClient(do.Signer, logging.NewNoopLogger())
+	monaxKeyClient, err := keys.NewRemoteKeyClient(do.Signer, logging.NewNoopLogger())
+	if err != nil {
+		return "", err
+	}
 	tx, err := rpc.Send(monaxNodeClient, monaxKeyClient, do.PublicKey, send.Source, send.Destination, send.Amount, send.Nonce)
 	if err != nil {
 		return util.MintChainErrorHandler(do, err)
@@ -155,7 +158,10 @@ func registerNameTx(name *definitions.RegisterName, do *definitions.Packages) (s
 	}).Info("NameReg Transaction")
 
 	monaxNodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
-	monaxKeyClient := keys.NewKeyClient(do.Signer, logging.NewNoopLogger())
+	monaxKeyClient, err := keys.NewRemoteKeyClient(do.Signer, logging.NewNoopLogger())
+	if err != nil {
+		return util.MintChainErrorHandler(do, err)
+	}
 	tx, err := rpc.Name(monaxNodeClient, monaxKeyClient, do.PublicKey, name.Source, name.Amount, name.Nonce, name.Fee, name.Name, name.Data)
 	if err != nil {
 		return util.MintChainErrorHandler(do, err)
@@ -199,7 +205,10 @@ func PermissionJob(perm *definitions.Permission, do *definitions.Packages) (stri
 	//log.WithField(perm.Action, arg).Info("Setting Permissions")
 
 	monaxNodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
-	monaxKeyClient := keys.NewKeyClient(do.Signer, logging.NewNoopLogger())
+	monaxKeyClient, err := keys.NewRemoteKeyClient(do.Signer, logging.NewNoopLogger())
+	if err != nil {
+		return util.MintChainErrorHandler(do, err)
+	}
 	tx, err := rpc.Permissions(monaxNodeClient, monaxKeyClient, do.PublicKey, perm.Source, perm.Nonce, perm.Action,
 		perm.Target, perm.PermissionFlag, perm.Role, perm.Value)
 	if err != nil {
@@ -234,7 +243,10 @@ func BondJob(bond *definitions.Bond, do *definitions.Packages) (string, error) {
 	}).Infof("Bond Transaction")
 
 	monaxNodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
-	monaxKeyClient := keys.NewKeyClient(do.Signer, logging.NewNoopLogger())
+	monaxKeyClient, err := keys.NewRemoteKeyClient(do.Signer, logging.NewNoopLogger())
+	if err != nil {
+		return util.MintChainErrorHandler(do, err)
+	}
 	tx, err := rpc.Bond(monaxNodeClient, monaxKeyClient, do.PublicKey, bond.Account, bond.Amount, bond.Nonce)
 	if err != nil {
 		return util.MintChainErrorHandler(do, err)
@@ -332,7 +344,10 @@ func txFinalize(do *definitions.Packages, tx interface{}) (string, error) {
 	var result string
 
 	nodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
-	keyClient := keys.NewKeyClient(do.Signer, logging.NewNoopLogger())
+	keyClient, err := keys.NewRemoteKeyClient(do.Signer, logging.NewNoopLogger())
+	if err != nil {
+		return "", err
+	}
 	_, chainID, _, err := nodeClient.ChainId()
 	if err != nil {
 		return "", err

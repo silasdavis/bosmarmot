@@ -1,4 +1,4 @@
-ValidatorAddress = "0CC835E75E6E3DD60195F2AF69B4AA9BEFFA6D2B"
+ValidatorAddress = "2BBDDF41C7C2B035731AC6EF448F681D5127E61F"
 
 [Tendermint]
   Seeds = ""
@@ -7,7 +7,10 @@ ValidatorAddress = "0CC835E75E6E3DD60195F2AF69B4AA9BEFFA6D2B"
   TendermintRoot = ".burrow"
 
 [Keys]
-  URL = "http://localhost:48002"
+  AllowBadFilePermissions = true
+  RemoteAddress = ""
+  KeysDirectory = "../tests/keys"
+
 
 [RPC]
   [RPC.V0]
@@ -34,6 +37,8 @@ ValidatorAddress = "0CC835E75E6E3DD60195F2AF69B4AA9BEFFA6D2B"
 
   [RPC.TM]
     ListenAddress = "tcp://localhost:48003"
+  [RPC.GRPC]
+    ListenAddress = "localhost:48002"
 
 [Logging]
   [Logging.RootSink]

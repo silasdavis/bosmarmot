@@ -15,18 +15,12 @@ type LocalKeyClient struct {
 }
 
 const DefaultKeysHost = "localhost"
-const DefaultKeysPort = "4767"
+const DefaultKeysPort = "10997"
 
 var keysTimeout = 5 * time.Second
 
 func DefaultKeysURL() string {
-	return fmt.Sprintf("http://%s:%s", DefaultKeysHost, DefaultKeysPort)
-}
-
-func NewKeyClient(keysUrl string) *LocalKeyClient {
-	return &LocalKeyClient{
-		keys.NewKeyClient(keysUrl, logging.NewNoopLogger()),
-	}
+	return fmt.Sprintf("%s:%s", DefaultKeysHost, DefaultKeysPort)
 }
 
 // Returns an initialized key client to a docker container
@@ -35,8 +29,12 @@ func NewKeyClient(keysUrl string) *LocalKeyClient {
 // for passing data
 func InitKeyClient(keysUrl string) (*LocalKeyClient, error) {
 	aliveCh := make(chan struct{})
-	localKeyClient := NewKeyClient(keysUrl)
-	err := localKeyClient.HealthCheck()
+	localKeyClient, err := keys.NewRemoteKeyClient(keysUrl, logging.NewNoopLogger())
+	if err != nil {
+		return nil, err
+	}
+
+	err = localKeyClient.HealthCheck()
 
 	go func() {
 		for err != nil {
@@ -48,7 +46,7 @@ func InitKeyClient(keysUrl string) (*LocalKeyClient, error) {
 	case <-time.After(keysTimeout):
 		return nil, fmt.Errorf("keys instance did not become responsive after %s: %v", keysTimeout, err)
 	case <-aliveCh:
-		return localKeyClient, nil
+		return &LocalKeyClient{localKeyClient}, nil
 	}
 }
 

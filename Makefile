@@ -63,7 +63,7 @@ npm_install:
 # Run tests including integration tests
 .PHONY:	test_integration_bos
 test_integration_bos: build_bin bin/solc bin/burrow
-	@tests/scripts/bin_wrapper.sh tests/bos/run_pkgs_tests.sh
+	@tests/scripts/bin_wrapper.sh tests/run_pkgs_tests.sh
 
 .PHONY:	test_integration_js
 test_integration_js: build_bin bin/solc bin/burrow
@@ -79,7 +79,7 @@ test_integration_js_no_burrow: build_bin bin/solc
 
 .PHONY:	test_integration_bos_no_burrow
 test_integration_bos_no_burrow: build_bin bin/solc
-	@tests/scripts/bin_wrapper.sh tests/bos/run_pkgs_tests.sh
+	@tests/scripts/bin_wrapper.sh tests/run_pkgs_tests.sh
 
 PHONY:	test_integration_no_burrow
 test_integration_no_burrow: test_integration_bos_no_burrow test_integration_js_no_burrow

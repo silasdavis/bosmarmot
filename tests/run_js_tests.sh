@@ -17,9 +17,8 @@
 
 # Various required binaries locations can be provided by wrapper
 burrow_bin=${burrow_bin:-burrow}
-keys_bin=${keys_bin:-monax-keys}
 
-# If false we will not try to start keys or Burrow and expect them to be running
+# If false we will not try to start Burrow and expect them to be running
 boot=${boot:-true}
 debug=${debug:-false}
 
@@ -45,7 +44,6 @@ rpc_tm_port=48003
 burrow_root="${chain_dir}/.burrow"
 
 # Temporary logs
-keys_log="${log_dir}/keys.log"
 burrow_log="${log_dir}/burrow.log"
 #
 # ----------------------------------------------------------
@@ -62,18 +60,11 @@ test_setup(){
 
   echo
   echo "Using binaries:"
-  echo "  $(type ${keys_bin}) (version: $(${keys_bin} version))"
   echo "  $(type ${burrow_bin}) (version: $(${burrow_bin} --version))"
   echo
 
   # start test chain
   if [[ "$boot" = true ]]; then
-    echo "Booting keys then Burrow.."
-    echo "Starting keys on port $keys_port"
-    ${keys_bin} server --port ${keys_port} --dir "${script_dir}/keys" 2> "$keys_log" &
-    keys_pid=$!
-
-    sleep 1
     echo "Starting Burrow with tendermint RPC port: $rpc_tm_port"
     rm -rf ${burrow_root}
 
@@ -83,8 +74,7 @@ test_setup(){
     sleep 1
 
   else
-    echo "Not booting Burrow or keys, but expecting Burrow to be running with tm RPC on port $rpc_tm_port and keys"\
-        "to be running on port $keys_port"
+    echo "Not booting Burrow, but expecting Burrow to be running with tm RPC on port $rpc_tm_port"
   fi
 
   account_data
@@ -111,9 +101,6 @@ test_teardown(){
     kill ${burrow_pid}
     echo "Waiting for burrow to shutdown..."
     wait ${burrow_pid} 2> /dev/null &
-    kill ${keys_pid}
-    echo "Waiting for keys to shutdown..."
-    wait ${keys_pid} 2> /dev/null &
     rm -rf "$burrow_root"
   fi
   echo ""

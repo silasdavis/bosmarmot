@@ -38,7 +38,7 @@ There has been an error talking to your monax chain.
 
 Debugging this error is tricky, but don't worry the marmot recovery checklist is...
   * is the %s account right?
-  * is the account you want to use in your keys service: monax keys ls ?
+  * is the account you want to use in your keys service: burrow keys list ?
   * is the account you want to use in your genesis.json: see http://localhost:46657/genesis
   * do you have permissions to do what you're trying to do on the chain?
 `, err, do.Package.Account)
@@ -67,13 +67,13 @@ are in the keys service, then rerun me.
 	}
 
 	return "", fmt.Errorf(`
-There has been an error talking to your monax keys service.
+There has been an error talking to your burrow keys service.
 
 %v
 
 Debugging this error is tricky, but don't worry the marmot recovery checklist is...
   * is your %s account right?
-  * is the key for %s in your keys service: monax keys ls ?
+  * is the key for %s in your keys service: burrow keys list ?
 `, err, do.Package.Account, do.Package.Account)
 }
 

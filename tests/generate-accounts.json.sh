@@ -8,4 +8,4 @@ address_of() {
 
 full_addr=$(address_of "Full_0")
 
-monax-keys convert --port 48002 --addr ${full_addr} | jq '{address: .address, pubKey: .pub_key[1], privKey: .priv_key[1]}'
+burrow keys export --addr ${full_addr} | jq '{address: .address, pubKey: .pub_key[1], privKey: .priv_key[1]}'

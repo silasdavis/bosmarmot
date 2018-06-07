@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strconv"
 
-	acm "github.com/hyperledger/burrow/account"
 	"github.com/hyperledger/burrow/client"
+	"github.com/hyperledger/burrow/crypto"
 	"github.com/hyperledger/burrow/logging"
 	"github.com/monax/bosmarmot/bos/abi"
 	"github.com/monax/bosmarmot/bos/definitions"
@@ -27,15 +27,15 @@ func QueryContractJob(query *definitions.QueryContract, do *definitions.Packages
 		return "", nil, err
 	}
 	// Set the from and the to addresses
-	fromAddress := acm.ZeroAddress
+	fromAddress := crypto.ZeroAddress
 	// We allow anonymous Calls
 	if query.Source != "" {
-		fromAddress, err = acm.AddressFromHexString(query.Source)
+		fromAddress, err = crypto.AddressFromHexString(query.Source)
 		if err != nil {
 			return "", nil, err
 		}
 	}
-	toAddress, err := acm.AddressFromHexString(query.Destination)
+	toAddress, err := crypto.AddressFromHexString(query.Destination)
 	if err != nil {
 		return "", nil, err
 	}

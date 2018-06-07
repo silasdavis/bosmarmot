@@ -26,3 +26,7 @@
 [[constraint]]
   name = "github.com/sirupsen/logrus"
   version = "~1.0.5"
+
+[[override]]
+  name = "google.golang.org/genproto"
+  revision = "7fd901a49ba6a7f87732eb344f6e3c5b19d1b200"
