@@ -92,7 +92,7 @@ func DeployJob(deploy *definitions.Deploy, do *definitions.Packages) (result str
 			log.Errorln("Error compiling contracts: Language error:")
 			return "", fmt.Errorf("%v", resp.Error)
 		} else if resp.Warning != "" {
-			log.WithField("Warning", resp.Warning).Warn("Warning Generated during Contract Compilation")
+			log.WithField("=>", resp.Warning).Warn("Warning during contract compilation")
 		}
 		// loop through objects returned from compiler
 		switch {
