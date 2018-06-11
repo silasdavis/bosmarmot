@@ -9,7 +9,7 @@
     "url": "https://github.com/monax/legacy-contracts.js/issues"
   },
   "dependencies": {
-    "@monax/legacy-db": "0.17.0",
+    "@monax/legacy-db": "file:../legacy-db.js",
     "@nodeguy/generic": "3.0.0",
     "@nodeguy/type": "0.2.0",
     "bignumber.js": "github:debris/bignumber.js#94d7146671b9719e00a09c29b01a691bc85048c2",
@@ -63,7 +63,7 @@
     "doc": "jsdoc --configure JSDoc/conf.json --destination doc index.js lib README.md",
     "precommit": "standard",
     "pretest": "standard",
-    "test": "../test/run_js_tests.sh"
+    "test": "../tests/run_js_tests.sh"
   },
   "standard": {
     "globals": [

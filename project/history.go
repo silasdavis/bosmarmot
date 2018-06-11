@@ -28,6 +28,9 @@ func FullVersion() string {
 // To cut a new release add a release to the front of this slice then run the
 // release tagging script: ./scripts/tag_release.sh
 var History relic.ImmutableHistory = relic.NewHistory("Bosmarmot").MustDeclareReleases(
+	"0.2.0",
+	`Simplify repository by removing latent tooling and consolidating compilers and bos,
+as well as removing keys completely which have been migrated to burrow`,
 	"0.1.0",
 	`Major release of Bosmarmot tooling including updated javascript libraries for Burrow 0.18.*`,
 	"0.0.1",

@@ -3,6 +3,7 @@
 priv_validator.json
 scratch/
 bin/
+.DS_Store
 
 # tests
 *.log
@@ -10,5 +11,5 @@ bin/
 
 epm.output.json
 .gopath_burrow
-monax/tests/**/abi/
+tests/**/abi/
 node_modules/
