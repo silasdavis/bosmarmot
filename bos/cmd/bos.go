@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/monax/bosmarmot/bos"
@@ -24,6 +25,7 @@ Made with <3 by Monax Industries.
 ` + "\nVersion:\n  " + project.History.CurrentVersion().String(),
 	Run: func(cmd *cobra.Command, args []string) {
 		util.IfExit(ArgCheck(0, "eq", cmd, args))
+		log.SetFormatter(new(PlainFormatter))
 		log.SetLevel(log.WarnLevel)
 		if do.Verbose {
 			log.SetLevel(log.InfoLevel)
@@ -91,4 +93,50 @@ func ArgCheck(num int, comp string, cmd *cobra.Command, args []string) error {
 		}
 	}
 	return nil
+}
+
+type PlainFormatter struct{}
+
+func (f *PlainFormatter) Format(entry *log.Entry) ([]byte, error) {
+	var b *bytes.Buffer
+	keys := make([]string, 0, len(entry.Data))
+	for k := range entry.Data {
+		keys = append(keys, k)
+	}
+
+	if entry.Buffer != nil {
+		b = entry.Buffer
+	} else {
+		b = &bytes.Buffer{}
+	}
+
+	f.appendMessage(b, entry.Message)
+	for _, key := range keys {
+		f.appendMessageData(b, key, entry.Data[key])
+	}
+
+	b.WriteByte('\n')
+	return b.Bytes(), nil
+}
+
+func (f *PlainFormatter) appendMessage(b *bytes.Buffer, message string) {
+	fmt.Fprintf(b, "%-44s", message)
+}
+
+func (f *PlainFormatter) appendMessageData(b *bytes.Buffer, key string, value interface{}) {
+	switch key {
+	case "":
+		b.WriteString("=> ")
+	case "=>":
+		b.WriteString(key)
+		b.WriteByte(' ')
+	default:
+		b.WriteString(key)
+		b.WriteString(" => ")
+	}
+	stringVal, ok := value.(string)
+	if !ok {
+		stringVal = fmt.Sprint(value)
+	}
+	b.WriteString(stringVal)
 }
