@@ -164,6 +164,10 @@ CHANGELOG.md: ./project/history.go ./project/cmd/changelog/main.go
 NOTES.md:  ./project/history.go ./project/cmd/notes/main.go
 	@go run ./project/cmd/notes/main.go > NOTES.md
 
+# Generate all docs
+.PHONY: docs
+docs: CHANGELOG.md NOTES.md
+
 # Tag the current HEAD commit with the current release defined in
 # ./release/release.go
 .PHONY: tag_release
