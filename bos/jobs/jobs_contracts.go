@@ -13,6 +13,7 @@ import (
 	"github.com/hyperledger/burrow/keys"
 	"github.com/hyperledger/burrow/logging"
 	"github.com/hyperledger/burrow/txs"
+	"github.com/hyperledger/burrow/txs/payload"
 	"github.com/monax/bosmarmot/bos/abi"
 	compilers "github.com/monax/bosmarmot/bos/compile"
 	"github.com/monax/bosmarmot/bos/definitions"
@@ -240,7 +241,7 @@ func deployContract(deploy *definitions.Deploy, do *definitions.Packages, compil
 	return result, err
 }
 
-func deployRaw(do *definitions.Packages, deploy *definitions.Deploy, contractName, contractCode string) (*txs.CallTx, error) {
+func deployRaw(do *definitions.Packages, deploy *definitions.Deploy, contractName, contractCode string) (*payload.CallTx, error) {
 
 	// Deploy contract
 	log.WithFields(log.Fields{
@@ -261,7 +262,7 @@ func deployRaw(do *definitions.Packages, deploy *definitions.Deploy, contractNam
 	tx, err := rpc.Call(monaxNodeClient, monaxKeyClient, do.PublicKey, deploy.Source, "", deploy.Amount,
 		deploy.Nonce, deploy.Gas, deploy.Fee, contractCode)
 	if err != nil {
-		return &txs.CallTx{}, fmt.Errorf("error deploying contract %s: %v", contractName, err)
+		return &payload.CallTx{}, fmt.Errorf("error deploying contract %s: %v", contractName, err)
 	}
 
 	return tx, err
@@ -344,7 +345,7 @@ func CallJob(call *definitions.Call, do *definitions.Packages) (string, []*defin
 	if err != nil {
 		return "", nil, err
 	}
-	res, err := rpc.SignAndBroadcast(chainID, nodeClient, keyClient, tx, true, true, true)
+	res, err := rpc.SignAndBroadcast(nodeClient, keyClient, txs.Enclose(chainID, tx), true, true, true)
 	if err != nil {
 		var str, err = util.MintChainErrorHandler(do, err)
 		return str, nil, err
@@ -384,7 +385,7 @@ func CallJob(call *definitions.Call, do *definitions.Packages) (string, []*defin
 	return result, call.Variables, nil
 }
 
-func deployFinalize(do *definitions.Packages, tx interface{}) (string, error) {
+func deployFinalize(do *definitions.Packages, tx payload.Payload) (string, error) {
 	nodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
 	_, chainID, _, err := nodeClient.ChainId()
 	if err != nil {
@@ -394,7 +395,7 @@ func deployFinalize(do *definitions.Packages, tx interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	res, err := rpc.SignAndBroadcast(chainID, nodeClient, keyClient, tx.(txs.Tx), true, true, true)
+	res, err := rpc.SignAndBroadcast(nodeClient, keyClient, txs.Enclose(chainID, tx), true, true, true)
 	if err != nil {
 		return util.MintChainErrorHandler(do, err)
 	}

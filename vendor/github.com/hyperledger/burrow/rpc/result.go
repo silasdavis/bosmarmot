@@ -19,10 +19,12 @@ import (
 	"fmt"
 
 	acm "github.com/hyperledger/burrow/account"
+	"github.com/hyperledger/burrow/binary"
 	"github.com/hyperledger/burrow/crypto"
 	"github.com/hyperledger/burrow/execution"
 	exeEvents "github.com/hyperledger/burrow/execution/events"
 	evmEvents "github.com/hyperledger/burrow/execution/evm/events"
+	"github.com/hyperledger/burrow/execution/names"
 	"github.com/hyperledger/burrow/genesis"
 	"github.com/hyperledger/burrow/txs"
 	"github.com/tendermint/go-amino"
@@ -42,8 +44,8 @@ func init() {
 }
 
 type ResultGetStorage struct {
-	Key   []byte
-	Value []byte
+	Key   binary.HexBytes
+	Value binary.HexBytes
 }
 
 type ResultCall struct {
@@ -64,13 +66,13 @@ type ResultListAccounts struct {
 }
 
 type ResultDumpStorage struct {
-	StorageRoot  []byte
+	StorageRoot  binary.HexBytes
 	StorageItems []StorageItem
 }
 
 type StorageItem struct {
-	Key   []byte
-	Value []byte
+	Key   binary.HexBytes
+	Value binary.HexBytes
 }
 
 type ResultListBlocks struct {
@@ -110,9 +112,9 @@ func (b *Block) UnmarshalJSON(data []byte) (err error) {
 
 type ResultStatus struct {
 	NodeInfo          p2p.NodeInfo
-	GenesisHash       []byte
+	GenesisHash       binary.HexBytes
 	PubKey            crypto.PublicKey
-	LatestBlockHash   []byte
+	LatestBlockHash   binary.HexBytes
 	LatestBlockHeight uint64
 	LatestBlockTime   int64
 	NodeVersion       string
@@ -121,7 +123,7 @@ type ResultStatus struct {
 type ResultChainId struct {
 	ChainName   string
 	ChainId     string
-	GenesisHash []byte
+	GenesisHash binary.HexBytes
 }
 
 type ResultSubscribe struct {
@@ -161,7 +163,7 @@ type ResultPeers struct {
 
 type ResultListNames struct {
 	BlockHeight uint64
-	Names       []*execution.NameRegEntry
+	Names       []*names.Entry
 }
 
 type ResultGeneratePrivateAccount struct {
@@ -201,11 +203,11 @@ func (rbt ResultBroadcastTx) UnmarshalJSON(data []byte) (err error) {
 
 type ResultListUnconfirmedTxs struct {
 	NumTxs int
-	Txs    []txs.Wrapper
+	Txs    []*txs.Envelope
 }
 
 type ResultGetName struct {
-	Entry *execution.NameRegEntry
+	Entry *names.Entry
 }
 
 type ResultGenesis struct {
@@ -213,7 +215,7 @@ type ResultGenesis struct {
 }
 
 type ResultSignTx struct {
-	Tx txs.Wrapper
+	Tx *txs.Envelope
 }
 
 type TendermintEvent struct {

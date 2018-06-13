@@ -68,6 +68,7 @@ test_setup(){
     echo "Starting Burrow with tendermint RPC port: $rpc_tm_port"
     rm -rf ${burrow_root}
 
+    cd "$chain_dir"
     ${burrow_bin} start -c "${chain_dir}/burrow.toml" -g "${chain_dir}/genesis.json" 2> "$burrow_log" &
     burrow_pid=$!
 
@@ -88,8 +89,8 @@ test_setup(){
 perform_tests(){
   cd "$js_dir"
 
-  vector=privateKey_vector account=$test_account mocha --recursive --reporter mocha-circleci-reporter ${1}
-  vector=address_vector SIGNBYADDRESS=true account=$test_account mocha --recursive --reporter mocha-circleci-reporter ${1}
+  vector=privateKey_vector account=$test_account mocha --recursive ${1}
+  vector=address_vector SIGNBYADDRESS=true account=$test_account mocha --recursive ${1}
 
   test_exit=$?
 }
