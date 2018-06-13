@@ -7,6 +7,7 @@ ValidatorAddress = "2BBDDF41C7C2B035731AC6EF448F681D5127E61F"
   TendermintRoot = ".burrow"
 
 [Keys]
+  GRPCServiceEnabled = true
   AllowBadFilePermissions = true
   RemoteAddress = ""
   KeysDirectory = "../keys"

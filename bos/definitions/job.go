@@ -26,8 +26,6 @@ type Job struct {
 	Bond *Bond `mapstructure:"bond" json:"bond" yaml:"bond" toml:"bond"`
 	// Sends an unbond transaction
 	Unbond *Unbond `mapstructure:"unbond" json:"unbond" yaml:"unbond" toml:"unbond"`
-	// Sends a rebond transaction
-	Rebond *Rebond `mapstructure:"rebond" json:"rebond" yaml:"rebond" toml:"rebond"`
 	// Sends a transaction to a contract. Will utilize monax-abi under the hood to perform all of the heavy lifting
 	Call *Call `mapstructure:"call" json:"call" yaml:"call" toml:"call"`
 	// Wrapper for mintdump dump. WIP

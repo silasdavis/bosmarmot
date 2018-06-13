@@ -11,6 +11,7 @@ import (
 	"github.com/hyperledger/burrow/keys"
 	"github.com/hyperledger/burrow/logging"
 	"github.com/hyperledger/burrow/txs"
+	"github.com/hyperledger/burrow/txs/payload"
 	"github.com/monax/bosmarmot/bos/definitions"
 	"github.com/monax/bosmarmot/bos/util"
 	log "github.com/sirupsen/logrus"
@@ -298,49 +299,7 @@ func UnbondJob(unbond *definitions.Unbond, do *definitions.Packages) (string, er
 	return txFinalize(do, tx)
 }
 
-func RebondJob(rebond *definitions.Rebond, do *definitions.Packages) (string, error) {
-	// Process Variables
-	var err error
-	rebond.Account, err = util.PreProcess(rebond.Account, do)
-	if err != nil {
-		return "", err
-	}
-	rebond.Height, err = util.PreProcess(rebond.Height, do)
-	if err != nil {
-		return "", err
-	}
-
-	// Use defaults
-	rebond.Account = useDefault(rebond.Account, do.Package.Account)
-
-	// Don't use pubKey if account override
-	var oldKey string
-	if rebond.Account != do.Package.Account {
-		oldKey = do.PublicKey
-		do.PublicKey = ""
-	}
-
-	// Formulate tx
-	log.WithFields(log.Fields{
-		"account": rebond.Account,
-		"height":  rebond.Height,
-	}).Info("Rebond Transaction")
-
-	tx, err := rpc.Rebond(rebond.Account, rebond.Height)
-	if err != nil {
-		return util.MintChainErrorHandler(do, err)
-	}
-
-	// Don't use pubKey if account override
-	if rebond.Account != do.Package.Account {
-		do.PublicKey = oldKey
-	}
-
-	// Sign, broadcast, display
-	return txFinalize(do, tx)
-}
-
-func txFinalize(do *definitions.Packages, tx interface{}) (string, error) {
+func txFinalize(do *definitions.Packages, tx payload.Payload) (string, error) {
 	var result string
 
 	nodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
@@ -352,7 +311,7 @@ func txFinalize(do *definitions.Packages, tx interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	res, err := rpc.SignAndBroadcast(chainID, nodeClient, keyClient, tx.(txs.Tx), true, true, true)
+	res, err := rpc.SignAndBroadcast(nodeClient, keyClient, txs.Enclose(chainID, tx), true, true, true)
 	if err != nil {
 		return util.MintChainErrorHandler(do, err)
 	}

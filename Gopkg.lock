@@ -139,7 +139,7 @@
   revision = "ef8a98b0bbce4a65b5aa4c368430a80ddc533168"
 
 [[projects]]
-  branch = "develop"
+  branch = "protodraft"
   name = "github.com/hyperledger/burrow"
   packages = [
     "account",
@@ -153,9 +153,9 @@
     "consensus/tendermint/codes",
     "consensus/tendermint/query",
     "crypto",
-    "crypto/helpers",
     "event",
     "execution",
+    "execution/errors",
     "execution/events",
     "execution/evm",
     "execution/evm/abi",
@@ -163,7 +163,10 @@
     "execution/evm/asm/bc",
     "execution/evm/events",
     "execution/evm/sha3",
+    "execution/executors",
+    "execution/names",
     "genesis",
+    "genesis/spec",
     "keys",
     "keys/pbkeys",
     "logging",
@@ -181,9 +184,10 @@
     "rpc/tm/lib/types",
     "rpc/v0/server",
     "sync",
-    "txs"
+    "txs",
+    "txs/payload"
   ]
-  revision = "4cc919e7a7e80a2e196e3b76f3b20acb0155ec5a"
+  revision = "604c01d29d262c179c886491d3d095def83edc5c"
 
 [[projects]]
   name = "github.com/inconshreveable/mousetrap"
@@ -230,8 +234,8 @@
 [[projects]]
   name = "github.com/pelletier/go-toml"
   packages = ["."]
-  revision = "acdc4509485b587f5e675510c4f2c63e90ff68a8"
-  version = "v1.1.0"
+  revision = "c01d1270ff3e442a8a57cddc1c92dc1138598194"
+  version = "v1.2.0"
 
 [[projects]]
   name = "github.com/pkg/errors"
@@ -263,8 +267,8 @@
     ".",
     "mem"
   ]
-  revision = "63644898a8da0bc22138abf860edaf5277b6102e"
-  version = "v1.1.0"
+  revision = "787d034dfe70e44075ccc060d346146ef53270ad"
+  version = "v1.1.1"
 
 [[projects]]
   name = "github.com/spf13/cast"
@@ -302,8 +306,8 @@
     "assert",
     "require"
   ]
-  revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
-  version = "v1.2.1"
+  revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
+  version = "v1.2.2"
 
 [[projects]]
   branch = "master"
@@ -322,7 +326,7 @@
     "leveldb/table",
     "leveldb/util"
   ]
-  revision = "5d6fca44a948d2be89a9702de7717f0168403d3d"
+  revision = "e2150783cd35f5b607daca48afd8c57ec54cc995"
 
 [[projects]]
   name = "github.com/tendermint/abci"
@@ -332,8 +336,8 @@
     "example/kvstore",
     "types"
   ]
-  revision = "9af8b7a7c87478869f8c280ed9539470b8f470b4"
-  version = "v0.11.0-rc4"
+  revision = "ebee2fe114020aa49c70bbbae50b7079fc7e7b90"
+  version = "v0.11.0"
 
 [[projects]]
   branch = "master"
@@ -358,19 +362,13 @@
   version = "v0.6.2"
 
 [[projects]]
-  name = "github.com/tendermint/go-wire"
+  name = "github.com/tendermint/iavl"
   packages = [
     ".",
-    "data"
+    "sha256truncated"
   ]
-  revision = "fa721242b042ecd4c6ed1a934ee740db4f74e45c"
-  version = "v0.7.3"
-
-[[projects]]
-  name = "github.com/tendermint/iavl"
-  packages = ["."]
-  revision = "fd37a0fa3a7454423233bc3d5ea828f38e0af787"
-  version = "v0.7.0"
+  revision = "c9206995e8f948e99927f5084a88a7e94ca256da"
+  version = "v0.8.0-rc0"
 
 [[projects]]
   name = "github.com/tendermint/tendermint"
@@ -389,6 +387,7 @@
     "p2p/conn",
     "p2p/pex",
     "p2p/upnp",
+    "privval",
     "proxy",
     "rpc/core",
     "rpc/core/types",
@@ -401,11 +400,10 @@
     "state/txindex/kv",
     "state/txindex/null",
     "types",
-    "types/priv_validator",
     "version"
   ]
-  revision = "b5baab0238c9ec26e3b2d229b0243f9ff9220bdb"
-  version = "v0.20.0-rc3"
+  revision = "27bd1deabe4ba6a2d9b463b8f3e3f1e31b993e61"
+  version = "v0.20.0"
 
 [[projects]]
   name = "github.com/tendermint/tmlibs"
@@ -418,8 +416,8 @@
     "log",
     "merkle"
   ]
-  revision = "d970af87248a4e162590300dbb74e102183a417d"
-  version = "v0.8.3"
+  revision = "692f1d86a6e2c0efa698fd1e4541b68c74ffaf38"
+  version = "v0.8.4"
 
 [[projects]]
   branch = "master"
@@ -463,7 +461,7 @@
     "scrypt",
     "ssh/terminal"
   ]
-  revision = "df8d4716b3472e4a531c33cedbe537dae921a1a9"
+  revision = "e6b1200d11b062b0e525730044b7de555b7ed66d"
 
 [[projects]]
   branch = "master"
@@ -477,7 +475,7 @@
     "internal/timeseries",
     "trace"
   ]
-  revision = "1e491301e022f8f977054da4c2d852decd59571f"
+  revision = "db08ff08e8622530d9ed3a0e8ac279f6d4c02196"
 
 [[projects]]
   branch = "master"
@@ -487,7 +485,7 @@
     "unix",
     "windows"
   ]
-  revision = "c11f84a56e43e20a78cee75a7c034031ecf57d1f"
+  revision = "56ede360ec1c541828fb88741b3f1049406d28f5"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -560,6 +558,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "767d5809f0b6e11a389b43f6f8b6d53e4d34ef27f54f5bb45e2d973fa3ba3238"
+  inputs-digest = "2a76b4a55b2486ce499bd0a0e04f0ace08de9f0b6f5efa6e391ef775b839156c"
   solver-name = "gps-cdcl"
   solver-version = 1
