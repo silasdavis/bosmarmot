@@ -15,9 +15,7 @@
 package execution
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"sync"
 	"time"
 
@@ -25,11 +23,11 @@ import (
 	"github.com/hyperledger/burrow/account/state"
 	"github.com/hyperledger/burrow/binary"
 	"github.com/hyperledger/burrow/crypto"
+	"github.com/hyperledger/burrow/execution/names"
 	"github.com/hyperledger/burrow/genesis"
 	"github.com/hyperledger/burrow/logging"
-	ptypes "github.com/hyperledger/burrow/permission"
-	"github.com/hyperledger/burrow/txs"
-	"github.com/tendermint/go-wire"
+	"github.com/hyperledger/burrow/permission"
+	ptypes "github.com/hyperledger/burrow/permission/types"
 	"github.com/tendermint/iavl"
 	dbm "github.com/tendermint/tmlibs/db"
 )
@@ -59,8 +57,7 @@ var _ state.Writer = &State{}
 
 type State struct {
 	sync.RWMutex
-	db      dbm.DB
-	version uint64
+	db dbm.DB
 	// TODO:
 	tree   *iavl.VersionedTree
 	logger *logging.Logger
@@ -106,7 +103,7 @@ func MakeGenesisState(db dbm.DB, genesisDoc *genesis.GenesisDoc) (*State, error)
 
 	// global permissions are saved as the 0 address
 	// so they are included in the accounts tree
-	globalPerms := ptypes.DefaultAccountPermissions
+	globalPerms := permission.DefaultAccountPermissions
 	globalPerms = genesisDoc.GlobalPermissions
 	// XXX: make sure the set bits are all true
 	// Without it the HasPermission() functions will fail
@@ -132,21 +129,11 @@ func MakeGenesisState(db dbm.DB, genesisDoc *genesis.GenesisDoc) (*State, error)
 }
 
 // Tries to load the execution state from DB, returns nil with no error if no state found
-func LoadState(db dbm.DB, hash []byte) (*State, error) {
-	versionBytes := db.Get(prefixedKey(versionPrefix, hash))
-	if versionBytes == nil {
-		return nil, fmt.Errorf("could not retrieve version corresponding to state hash '%X' in database", hash)
-	}
+func LoadState(db dbm.DB) (*State, error) {
 	s := NewState(db)
-	s.version = binary.GetUint64BE(versionBytes)
-	treeVersion, err := s.tree.Load()
+	_, err := s.tree.Load()
 	if err != nil {
 		return nil, fmt.Errorf("could not load versioned state tree")
-	}
-
-	if uint64(treeVersion) != s.version {
-		return nil, fmt.Errorf("LoadState expects tree version %v for state hash %X but latest state tree version "+
-			"loaded is %v", s.version, hash, treeVersion)
 	}
 	return s, nil
 }
@@ -154,18 +141,10 @@ func LoadState(db dbm.DB, hash []byte) (*State, error) {
 func (s *State) Save() error {
 	s.Lock()
 	defer s.Unlock()
-	s.version++
-	hash, treeVersion, err := s.tree.SaveVersion()
+	_, _, err := s.tree.SaveVersion()
 	if err != nil {
 		return err
 	}
-	if uint64(treeVersion) != s.version {
-		return fmt.Errorf("Save expects state tree version %v for state hash %X tree saved as version %v",
-			s.version, hash, treeVersion)
-	}
-	versionBytes := make([]byte, 8)
-	binary.PutUint64BE(versionBytes, s.version)
-	s.db.SetSync(prefixedKey(versionPrefix, hash), versionBytes)
 	return nil
 }
 
@@ -270,36 +249,38 @@ func (s *State) IterateStorage(address crypto.Address,
 //-------------------------------------
 // State.nameReg
 
-var _ NameRegIterable = &State{}
+var _ names.Iterable = &State{}
 
-func (s *State) GetNameRegEntry(name string) (*NameRegEntry, error) {
-	_, valueBytes := s.tree.Get(prefixedKey(nameRegPrefix, []byte(name)))
-	if valueBytes == nil {
+func (s *State) GetNameEntry(name string) (*names.Entry, error) {
+	_, entryBytes := s.tree.Get(prefixedKey(nameRegPrefix, []byte(name)))
+	if entryBytes == nil {
 		return nil, nil
 	}
 
-	return DecodeNameRegEntry(valueBytes), nil
+	return names.DecodeEntry(entryBytes)
 }
 
-func (s *State) IterateNameRegEntries(consumer func(*NameRegEntry) (stop bool)) (stopped bool, err error) {
+func (s *State) IterateNameEntries(consumer func(*names.Entry) (stop bool)) (stopped bool, err error) {
 	return s.tree.IterateRange(nameRegStart, nameRegEnd, true, func(key []byte, value []byte) (stop bool) {
-		return consumer(DecodeNameRegEntry(value))
-	}), nil
+		var entry *names.Entry
+		entry, err = names.DecodeEntry(value)
+		if err != nil {
+			return true
+		}
+		return consumer(entry)
+	}), err
 }
 
-func (s *State) UpdateNameRegEntry(entry *NameRegEntry) error {
-	w := new(bytes.Buffer)
-	var n int
-	var err error
-	NameRegEncode(entry, w, &n, &err)
+func (s *State) UpdateNameEntry(entry *names.Entry) error {
+	bs, err := entry.Encode()
 	if err != nil {
 		return err
 	}
-	s.tree.Set(prefixedKey(nameRegPrefix, []byte(entry.Name)), w.Bytes())
+	s.tree.Set(prefixedKey(nameRegPrefix, []byte(entry.Name)), bs)
 	return nil
 }
 
-func (s *State) RemoveNameRegEntry(name string) error {
+func (s *State) RemoveNameEntry(name string) error {
 	s.tree.Remove(prefixedKey(nameRegPrefix, []byte(name)))
 	return nil
 }
@@ -312,21 +293,6 @@ func (s *State) Copy(db dbm.DB) *State {
 		return false
 	})
 	return state
-}
-
-func DecodeNameRegEntry(entryBytes []byte) *NameRegEntry {
-	var n int
-	var err error
-	value := NameRegDecode(bytes.NewBuffer(entryBytes), &n, &err)
-	return value.(*NameRegEntry)
-}
-
-func NameRegEncode(o interface{}, w io.Writer, n *int, err *error) {
-	wire.WriteBinary(o.(*NameRegEntry), w, n, err)
-}
-
-func NameRegDecode(r io.Reader, n *int, err *error) interface{} {
-	return wire.ReadBinary(&NameRegEntry{}, r, txs.MaxDataLength, n, err)
 }
 
 func prefixedKey(prefix string, suffices ...[]byte) []byte {
