@@ -187,7 +187,7 @@
     "txs",
     "txs/payload"
   ]
-  revision = "604c01d29d262c179c886491d3d095def83edc5c"
+  revision = "af9bb446c31bda727c4c78145aeb8c41c960b335"
 
 [[projects]]
   name = "github.com/inconshreveable/mousetrap"

@@ -89,8 +89,8 @@ test_setup(){
 perform_tests(){
   cd "$js_dir"
 
-  vector=privateKey_vector account=$test_account mocha --recursive --reporter mocha-circleci-reporter ${1}
-  vector=address_vector SIGNBYADDRESS=true account=$test_account mocha --recursive --reporter mocha-circleci-reporter ${1}
+  vector=privateKey_vector account=$test_account mocha --recursive ${1}
+  vector=address_vector SIGNBYADDRESS=true account=$test_account mocha --recursive ${1}
 
   test_exit=$?
 }
