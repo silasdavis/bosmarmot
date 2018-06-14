@@ -40,8 +40,8 @@ fi
 keys_port=48002
 tendermint_port=48001
 rpc_tm_port=48003
-burrow_root="$script_dir/.burrow"
 chain_dir="$script_dir/chain"
+burrow_root="$chain_dir/.burrow"
 
 # Temporary logs
 burrow_log=burrow.log
