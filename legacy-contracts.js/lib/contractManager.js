@@ -190,7 +190,7 @@ const createEvent = (json, address, pipe) => {
       }
 
       return pipe.eventSub(this._address, startCallback, (error, event) => {
-        event = event.EventDataLog
+        event = event.Execution.Log
         event = {
           topics: event.Topics,
           address: event.Address,

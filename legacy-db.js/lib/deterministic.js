@@ -45,7 +45,7 @@ module.exports = (transport) => {
     }],
     (response) =>
       R.assocPath(['result', 'events'], response.result.events.map((event) => {
-        event.EventDataLog.Height = 1
+        event.Execution.Log.Height = 1
         return event
       }
       ), response)
