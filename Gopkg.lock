@@ -139,7 +139,7 @@
   revision = "ef8a98b0bbce4a65b5aa4c368430a80ddc533168"
 
 [[projects]]
-  branch = "protodraft"
+  branch = "develop"
   name = "github.com/hyperledger/burrow"
   packages = [
     "account",
@@ -177,17 +177,17 @@
     "process",
     "project",
     "rpc",
+    "rpc/lib/client",
+    "rpc/lib/server",
+    "rpc/lib/types",
     "rpc/tm",
     "rpc/tm/client",
-    "rpc/tm/lib/client",
-    "rpc/tm/lib/server",
-    "rpc/tm/lib/types",
     "rpc/v0/server",
     "sync",
     "txs",
     "txs/payload"
   ]
-  revision = "d221397a62b38db232311faa75a65ce7058b9291"
+  revision = "f475ec8a43347aa879e74e1e14a572d10a7a0a18"
 
 [[projects]]
   name = "github.com/inconshreveable/mousetrap"
@@ -558,6 +558,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2a76b4a55b2486ce499bd0a0e04f0ace08de9f0b6f5efa6e391ef775b839156c"
+  inputs-digest = "78e3434c97801aab3e608b9436210cb8d556f8172b69bb911d4ec6984cc41473"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -28,6 +28,8 @@ func FullVersion() string {
 // To cut a new release add a release to the front of this slice then run the
 // release tagging script: ./scripts/tag_release.sh
 var History relic.ImmutableHistory = relic.NewHistory("Bosmarmot").MustDeclareReleases(
+	"0.2.1",
+	`Fix release to harmonize against burrow versions > 0.18.0`,
 	"0.2.0",
 	`Simplify repository by removing latent tooling and consolidating compilers and bos,
 as well as removing keys completely which have been migrated to burrow`,
@@ -38,7 +40,5 @@ as well as removing keys completely which have been migrated to burrow`,
 - The monax tool (just 'monax pkgs do')
 - The monax-keys signing daemon
 - Monax compilers
-- A basic legacy-contracts.js integration test (merging in JS libs is pending)
-
-`,
+- A basic legacy-contracts.js integration test (merging in JS libs is pending)`,
 )
