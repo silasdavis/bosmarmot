@@ -8,11 +8,11 @@ import (
 	acm "github.com/hyperledger/burrow/account"
 	"github.com/hyperledger/burrow/crypto"
 	"github.com/hyperledger/burrow/event"
-	"github.com/hyperledger/burrow/execution"
+	"github.com/hyperledger/burrow/execution/names"
 	"github.com/hyperledger/burrow/logging"
 	"github.com/hyperledger/burrow/rpc"
-	"github.com/hyperledger/burrow/rpc/tm/lib/server"
-	"github.com/hyperledger/burrow/rpc/tm/lib/types"
+	"github.com/hyperledger/burrow/rpc/lib/server"
+	"github.com/hyperledger/burrow/rpc/lib/types"
 	"github.com/hyperledger/burrow/txs"
 )
 
@@ -63,8 +63,8 @@ func GetRoutes(service *rpc.Service, logger *logging.Logger) map[string]*server.
 	logger = logger.WithScope("GetRoutes")
 	return map[string]*server.RPCFunc{
 		// Transact
-		BroadcastTx: server.NewRPCFunc(func(tx txs.Wrapper) (*rpc.ResultBroadcastTx, error) {
-			receipt, err := service.Transactor().BroadcastTx(tx.Unwrap())
+		BroadcastTx: server.NewRPCFunc(func(txEnv *txs.Envelope) (*rpc.ResultBroadcastTx, error) {
+			receipt, err := service.Transactor().BroadcastTx(txEnv)
 			if err != nil {
 				return nil, err
 			}
@@ -73,9 +73,9 @@ func GetRoutes(service *rpc.Service, logger *logging.Logger) map[string]*server.
 			}, nil
 		}, "tx"),
 
-		SignTx: server.NewRPCFunc(func(tx txs.Tx, concretePrivateAccounts []*acm.ConcretePrivateAccount) (*rpc.ResultSignTx, error) {
-			tx, err := service.Transactor().SignTx(tx, acm.SigningAccounts(concretePrivateAccounts))
-			return &rpc.ResultSignTx{Tx: txs.Wrap(tx)}, err
+		SignTx: server.NewRPCFunc(func(txEnv *txs.Envelope, concretePrivateAccounts []*acm.ConcretePrivateAccount) (*rpc.ResultSignTx, error) {
+			txEnv, err := service.Transactor().SignTx(txEnv, acm.SigningAccounts(concretePrivateAccounts))
+			return &rpc.ResultSignTx{Tx: txEnv}, err
 
 		}, "tx,privAccounts"),
 
@@ -156,7 +156,7 @@ func GetRoutes(service *rpc.Service, logger *logging.Logger) map[string]*server.
 
 		// Blockchain
 		Genesis:    server.NewRPCFunc(service.Genesis, ""),
-		ChainID:    server.NewRPCFunc(service.ChainId, ""),
+		ChainID:    server.NewRPCFunc(service.ChainIdentifiers, ""),
 		ListBlocks: server.NewRPCFunc(service.ListBlocks, "minHeight,maxHeight"),
 		GetBlock:   server.NewRPCFunc(service.GetBlock, "height"),
 
@@ -168,7 +168,7 @@ func GetRoutes(service *rpc.Service, logger *logging.Logger) map[string]*server.
 		// Names
 		GetName: server.NewRPCFunc(service.GetName, "name"),
 		ListNames: server.NewRPCFunc(func() (*rpc.ResultListNames, error) {
-			return service.ListNames(func(*execution.NameRegEntry) bool {
+			return service.ListNames(func(*names.Entry) bool {
 				return true
 			})
 		}, ""),

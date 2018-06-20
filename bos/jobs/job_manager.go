@@ -47,9 +47,6 @@ func RunJobs(do *definitions.Packages) error {
 		case job.Unbond != nil:
 			announce(job.JobName, "Unbond")
 			job.JobResult, err = UnbondJob(job.Unbond, do)
-		case job.Rebond != nil:
-			announce(job.JobName, "Rebond")
-			job.JobResult, err = RebondJob(job.Rebond, do)
 
 		// Contracts jobs
 		case job.Deploy != nil:

@@ -1,0 +1,124 @@
+{
+  "it": {
+    "sets and gets a value from a contract": [
+      {
+        "input": {
+          "done": false,
+          "value": {
+            "method": "burrow.transactAndHold",
+            "params": {
+              "inputAccount": {
+                "address": "2bbddf41c7c2b035731ac6ef448f681d5127e61f"
+              },
+              "address": "",
+              "data": "6060604052603b8060106000396000f3606060405260e060020a600035046360fe47b1811460245780636d4ce63c14602e575b005b6004356000556022565b6000546060908152602090f3",
+              "gasLimit": 1000000,
+              "fee": 1
+            },
+            "id": "+RHpdkV1HBcRk/wHhepwOO1beJh533qwnVR5P9fyj8E=",
+            "jsonrpc": "2.0"
+          }
+        }
+      },
+      {
+        "output": {
+          "done": false,
+          "value": {
+            "result": {
+              "CallData": {
+                "Caller": "2BBDDF41C7C2B035731AC6EF448F681D5127E61F",
+                "Callee": "93B88A105E328E48C3050B03F0CCDED797A4FC4C",
+                "Data": "6060604052603B8060106000396000F3606060405260E060020A600035046360FE47B1811460245780636D4CE63C14602E575B005B6004356000556022565B6000546060908152602090F3",
+                "Value": 0,
+                "Gas": 999985
+              },
+              "Origin": "2BBDDF41C7C2B035731AC6EF448F681D5127E61F",
+              "TxHash": "+RHpdkV1HBcRk/wHhepwOO1beJh533qwnVR5P9fyj8E=",
+              "StackDepth": 0,
+              "Return": "606060405260E060020A600035046360FE47B1811460245780636D4CE63C14602E575B005B6004356000556022565B6000546060908152602090F3",
+              "Exception": null
+            },
+            "id": "+RHpdkV1HBcRk/wHhepwOO1beJh533qwnVR5P9fyj8E=",
+            "jsonrpc": "2.0"
+          }
+        }
+      },
+      {
+        "input": {
+          "done": false,
+          "value": {
+            "method": "burrow.transactAndHold",
+            "params": {
+              "inputAccount": {
+                "address": "2bbddf41c7c2b035731ac6ef448f681d5127e61f"
+              },
+              "address": "93B88A105E328E48C3050B03F0CCDED797A4FC4C",
+              "data": "60fe47b1000000000000000000000000000000000000000000000000000000000000002a",
+              "gasLimit": 1000000,
+              "fee": 1
+            },
+            "id": "1GvR5Ylobb7KgFJrY78jXw/RwaNvSFtjJ9OVIX8Vf58=",
+            "jsonrpc": "2.0"
+          }
+        }
+      },
+      {
+        "output": {
+          "done": false,
+          "value": {
+            "result": {
+              "CallData": {
+                "Caller": "2BBDDF41C7C2B035731AC6EF448F681D5127E61F",
+                "Callee": "93B88A105E328E48C3050B03F0CCDED797A4FC4C",
+                "Data": "60FE47B1000000000000000000000000000000000000000000000000000000000000002A",
+                "Value": 0,
+                "Gas": 999967
+              },
+              "Origin": "2BBDDF41C7C2B035731AC6EF448F681D5127E61F",
+              "TxHash": "1GvR5Ylobb7KgFJrY78jXw/RwaNvSFtjJ9OVIX8Vf58=",
+              "StackDepth": 0,
+              "Return": "",
+              "Exception": null
+            },
+            "id": "1GvR5Ylobb7KgFJrY78jXw/RwaNvSFtjJ9OVIX8Vf58=",
+            "jsonrpc": "2.0"
+          }
+        }
+      },
+      {
+        "input": {
+          "done": false,
+          "value": {
+            "method": "burrow.call",
+            "params": {
+              "from": "0000000000000000000000000000000000000000",
+              "address": "93B88A105E328E48C3050B03F0CCDED797A4FC4C",
+              "data": "6d4ce63c"
+            },
+            "id": "wgZ6oqyFttmmvcgTneGik6yVpK9o32wJGQXhntAfOBc=",
+            "jsonrpc": "2.0"
+          }
+        }
+      },
+      {
+        "output": {
+          "done": false,
+          "value": {
+            "result": {
+              "Return": "000000000000000000000000000000000000000000000000000000000000002A",
+              "GasUsed": 46
+            },
+            "id": "wgZ6oqyFttmmvcgTneGik6yVpK9o32wJGQXhntAfOBc=",
+            "jsonrpc": "2.0"
+          }
+        }
+      }
+    ]
+  },
+  "account": {
+    "address": "2bbddf41c7c2b035731ac6ef448f681d5127e61f",
+    "pubKey": "8BA5CB32C6A598813497FB99F17240F440E237A1204883A3F73F2B2C10F3FC77",
+    "privKey": "4C5998CE9EEFC730A8795F93A992D9CE1313303B371A306E134D77FDA5AEF61A8BA5CB32C6A598813497FB99F17240F440E237A1204883A3F73F2B2C10F3FC77"
+  },
+  "before": []
+}

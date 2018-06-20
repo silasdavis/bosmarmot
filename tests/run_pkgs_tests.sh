@@ -40,7 +40,8 @@ fi
 keys_port=48002
 tendermint_port=48001
 rpc_tm_port=48003
-burrow_root="$script_dir/.burrow"
+chain_dir="$script_dir/chain"
+burrow_root="$chain_dir/.burrow"
 
 # Temporary logs
 burrow_log=burrow.log
@@ -76,7 +77,7 @@ test_setup(){
   if [[ "$boot" = true ]]; then
     echo "Starting Burrow with tendermint port: $tendermint_port, tm RPC port: $rpc_tm_port"
     rm -rf ${burrow_root}
-    ${burrow_bin} start -g chain/genesis.json -c chain/burrow.toml 2> "$burrow_log" &
+    $(cd "$chain_dir" && ${burrow_bin} start 2> "$burrow_log")&
     burrow_pid=$!
 
   else

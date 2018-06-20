@@ -22,12 +22,13 @@ import (
 	"encoding/json"
 
 	"github.com/hyperledger/burrow/crypto"
+	"github.com/hyperledger/burrow/execution/errors"
 	exeEvents "github.com/hyperledger/burrow/execution/events"
 	"github.com/hyperledger/burrow/logging"
 	"github.com/hyperledger/burrow/logging/structure"
 	"github.com/hyperledger/burrow/rpc"
+	rpcClient "github.com/hyperledger/burrow/rpc/lib/client"
 	"github.com/hyperledger/burrow/rpc/tm/client"
-	rpcClient "github.com/hyperledger/burrow/rpc/tm/lib/client"
 	"github.com/hyperledger/burrow/txs"
 	tmTypes "github.com/tendermint/tendermint/types"
 )
@@ -68,7 +69,7 @@ func (burrowNodeWebsocketClient *burrowNodeWebsocketClient) Unsubscribe(subscrip
 
 // Returns a channel that will receive a confirmation with a result or the exception that
 // has been confirmed; or an error is returned and the confirmation channel is nil.
-func (burrowNodeWebsocketClient *burrowNodeWebsocketClient) WaitForConfirmation(tx txs.Tx, chainId string,
+func (burrowNodeWebsocketClient *burrowNodeWebsocketClient) WaitForConfirmation(txEnv *txs.Envelope,
 	inputAddr crypto.Address) (chan Confirmation, error) {
 
 	// Setup the confirmation channel to be returned
@@ -163,19 +164,19 @@ func (burrowNodeWebsocketClient *burrowNodeWebsocketClient) WaitForConfirmation(
 						return
 					}
 
-					if !bytes.Equal(eventDataTx.Tx.Hash(chainId), tx.Hash(chainId)) {
+					if !bytes.Equal(eventDataTx.Tx.Hash(), txEnv.Tx.Hash()) {
 						burrowNodeWebsocketClient.logger.TraceMsg("Received different event",
 							// TODO: consider re-implementing TxID again, or other more clear debug
-							"received transaction event", eventDataTx.Tx.Hash(chainId))
+							"received transaction event", eventDataTx.Tx.Hash())
 						continue
 					}
 
-					if eventDataTx.Exception != "" {
+					if eventDataTx.Exception != nil && eventDataTx.Exception.Code != errors.ErrorCodeExecutionReverted {
 						confirmationChannel <- Confirmation{
 							BlockHash:   latestBlockHash,
 							EventDataTx: eventDataTx,
-							Exception: fmt.Errorf("transaction confirmed but execution gave exception: %v",
-								eventDataTx.Exception),
+							Exception: errors.Wrap(eventDataTx.Exception,
+								"transaction confirmed but execution gave exception: %v"),
 							Error: nil,
 						}
 						return
