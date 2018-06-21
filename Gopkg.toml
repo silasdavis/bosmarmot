@@ -11,7 +11,7 @@
 
 [[constraint]]
   name = "github.com/hyperledger/burrow"
-  branch = "develop"
+  branch = "event-state"
 
 # Geth version we currently depend on for ABI
 [[constraint]]
@@ -22,6 +22,11 @@
   name = "github.com/sirupsen/logrus"
   version = "~1.0.5"
 
+# We don't care which version Tendermint wants
 [[override]]
-  name = "google.golang.org/genproto"
-  revision = "7fd901a49ba6a7f87732eb344f6e3c5b19d1b200"
+  name = "github.com/golang/protobuf"
+  version = "~1.1.0"
+
+[[override]]
+  name = "google.golang.org/grpc"
+  version = "~1.12.2"
