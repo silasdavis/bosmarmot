@@ -106,8 +106,8 @@
     "ptypes/duration",
     "ptypes/timestamp"
   ]
-  revision = "925541529c1fa6821df4e44ce2723319eb2be768"
-  version = "v1.0.0"
+  revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
@@ -139,7 +139,7 @@
   revision = "ef8a98b0bbce4a65b5aa4c368430a80ddc533168"
 
 [[projects]]
-  branch = "develop"
+  branch = "event-state"
   name = "github.com/hyperledger/burrow"
   packages = [
     "account",
@@ -154,14 +154,15 @@
     "consensus/tendermint/query",
     "crypto",
     "event",
+    "event/query",
     "execution",
     "execution/errors",
     "execution/events",
+    "execution/events/pbevents",
     "execution/evm",
     "execution/evm/abi",
     "execution/evm/asm",
     "execution/evm/asm/bc",
-    "execution/evm/events",
     "execution/evm/sha3",
     "execution/executors",
     "execution/names",
@@ -187,7 +188,7 @@
     "txs",
     "txs/payload"
   ]
-  revision = "8570cbcbbf261e078fc4134625c0b8765bdeb0d0"
+  revision = "3841e07bfc5b23b36df1a59fb094db7194fab1a6"
 
 [[projects]]
   name = "github.com/inconshreveable/mousetrap"
@@ -326,7 +327,7 @@
     "leveldb/table",
     "leveldb/util"
   ]
-  revision = "e2150783cd35f5b607daca48afd8c57ec54cc995"
+  revision = "0d5a0ceb10cf9ab89fdd744cc8c50a83134f6697"
 
 [[projects]]
   name = "github.com/tendermint/abci"
@@ -450,6 +451,7 @@
     "curve25519",
     "ed25519",
     "ed25519/internal/edwards25519",
+    "internal/subtle",
     "nacl/box",
     "nacl/secretbox",
     "openpgp/armor",
@@ -461,7 +463,7 @@
     "scrypt",
     "ssh/terminal"
   ]
-  revision = "e6b1200d11b062b0e525730044b7de555b7ed66d"
+  revision = "a49355c7e3f8fe157a85be2f77e6e269a0f89602"
 
 [[projects]]
   branch = "master"
@@ -475,7 +477,7 @@
     "internal/timeseries",
     "trace"
   ]
-  revision = "db08ff08e8622530d9ed3a0e8ac279f6d4c02196"
+  revision = "afe8f62b1d6bbd81f31868121a50b06d8188e1f9"
 
 [[projects]]
   branch = "master"
@@ -485,7 +487,7 @@
     "unix",
     "windows"
   ]
-  revision = "56ede360ec1c541828fb88741b3f1049406d28f5"
+  revision = "63fc586f45fe72d95d5240a5d5eb95e6503907d3"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -509,18 +511,24 @@
   version = "v0.3.0"
 
 [[projects]]
+  branch = "master"
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
-  revision = "7fd901a49ba6a7f87732eb344f6e3c5b19d1b200"
+  revision = "80063a038e333bbe006c878e4c5ce4c74d055498"
 
 [[projects]]
   name = "google.golang.org/grpc"
   packages = [
     ".",
     "balancer",
+    "balancer/base",
+    "balancer/roundrobin",
+    "channelz",
     "codes",
     "connectivity",
     "credentials",
+    "encoding",
+    "encoding/proto",
     "grpclb/grpc_lb_v1/messages",
     "grpclog",
     "internal",
@@ -529,13 +537,15 @@
     "naming",
     "peer",
     "resolver",
+    "resolver/dns",
+    "resolver/passthrough",
     "stats",
     "status",
     "tap",
     "transport"
   ]
-  revision = "5b3c4e850e90a4cf6a20ebd46c8b32a0a3afcb9e"
-  version = "v1.7.5"
+  revision = "7a6a684ca69eb4cae85ad0a484f2e531598c047b"
+  version = "v1.12.2"
 
 [[projects]]
   name = "gopkg.in/go-playground/validator.v8"
@@ -558,6 +568,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "78e3434c97801aab3e608b9436210cb8d556f8172b69bb911d4ec6984cc41473"
+  inputs-digest = "affe779893dd8199d8b2b74b6e590003148db81f7f4ea78559b6b548afc6fb67"
   solver-name = "gps-cdcl"
   solver-version = 1
