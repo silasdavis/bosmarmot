@@ -139,7 +139,7 @@
   revision = "ef8a98b0bbce4a65b5aa4c368430a80ddc533168"
 
 [[projects]]
-  branch = "event-state"
+  branch = "develop"
   name = "github.com/hyperledger/burrow"
   packages = [
     "account",
