@@ -8,4 +8,4 @@ address_of() {
 
 full_addr=$(address_of "Full_0")
 
-burrow keys export --addr ${full_addr} | jq '{address: .address, pubKey: .pub_key[1], privKey: .priv_key[1]}'
+burrow keys export --addr ${full_addr} '--template={address: "<< .Address >>", pubKey: "<< hex .PublicKey  >>", privKey: "<< hex .PrivateKey >>" }'
