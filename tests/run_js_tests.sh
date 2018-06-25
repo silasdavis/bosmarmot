@@ -88,14 +88,12 @@ test_setup(){
 
 perform_tests(){
   cd "$js_dir"
-
-  vector=privateKey_vector account=$test_account mocha --recursive ${1}
-  vector=address_vector SIGNBYADDRESS=true account=$test_account mocha --recursive ${1}
-
-  test_exit=$?
+  vector=privateKey_vector account=$test_account mocha --bail --recursive ${1}
+  vector=address_vector SIGNBYADDRESS=true account=$test_account mocha --bail --recursive ${1}
 }
 
 test_teardown(){
+  test_exit=$?
   cd "$script_dir"
   echo "Cleaning up..."
   if [[ "$boot" = true ]]; then
