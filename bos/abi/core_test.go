@@ -6,23 +6,14 @@ import (
 	"strings"
 	"testing"
 
-	pm "github.com/monax/bosmarmot/bos/definitions"
-
 	"github.com/ethereum/go-ethereum/common"
+	pm "github.com/monax/bosmarmot/bos/definitions"
 )
 
 //To Test:
 //Bools, Arrays, Addresses, Hashes
 //Test Packing different things
 //After that, should be good to go
-
-// quick helper padding
-func pad(input []byte, size int, left bool) []byte {
-	if left {
-		return common.LeftPadBytes(input, size)
-	}
-	return common.RightPadBytes(input, size)
-}
 
 func TestPacker(t *testing.T) {
 	for _, test := range []struct {
