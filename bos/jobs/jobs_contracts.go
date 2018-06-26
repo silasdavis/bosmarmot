@@ -45,9 +45,17 @@ func DeployJob(deploy *definitions.Deploy, do *definitions.Packages) (result str
 	// assemble contract
 	var contractPath string
 	if _, err := os.Stat(deploy.Contract); err != nil {
-		if _, secErr := os.Stat(filepath.Join(do.BinPath, filepath.Base(deploy.Contract))); secErr != nil {
-			return "", fmt.Errorf("Could not find contract in %v or in binary path %v", deploy.Contract, do.BinPath)
+		if _, secErr := os.Stat(filepath.Join(do.BinPath, deploy.Contract)); secErr != nil {
+			if _, thirdErr := os.Stat(filepath.Join(do.BinPath, filepath.Base(deploy.Contract))); thirdErr != nil {
+				return "", fmt.Errorf("Could not find contract in\n* primary path: %v\n* binary path: %v\n* tertiary path: %v", deploy.Contract, filepath.Join(do.BinPath, deploy.Contract), filepath.Join(do.BinPath, filepath.Base(deploy.Contract)))
+			} else {
+				contractPath = filepath.Join(do.BinPath, filepath.Base(deploy.Contract))
+			}
+		} else {
+			contractPath = filepath.Join(do.BinPath, deploy.Contract)
 		}
+	} else {
+		contractPath = deploy.Contract
 	}
 
 	// Don't use pubKey if account override
@@ -59,7 +67,6 @@ func DeployJob(deploy *definitions.Deploy, do *definitions.Packages) (result str
 
 	// compile
 	if filepath.Ext(deploy.Contract) == ".bin" {
-		contractPath = filepath.Join(do.BinPath, filepath.Base(deploy.Contract))
 		log.Info("Binary file detected. Using binary deploy sequence.")
 		log.WithField("=>", contractPath).Info("Binary path")
 		binaryResponse, err := compilers.RequestBinaryLinkage(contractPath, deploy.Libraries)
