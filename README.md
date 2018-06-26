@@ -447,7 +447,7 @@ Both files (`epm.yaml` & `storage.sol`) should be in the same directory with not
 From inside that directory, we are ready to deploy.
 
 ```
-bos pkgs do --keys="http://localhost:4767" --chain-url="tcp://localhost:46657" --address=0A40DC874BC932B78AC390EAD1C1BF33469597AB
+bos --keys="localhost:10997" --chain-url="tcp://localhost:46657" --address=0A40DC874BC932B78AC390EAD1C1BF33469597AB
 ```
 
 where the field in `--address` is the `ValidatorAddress` at the top of your `burrow.toml`.
