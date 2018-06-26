@@ -7,65 +7,67 @@ import (
 
 	"github.com/monax/bosmarmot/bos/definitions"
 	"github.com/monax/bosmarmot/bos/jobs"
+	"github.com/monax/bosmarmot/bos/loader"
 	log "github.com/sirupsen/logrus"
 )
 
 func RunPackage(do *definitions.Packages) error {
-	var gotwd string
-	if do.Path == "" {
-		var err error
-		gotwd, err = os.Getwd()
-		if err != nil {
-			return err
-		}
-		do.Path = gotwd
+	var err error
+	var pwd string
+
+	pwd, err = os.Getwd()
+	if err != nil {
+		return err
 	}
+	originalYAMLPath := do.YAMLPath
 
-	// note: [zr] this could be problematic with a combo of
-	// other flags, however, at least the --dir flag isn't
-	// completely broken now
-	if do.Path != gotwd {
-		originalYAMLPath := do.YAMLPath
+	// block that triggers if the do.Path was NOT set
+	//   via cli flag... or not
+	if do.Path == "" {
+		do.Path = pwd
 
-		// if --dir given, assume *.yaml is in there
+		// if do.YAMLPath does not exist, try YAMLPath relative to pwd
+		if _, err := os.Stat(do.YAMLPath); os.IsNotExist(err) {
+			do.YAMLPath = filepath.Join(pwd, originalYAMLPath)
+		}
+	} else {
+		// --dir is given, assume YAMLPath relative to dirPath
 		do.YAMLPath = filepath.Join(do.Path, originalYAMLPath)
 
-		// if do.YAMLPath does not exist, try $pwd
+		// if do.YAMLPath does not exist, try YAMLPath relative to pwd
 		if _, err := os.Stat(do.YAMLPath); os.IsNotExist(err) {
-			do.YAMLPath = filepath.Join(gotwd, originalYAMLPath)
+			do.YAMLPath = filepath.Join(pwd, originalYAMLPath)
 		}
+	}
 
-		// if it still cannot be found, abort
-		if _, err := os.Stat(do.YAMLPath); os.IsNotExist(err) {
-			return fmt.Errorf("could not find jobs file (%s), ensure correct used of the --file flag",
-				do.YAMLPath)
-		}
+	// if YAMLPath cannot be found, abort
+	if _, err := os.Stat(do.YAMLPath); os.IsNotExist(err) {
+		return fmt.Errorf("could not find jobs file (%s), ensure correct used of the --file flag",
+			do.YAMLPath)
+	}
 
-		if do.BinPath == "./bin" {
-			do.BinPath = filepath.Join(do.Path, "bin")
-		}
-		if do.ABIPath == "./abi" {
-			do.ABIPath = filepath.Join(do.Path, "abi")
-		}
-		// TODO enable this feature
-		// if do.ContractsPath == "./contracts" {
-		//do.ContractsPath = filepath.Join(do.Path, "contracts")
-		//}
+	// if bin and abi paths are default cli settings then use the
+	//   stated defaults of do.Path plus bin|abi
+	if do.BinPath == "[dir]/bin" {
+		do.BinPath = filepath.Join(do.Path, "bin")
+	}
+	if do.ABIPath == "[dir]/abi" {
+		do.ABIPath = filepath.Join(do.Path, "abi")
 	}
 
 	// useful for debugging
 	printPathPackage(do)
 
-	var err error
 	// Load the package if it doesn't exist
 	if do.Package == nil {
-		do.Package, err = LoadPackage(do.YAMLPath)
+		do.Package, err = loader.LoadPackage(do.YAMLPath)
 		if err != nil {
 			return err
 		}
 	}
 
-	if do.Path != gotwd {
+	// Ensure relative paths if we're given a different path for deploy contracts jobs
+	if do.Path != pwd {
 		for _, job := range do.Package.Jobs {
 			if job.Deploy != nil {
 				job.Deploy.Contract = filepath.Join(do.Path, job.Deploy.Contract)

@@ -13,6 +13,8 @@ type Job struct {
 	Account *Account `mapstructure:"account" json:"account" yaml:"account" toml:"account"`
 	// Set an arbitrary value
 	Set *SetJob `mapstructure:"set" json:"set" yaml:"set" toml:"set"`
+	// Run a sequence of other epm.yamls
+	Meta *Meta `mapstructure:"meta" json:"meta" yaml:"meta" toml:"meta"`
 	// Contract compile and send to the chain functions
 	Deploy *Deploy `mapstructure:"deploy" json:"deploy" yaml:"deploy" toml:"deploy"`
 	// Send tokens from one account to another

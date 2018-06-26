@@ -1,6 +1,13 @@
 package definitions
 
-//TODO: Interface all the jobs, determine if they should remain in definitions or get their own package
+// ------------------------------------------------------------------------
+// Meta Jobs
+// ------------------------------------------------------------------------
+
+type Meta struct {
+	// (Required) the file path of the sub yaml to run
+	File string `mapstructure:"file" json:"file" yaml:"file" toml:"file"`
+}
 
 // ------------------------------------------------------------------------
 // Util Jobs
