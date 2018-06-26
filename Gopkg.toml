@@ -11,7 +11,7 @@
 
 [[constraint]]
   name = "github.com/hyperledger/burrow"
-  branch = "develop"
+  version = "~0.19.0"
 
 # Geth version we currently depend on for ABI
 [[constraint]]
