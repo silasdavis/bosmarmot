@@ -107,7 +107,10 @@ ensure_vendor: reinstall_vendor
 
 .PHONY: build_bin
 build_bin:
-	@go build -ldflags "-X github.com/monax/bosmarmot/project.commit=${COMMIT}" -o bin/bos ./bos/cmd/bos
+	@go build  -a -tags netgo \
+	-ldflags  "-w -extldflags '-static' \
+	-X github.com/monax/bosmarmot/project.commit=${COMMIT}" \
+	-o bin/bos ./bos/cmd/bos
 
 bin/solc: ./tests/scripts/deps/solc.sh
 	@mkdir -p bin

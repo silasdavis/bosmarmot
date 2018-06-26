@@ -10,6 +10,7 @@ import (
 
 func RunJobs(do *definitions.Packages) error {
 	var err error
+
 	// ADD DefaultAddr and DefaultSet to jobs array....
 	// These work in reverse order and the addendums to the
 	// the ordering from the loading process is lifo
@@ -23,6 +24,12 @@ func RunJobs(do *definitions.Packages) error {
 
 	for _, job := range do.Package.Jobs {
 		switch {
+		// Meta Job
+		case job.Meta != nil:
+			announce(job.JobName, "Meta")
+			do.CurrentOutput = fmt.Sprintf("%s.output.json", job.JobName)
+			job.JobResult, err = MetaJob(job.Meta, do)
+
 		// Util jobs
 		case job.Account != nil:
 			announce(job.JobName, "Account")
@@ -140,8 +147,13 @@ func defaultSetJobs(do *definitions.Packages) {
 }
 
 func postProcess(do *definitions.Packages) error {
+	// Formulate the results map
+	results := make(map[string]string)
+	for _, job := range do.Package.Jobs {
+		results[job.JobName] = job.JobResult
+	}
+
 	// check do.YAMLPath and do.DefaultOutput
-	// get the epm.yaml
 	var yaml string
 	yamlName := strings.LastIndexByte(do.YAMLPath, '.')
 	if yamlName >= 0 {
@@ -155,12 +167,13 @@ func postProcess(do *definitions.Packages) error {
 		do.DefaultOutput = fmt.Sprintf("%s.output.json", yaml)
 	}
 
-	log.Warn(fmt.Sprintf("Writing [%s] to current directory", do.DefaultOutput))
-	results := make(map[string]string)
-	for _, job := range do.Package.Jobs {
-		results[job.JobName] = job.JobResult
+	// if CurrentOutput set, we're in a meta job
+	if do.CurrentOutput != "" {
+		log.Warn(fmt.Sprintf("Writing meta output of [%s] to current directory", do.CurrentOutput))
+		return WriteJobResultJSON(results, do.CurrentOutput)
 	}
-	return WriteJobResultJSON(results, do.DefaultOutput)
 
-	return nil
+	// Write the output
+	log.Warn(fmt.Sprintf("Writing [%s] to current directory", do.DefaultOutput))
+	return WriteJobResultJSON(results, do.DefaultOutput)
 }

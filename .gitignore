@@ -9,7 +9,7 @@ bin/
 *.log
 .burrow
 
-epm.output.json
+*.output.json
 .gopath_burrow
 tests/**/abi/
 node_modules/

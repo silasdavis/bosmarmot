@@ -5,6 +5,7 @@ type Packages struct {
 	Address       string   `mapstructure:"," json:"," yaml:"," toml:","`
 	BinPath       string   `mapstructure:"," json:"," yaml:"," toml:","`
 	ChainURL      string   `mapstructure:"," json:"," yaml:"," toml:","`
+	CurrentOutput string   `mapstructure:"," json:"," yaml:"," toml:","`
 	Debug         bool     `mapstructure:"," json:"," yaml:"," toml:","`
 	DefaultAmount string   `mapstructure:"," json:"," yaml:"," toml:","`
 	DefaultFee    string   `mapstructure:"," json:"," yaml:"," toml:","`
@@ -12,7 +13,7 @@ type Packages struct {
 	DefaultOutput string   `mapstructure:"," json:"," yaml:"," toml:","`
 	DefaultSets   []string `mapstructure:"," json:"," yaml:"," toml:","`
 	Path          string   `mapstructure:"," json:"," yaml:"," toml:","`
-	PublicKey     string   `mapstructure:"," json:"," yaml:"," toml:","` // todo - remove completely
+	PublicKey     string   `mapstructure:"," json:"," yaml:"," toml:","` // needed for bonding/unbonding/rebonding
 	Signer        string   `mapstructure:"," json:"," yaml:"," toml:","`
 	Verbose       bool     `mapstructure:"," json:"," yaml:"," toml:","`
 	YAMLPath      string   `mapstructure:"," json:"," yaml:"," toml:","`
