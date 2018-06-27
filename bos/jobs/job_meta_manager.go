@@ -33,21 +33,24 @@ func MetaJob(meta *definitions.Meta, do *definitions.Packages) (string, error) {
 
 	// Set subYAMLPath
 	newDo.YAMLPath = meta.File
+	log.WithField("=>", newDo.YAMLPath).Info("Trying base YAMLPath")
 
 	// if subYAMLPath does not exist, try YAMLPath relative to do.Path
 	if _, err := os.Stat(newDo.YAMLPath); os.IsNotExist(err) {
 		newDo.YAMLPath = filepath.Join(do.Path, newDo.YAMLPath)
+		log.WithField("=>", newDo.YAMLPath).Info("Trying YAMLPath relative to do.Path")
 	}
 
 	// if subYAMLPath does not exist, try YAMLPath relative to pwd
 	if _, err := os.Stat(newDo.YAMLPath); os.IsNotExist(err) {
 		newDo.YAMLPath = filepath.Join(pwd, newDo.YAMLPath)
+		log.WithField("=>", newDo.YAMLPath).Info("Trying YAMLPath relative to pwd")
 	}
 
 	// if subYAMLPath cannot be found, abort
 	if _, err := os.Stat(newDo.YAMLPath); os.IsNotExist(err) {
 		return "failed", fmt.Errorf("could not find sub YAML file (%s)",
-			do.YAMLPath)
+			newDo.YAMLPath)
 	}
 
 	// once we have the proper subYAMLPath set the paths accordingly
