@@ -2,10 +2,22 @@
 
 
 [[projects]]
+  name = "github.com/BurntSushi/toml"
+  packages = ["."]
+  revision = "b26d9c308763d68093482582cea63d69be07a0f0"
+  version = "v0.3.0"
+
+[[projects]]
   name = "github.com/OneOfOne/xxhash"
   packages = ["."]
   revision = "6def279d2ce6c81a79dd1c1be580f03bb216fb8a"
   version = "v1.2.2"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/beorn7/perks"
+  packages = ["quantile"]
+  revision = "3a771d992973f24aa725d07868b467d1ddfceafb"
 
 [[projects]]
   branch = "master"
@@ -17,6 +29,18 @@
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
+  version = "v1.1.0"
+
+[[projects]]
+  name = "github.com/eapache/channels"
+  packages = ["."]
+  revision = "47238d5aae8c0fefd518ef2bee46290909cf8263"
+  version = "v1.1.0"
+
+[[projects]]
+  name = "github.com/eapache/queue"
+  packages = ["."]
+  revision = "44cc805cf13205b55f69e14bcb69867d1ae92f98"
   version = "v1.1.0"
 
 [[projects]]
@@ -101,6 +125,7 @@
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
+    "protoc-gen-go/descriptor",
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
@@ -151,6 +176,9 @@
     "consensus/tendermint/abci",
     "consensus/tendermint/codes",
     "consensus/tendermint/query",
+    "consensus/tendermint/validator",
+    "core",
+    "core/integration",
     "crypto",
     "event",
     "event/query",
@@ -165,11 +193,18 @@
     "execution/evm/sha3",
     "execution/executors",
     "execution/names",
+    "execution/pbtransactor",
     "genesis",
     "genesis/spec",
     "keys",
+    "keys/mock",
     "keys/pbkeys",
     "logging",
+    "logging/adapters/stdlib",
+    "logging/config",
+    "logging/errors",
+    "logging/lifecycle",
+    "logging/loggers",
     "logging/structure",
     "permission",
     "permission/snatives",
@@ -177,11 +212,16 @@
     "process",
     "project",
     "rpc",
+    "rpc/filters",
     "rpc/lib/client",
     "rpc/lib/server",
     "rpc/lib/types",
+    "rpc/metrics",
+    "rpc/rpcevents",
+    "rpc/rpctransactor",
     "rpc/tm",
     "rpc/tm/client",
+    "rpc/v0",
     "rpc/v0/server",
     "sync",
     "txs",
@@ -221,6 +261,12 @@
   version = "v0.0.3"
 
 [[projects]]
+  name = "github.com/matttproud/golang_protobuf_extensions"
+  packages = ["pbutil"]
+  revision = "c12348ce28de40eed0136aa2b644d0ee0650e56c"
+  version = "v1.0.1"
+
+[[projects]]
   branch = "master"
   name = "github.com/mitchellh/mapstructure"
   packages = ["."]
@@ -249,6 +295,39 @@
   packages = ["difflib"]
   revision = "792786c7400a136282c1664665ae0a8db921c6c2"
   version = "v1.0.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/prometheus/client_golang"
+  packages = ["prometheus"]
+  revision = "77e8f2ddcfed59ece3a8151879efb2304b5cbbcf"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/prometheus/client_model"
+  packages = ["go"]
+  revision = "99fa1f4be8e564e8a6b613da7fa6f46c9edafc6c"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/prometheus/common"
+  packages = [
+    "expfmt",
+    "internal/bitbucket.org/ww/goautoneg",
+    "model"
+  ]
+  revision = "7600349dcfe1abd18d72d3a1770870d9800a7801"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/prometheus/procfs"
+  packages = [
+    ".",
+    "internal/util",
+    "nfs",
+    "xfs"
+  ]
+  revision = "7d6f385de8bea29190f15ba9931442a0eaef9af7"
 
 [[projects]]
   branch = "master"
@@ -300,6 +379,12 @@
   packages = ["."]
   revision = "b5e8006cbee93ec955a89ab31e0e3ce3204f3736"
   version = "v1.0.2"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/streadway/simpleuuid"
+  packages = ["."]
+  revision = "6617b501e485b77e61b98cd533aefff9e258b5a7"
 
 [[projects]]
   name = "github.com/stretchr/testify"
@@ -536,6 +621,8 @@
     "metadata",
     "naming",
     "peer",
+    "reflection",
+    "reflection/grpc_reflection_v1alpha",
     "resolver",
     "resolver/dns",
     "resolver/passthrough",
@@ -568,6 +655,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "09989738955f76039c3a5d5ce6ae5a5ae7efdbf130fa8f8ca0c3b99fdbfe2c5c"
+  inputs-digest = "60efa90d7f0f6bc72bcb91acbe0827d6904f56dc9445cf40a42f2d1b9e98fd23"
   solver-name = "gps-cdcl"
   solver-version = 1
