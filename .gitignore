@@ -8,6 +8,8 @@ bin/
 # tests
 *.log
 .burrow
+test_scratch/
+abi/
 
 *.output.json
 .gopath_burrow

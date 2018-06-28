@@ -14,6 +14,10 @@ GOPACKAGES_NOVENDOR := $(shell go list ./...)
 COMMIT := $(shell git rev-parse --short HEAD)
 BURROW_PACKAGE := github.com/hyperledger/burrow
 
+# Our own Go files containing the compiled bytecode of solidity files as a constant
+SOLIDITY_FILES = $(shell find vent -path ./vendor -prune -o -type f -name '*.sol')
+SOLIDITY_GO_FILES = $(patsubst %.sol, %.sol.go, $(SOLIDITY_FILES))
+
 ### Integration test binaries
 # We make the relevant targets for building/fetching these depend on the Makefile itself - if unnecessary rebuilds
 # when changing the Makefile become a problem we can move these values into individual files elsewhere and make those
@@ -69,8 +73,12 @@ test_integration_bos: build_bin bin/solc bin/burrow
 test_integration_js: build_bin bin/solc bin/burrow
 	@cd legacy-contracts.js && TEST=record ../tests/scripts/bin_wrapper.sh npm test
 
+.PHONY:	test_integration_vent
+test_integration_vent:
+	@go test -v -tags integration ./vent/test/integration
+
 .PHONY:	test_integration
-test_integration: test_integration_bos test_integration_js
+test_integration: test_integration_bos test_integration_js test_integration_vent
 
 # Use a provided/local Burrow
 .PHONY:	test_integration_js_no_burrow
@@ -181,3 +189,12 @@ tag_release: test check CHANGELOG.md build_bin
 .PHONY: release
 release: NOTES.md
 	@tests/scripts/release.sh
+
+### Vent - event consumer, ETL, and SQL table builder
+
+# Solidity fixtures
+%.sol.go: %.sol vent/scripts/solc_compile_go.sh
+	vent/scripts/solc_compile_go.sh $< $@
+
+.PHONY: solidity
+solidity: $(SOLIDITY_GO_FILES)
