@@ -123,15 +123,15 @@ function _formatAccount (account, signbyaddress) {
       throw new Error('Account data is not on the proper format: ' + JSON.stringify(account))
     }
 
-    if (account.address != null && account.privKey != null) {
-      if (signbyaddress === true) {
-        ad.address = account.address
-      } else {
-        ad.privateKey = account.privKey
-      }
+    if (signbyaddress && account.address != null) {
+      ad.address = account.address
+    } else if (account.privKey != null) {
+      ad.privateKey = account.privKey
+    } else {
+      throw new Error('Account object does not provide sufficient data: ' + JSON.stringify(account))
     }
   } else {
-    throw new Error('Account data is not on the proper format: ' + JSON.stringify(account))
+    throw new Error('Account data is not in the proper format: ' + JSON.stringify(account))
   }
 
   return ad

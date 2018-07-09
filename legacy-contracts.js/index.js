@@ -23,7 +23,7 @@ exports.newContractManager = function (pipe) {
  * @param {string} accounts - Used to pass in a list of accounts. NOTE: This is for DEV ONLY. The keys are not protected.
  */
 exports.newContractManagerDev = function (burrowURL, accounts, options) {
-  var pipe = new DevPipe(burrowModule.createInstance(burrowURL, options), accounts)
+  var pipe = new DevPipe(burrowModule.createInstance(burrowURL), accounts, options)
   return contractsModule.newContractManager(pipe)
 }
 
