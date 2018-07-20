@@ -142,7 +142,7 @@ type Deploy struct {
 	// the name of the file (or the last one deployed if there are no matching names; not the "last"
 	// one deployed" strategy is non-deterministic and should not be used).
 	Instance string `mapstructure:"instance" json:"instance" yaml:"instance" toml:"instance"`
-	// (Optional) list of Name:Address separated by commas of libraries (see solc --help)
+	// (Optional) the file path for the linkReferences for contract
 	Libraries string `mapstructure:"libraries" json:"libraries" yaml:"libraries" toml:"libraries"`
 	// (Optional) TODO: additional arguments to send along with the contract code
 	Data interface{} `mapstructure:"data" json:"data" yaml:"data" toml:"data"`
@@ -153,9 +153,6 @@ type Deploy struct {
 	Fee string `mapstructure:"fee" json:"fee" yaml:"fee" toml:"fee"`
 	// (Optional) amount of gas which should be sent along with the contract deployment transaction
 	Gas string `mapstructure:"gas" json:"gas" yaml:"gas" toml:"gas"`
-	// (Optional) after compiling the contract save the binary in filename.bin in same directory
-	// where the *.sol or *.se file is located. This will speed up subsequent installs
-	SaveBinary bool `mapstructure:"save" json:"save" yaml:"save" toml:"save"`
 	// (Optional, advanced only) nonce to use when burrow keys signs the transaction (do not use unless you
 	// know what you're doing)
 	Sequence string `mapstructure:"nonce" json:"nonce" yaml:"nonce" toml:"nonce"`
@@ -183,10 +180,10 @@ type Call struct {
 	// (Optional, advanced only) nonce to use when burrow keys signs the transaction (do not use unless you
 	// know what you're doing)
 	Sequence string `mapstructure:"nonce" json:"nonce" yaml:"nonce" toml:"nonce"`
-	// (Optional) location of the abi file to use (can be relative path or in abi path)
-	// deployed contracts save ABI artifacts in the abi folder as *both* the name of the contract
+	// (Optional) location of the bin file to use (can be relative path or in bin path)
+	// deployed contracts save ABI artifacts in the bin folder as *both* the name of the contract
 	// and the address where the contract was deployed to
-	ABI string `mapstructure:"abi" json:"abi" yaml:"abi" toml:"abi"`
+	Bin string `mapstructure:"bin" json:"bin" yaml:"bin" toml:"bin"`
 	// (Optional) by default the call job will "store" the return from the contract as the
 	// result of the job. If you would like to store the transaction hash instead of the
 	// return from the call job as the result of the call job then select "tx" on the save
@@ -232,10 +229,10 @@ type QueryContract struct {
 	// (Optional) data to be used in the function arguments. Will use the monax-abi tooling under the hood to formalize the
 	// transaction.
 	Data interface{} `mapstructure:"data" json:"data" yaml:"data" toml:"data"`
-	// (Optional) location of the abi file to use (can be relative path or in abi path)
+	// (Optional) location of the bin file to use (can be relative path or in abi path)
 	// deployed contracts save ABI artifacts in the abi folder as *both* the name of the contract
 	// and the address where the contract was deployed to
-	ABI string `mapstructure:"abi" json:"abi" yaml:"abi" toml:"abi"`
+	Bin string `mapstructure:"bin" json:"bin" yaml:"bin" toml:"bin"`
 
 	Variables []*Variable
 }

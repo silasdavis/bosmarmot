@@ -82,14 +82,14 @@ func ABIErrorHandler(do *def.Packages, err error, call *def.Call, query *def.Que
 	case call != nil:
 		log.WithFields(log.Fields{
 			"data":   call.Data,
-			"abi":    call.ABI,
+			"bin":    call.Bin,
 			"dest":   call.Destination,
 			"rawErr": err,
 		}).Error("ABI Error")
 	case query != nil:
 		log.WithFields(log.Fields{
 			"data":   query.Data,
-			"abi":    query.ABI,
+			"bin":    query.Bin,
 			"dest":   query.Destination,
 			"rawErr": err,
 		}).Error("ABI Error")

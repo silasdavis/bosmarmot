@@ -22,13 +22,13 @@ jobs:
   call:
       destination: $deployGSFactoryFactory
       function: create
-      abi: $deployGSFactoryFactory
+      bin: $deployGSFactoryFactory
 
 #Double check created address
 - name:  getGSFactoryAddr
   query-contract:
       destination: $deployGSFactoryFactory
-      abi: $deployGSFactoryFactory
+      bin: $deployGSFactoryFactory
       function: getLast
 
 - name: assertFactoryAddr
@@ -41,14 +41,14 @@ jobs:
 - name: createGSContract
   call:
       destination: $createGSFactory
-      abi: $deployGSFactoryABIBase
+      bin: $deployGSFactoryABIBase
       function: create
 
 #Double check created address
 - name:  getGSAddr
   query-contract:
       destination: $createGSFactory
-      abi: $deployGSFactoryABIBase
+      bin: $deployGSFactoryABIBase
       function: getLast
 
 - name: assertAddr
@@ -64,12 +64,12 @@ jobs:
       function: set 
       data: 
         - $setStorageBase
-      abi: $deployGSABIBase
+      bin: $deployGSABIBase
 
 - name: queryStorage
   query-contract:
       destination: $createGSContract
-      abi: $deployGSABIBase
+      bin: $deployGSABIBase
       function: get
 
 - name: assertStorage

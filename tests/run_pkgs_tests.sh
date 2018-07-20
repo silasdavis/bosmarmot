@@ -111,7 +111,7 @@ run_test(){
     --set "addr1=$key1_addr" --set "addr2=$key2_addr" --set "addr2_pub=$key2_pub" #--debug
   test_exit=$?
 
-  git clean -fdx ../**/abi ../**/bin ./jobs_output.csv
+  git clean -fdx ../**/bin ./jobs_output.csv
   rm ./*.output.json
 
   # Reset for next run

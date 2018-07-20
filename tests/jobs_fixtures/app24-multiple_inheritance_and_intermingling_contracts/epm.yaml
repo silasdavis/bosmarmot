@@ -10,7 +10,7 @@ jobs:
   query-contract:
        destination: $deployOne
        function: i
-       abi: one
+       bin: one
 
 - name: assert1One 
   assert:
@@ -28,7 +28,7 @@ jobs:
   query-contract:
        destination: $deployTwo
        function: i
-       abi: two
+       bin: two
 
 - name: assert2One 
   assert:
@@ -40,7 +40,7 @@ jobs:
   query-contract:
        destination: $deployTwo
        function: ii
-       abi: two
+       bin: two
 
 - name: assert2Two 
   assert:
@@ -58,7 +58,7 @@ jobs:
   query-contract:
        destination: $deployThree
        function: i
-       abi: three
+       bin: three
 
 - name: assert3One 
   assert:
@@ -70,7 +70,7 @@ jobs:
   query-contract:
        destination: $deployThree
        function: ii
-       abi: three
+       bin: three
 
 - name: assert3Two 
   assert:
@@ -82,7 +82,7 @@ jobs:
   query-contract:
        destination: $deployThree
        function: iii
-       abi: three
+       bin: three
        
 - name: assert3Three 
   assert:

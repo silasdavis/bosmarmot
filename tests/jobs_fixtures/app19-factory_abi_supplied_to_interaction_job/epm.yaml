@@ -33,13 +33,13 @@ jobs:
       function: set 
       data:
         - $setStorageBase
-      abi: GSContract
+      bin: GSContract
 
 - name: queryStorage
   query-contract:
       destination: $createGSContract
       function: get
-      abi: GSContract
+      bin: GSContract
 
 - name: assertStorage
   assert:

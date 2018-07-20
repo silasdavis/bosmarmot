@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -54,11 +55,29 @@ func DeployJob(deploy *def.Deploy, do *def.Packages) (result string, err error) 
 		contractPath = deploy.Contract
 	}
 
+	libs := make(map[string]string)
+	var list []string
+	if strings.Contains(deploy.Libraries, " ") {
+		list = strings.Split(deploy.Libraries, " ")
+	} else {
+		list = strings.Split(deploy.Libraries, ",")
+	}
+	for _, l := range list {
+		if l != "" {
+			v := strings.Split(l, ":")
+			if len(v) != 2 {
+				return "", fmt.Errorf("library %s should be contract:address format", l)
+			}
+			libs[v[0]] = v[1]
+		}
+	}
+
 	// compile
 	if filepath.Ext(deploy.Contract) == ".bin" {
 		log.Info("Binary file detected. Using binary deploy sequence.")
 		log.WithField("=>", contractPath).Info("Binary path")
-		binaryResponse, err := compilers.RequestBinaryLinkage(contractPath, deploy.Libraries)
+
+		binaryResponse, err := compilers.RequestBinaryLinkage(contractPath, libs)
 		if err != nil {
 			return "", fmt.Errorf("Something went wrong with your binary deployment: %v", err)
 		}
@@ -80,7 +99,7 @@ func DeployJob(deploy *def.Deploy, do *def.Packages) (result string, err error) 
 		contractPath = deploy.Contract
 		log.WithField("=>", contractPath).Info("Contract path")
 		// normal compilation/deploy sequence
-		resp, err := compilers.RequestCompile(contractPath, false, deploy.Libraries)
+		resp, err := compilers.RequestCompile(contractPath, false, libs)
 
 		if err != nil {
 			log.Errorln("Error compiling contracts: Compilers error:")
@@ -96,9 +115,9 @@ func DeployJob(deploy *def.Deploy, do *def.Packages) (result string, err error) 
 		case len(resp.Objects) == 1:
 			log.WithField("path", contractPath).Info("Deploying the only contract in file")
 			response := resp.Objects[0]
-			log.WithField("=>", response.ABI).Info("Abi")
-			log.WithField("=>", response.Bytecode).Info("Bin")
-			if response.Bytecode != "" {
+			log.WithField("=>", response.Binary.Abi).Info("Abi")
+			log.WithField("=>", response.Binary.Evm.Bytecode.Object).Info("Bin")
+			if response.Binary.Evm.Bytecode.Object != "" {
 				result, err = deployContract(deploy, do, response)
 				if err != nil {
 					return "", err
@@ -108,7 +127,7 @@ func DeployJob(deploy *def.Deploy, do *def.Packages) (result string, err error) 
 			log.WithField("path", contractPath).Info("Deploying all contracts")
 			var baseObj string
 			for _, response := range resp.Objects {
-				if response.Bytecode == "" {
+				if response.Binary.Evm.Bytecode.Object == "" {
 					continue
 				}
 				result, err = deployContract(deploy, do, response)
@@ -125,7 +144,7 @@ func DeployJob(deploy *def.Deploy, do *def.Packages) (result string, err error) 
 		default:
 			log.WithField("contract", deploy.Instance).Info("Deploying a single contract")
 			for _, response := range resp.Objects {
-				if response.Bytecode == "" {
+				if response.Binary.Evm.Bytecode.Object == "" {
 					continue
 				}
 				if matchInstanceName(response.Objectname, deploy.Instance) {
@@ -153,33 +172,17 @@ func matchInstanceName(objectName, deployInstance string) bool {
 
 // TODO [rj] refactor to remove [contractPath] from functions signature => only used in a single error throw.
 func deployContract(deploy *def.Deploy, do *def.Packages, compilersResponse compilers.ResponseItem) (string, error) {
-	log.WithField("=>", string(compilersResponse.ABI)).Debug("ABI Specification (From Compilers)")
-	contractCode := compilersResponse.Bytecode
+	log.WithField("=>", string(compilersResponse.Binary.Abi)).Debug("Specification (From Compilers)")
+	contractCode := compilersResponse.Binary.Evm.Bytecode.Object
 
-	// Save ABI
-	if _, err := os.Stat(do.ABIPath); os.IsNotExist(err) {
-		if err := os.Mkdir(do.ABIPath, 0775); err != nil {
-			return "", err
-		}
-	}
+	// Save
 	if _, err := os.Stat(do.BinPath); os.IsNotExist(err) {
 		if err := os.Mkdir(do.BinPath, 0775); err != nil {
 			return "", err
 		}
 	}
 
-	// saving contract/library abi
-	var abiLocation string
-	if compilersResponse.Objectname != "" {
-		abiLocation = filepath.Join(do.ABIPath, compilersResponse.Objectname)
-		log.WithField("=>", abiLocation).Warn("Saving ABI")
-		if err := ioutil.WriteFile(abiLocation, []byte(compilersResponse.ABI), 0664); err != nil {
-			return "", err
-		}
-	} else {
-		log.Debug("Objectname from compilers is blank. Not saving abi.")
-	}
-
+	// saving contract
 	// additional data may be sent along with the contract
 	// these are naively added to the end of the contract code using standard
 	// mint packing
@@ -189,7 +192,7 @@ func deployContract(deploy *def.Deploy, do *def.Packages, compilersResponse comp
 		if err != nil {
 			return "", err
 		}
-		packedBytes, err := abi.ReadAbiFormulateCall(compilersResponse.Objectname, "", callDataArray, do)
+		packedBytes, err := abi.ReadAbiFormulateCall(compilersResponse.Binary.Abi, "", callDataArray, do)
 		if err != nil {
 			return "", err
 		}
@@ -210,20 +213,20 @@ func deployContract(deploy *def.Deploy, do *def.Packages, compilersResponse comp
 
 	// saving contract/library abi at abi/address
 	if contractAddress != nil {
-		abiLocation := filepath.Join(do.ABIPath, contractAddress.String())
-		log.WithField("=>", abiLocation).Debug("Saving ABI")
-		if err := ioutil.WriteFile(abiLocation, []byte(compilersResponse.ABI), 0664); err != nil {
+		b, err := json.Marshal(compilersResponse.Binary)
+		if err != nil {
+			return "", err
+		}
+		addressBin := filepath.Join(do.BinPath, contractAddress.String())
+		log.WithField("=>", addressBin).Debug("Saving Binary")
+		if err := ioutil.WriteFile(addressBin, b, 0664); err != nil {
 			return "", err
 		}
 		// saving binary
-		if deploy.SaveBinary {
-			contractName := filepath.Join(do.BinPath, fmt.Sprintf("%s.bin", compilersResponse.Objectname))
-			log.WithField("=>", contractName).Warn("Saving Binary")
-			if err := ioutil.WriteFile(contractName, []byte(contractCode), 0664); err != nil {
-				return "", err
-			}
-		} else {
-			log.Debug("Not saving binary.")
+		contractName := filepath.Join(do.BinPath, fmt.Sprintf("%s.bin", compilersResponse.Objectname))
+		log.WithField("=>", contractName).Warn("Saving Binary")
+		if err := ioutil.WriteFile(contractName, b, 0664); err != nil {
+			return "", err
 		}
 		return contractAddress.String(), nil
 	} else {
@@ -271,7 +274,7 @@ func CallJob(call *def.Call, do *def.Packages) (string, []*def.Variable, error) 
 	call.Sequence, _ = util.PreProcess(call.Sequence, do)
 	call.Fee, _ = util.PreProcess(call.Fee, do)
 	call.Gas, _ = util.PreProcess(call.Gas, do)
-	call.ABI, _ = util.PreProcess(call.ABI, do)
+	call.Bin, _ = util.PreProcess(call.Bin, do)
 
 	// Use default
 	call.Source = useDefault(call.Source, do.Package.Account)
@@ -281,11 +284,12 @@ func CallJob(call *def.Call, do *def.Packages) (string, []*def.Variable, error) 
 
 	// formulate call
 	var packedBytes []byte
-	if call.ABI == "" {
-		packedBytes, err = abi.ReadAbiFormulateCall(call.Destination, call.Function, callDataArray, do)
+	if call.Bin != "" {
+		packedBytes, err = abi.ReadAbiFormulateCallFile(call.Bin, call.Function, callDataArray, do)
 		callData = hex.EncodeToString(packedBytes)
-	} else {
-		packedBytes, err = abi.ReadAbiFormulateCall(call.ABI, call.Function, callDataArray, do)
+	}
+	if call.Bin == "" || err != nil {
+		packedBytes, err = abi.ReadAbiFormulateCallFile(call.Destination, call.Function, callDataArray, do)
 		callData = hex.EncodeToString(packedBytes)
 	}
 	if err != nil {
@@ -329,10 +333,11 @@ func CallJob(call *def.Call, do *def.Packages) (string, []*def.Variable, error) 
 	// Formally process the return
 	if txe.Result.Return != nil {
 		log.WithField("=>", result).Debug("Decoding Raw Result")
-		if call.ABI == "" {
+		if call.Bin != "" {
+			call.Variables, err = abi.ReadAndDecodeContractReturn(call.Bin, call.Function, txe.Result.Return, do)
+		}
+		if call.Bin == "" || err != nil {
 			call.Variables, err = abi.ReadAndDecodeContractReturn(call.Destination, call.Function, txe.Result.Return, do)
-		} else {
-			call.Variables, err = abi.ReadAndDecodeContractReturn(call.ABI, call.Function, txe.Result.Return, do)
 		}
 		if err != nil {
 			return "", nil, err

@@ -55,7 +55,6 @@ func MetaJob(meta *def.Meta, do *def.Packages) (string, error) {
 	// once we have the proper subYAMLPath set the paths accordingly
 	newDo.Path = filepath.Dir(newDo.YAMLPath)
 	newDo.BinPath = filepath.Join(newDo.Path, filepath.Base(do.BinPath))
-	newDo.ABIPath = filepath.Join(newDo.Path, filepath.Base(do.ABIPath))
 
 	// load the package
 	log.WithField("=>", newDo.YAMLPath).Info("Loading sub YAML")
