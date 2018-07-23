@@ -579,7 +579,7 @@ func (e EVMBytes) unpack(data []byte, offset int, v interface{}) (int, error) {
 		start := 0
 		end := int(e.M)
 
-		for start < ElementSize-1 && data[offset+start] == 0 {
+		for start < ElementSize-1 && data[offset+start] == 0 && start < end {
 			start++
 		}
 		for end > start && data[offset+end-1] == 0 {
