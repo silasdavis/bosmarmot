@@ -1,0 +1,18 @@
+# build target
+target
+bin/
+
+# tests
+test_scratch/
+*.log
+.burrow
+
+# Temporary / cached
+*.swp
+.idea
+.vscode
+
+.gopath_bos
+burrow.toml
+
+commit_hash.txt
