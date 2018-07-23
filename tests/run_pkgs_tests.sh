@@ -37,9 +37,8 @@ fi
 # Constants
 
 # Ports etc must match those in burrow.toml
-keys_port=48002
-tendermint_port=48001
-rpc_tm_port=48003
+grpc_port=20997
+tendermint_port=36656
 chain_dir="$script_dir/chain"
 burrow_root="$chain_dir/.burrow"
 
@@ -75,13 +74,13 @@ test_setup(){
   echo
   # start test chain
   if [[ "$boot" = true ]]; then
-    echo "Starting Burrow with tendermint port: $tendermint_port, tm RPC port: $rpc_tm_port"
+    echo "Starting Burrow with tendermint port: $tendermint_port, GRPC port: $grpc_port"
     rm -rf ${burrow_root}
-    $(cd "$chain_dir" && ${burrow_bin} start 2> "$burrow_log")&
+    $(cd "$chain_dir" && ${burrow_bin} start -v0 2> "$burrow_log")&
     burrow_pid=$!
 
   else
-    echo "Not booting Burrow, but expecting Burrow to be running with tm RPC on port $rpc_tm_port"
+    echo "Not booting Burrow, but expecting Burrow to be running with tm RPC on port $grpc_port"
   fi
 
   key1_addr=$(address_of "Full_0")
@@ -106,9 +105,9 @@ run_test(){
   cat readme.md
   echo
 
-  echo \$ ${bos_bin} --keys "localhost:$keys_port" --chain-url="tcp://:$rpc_tm_port" --address "$key1_addr" \
+  echo ${bos_bin} --keys "localhost:$grpc_port" --chain-url="localhost:$grpc_port" --address "$key1_addr" \
     --set "addr1=$key1_addr" --set "addr2=$key2_addr" --set "addr2_pub=$key2_pub" #--debug
-  ${bos_bin} --keys "localhost:$keys_port" --chain-url="tcp://:$rpc_tm_port" --address "$key1_addr" \
+  ${bos_bin} --keys "localhost:$grpc_port" --chain-url="localhost:$grpc_port" --address "$key1_addr" \
     --set "addr1=$key1_addr" --set "addr2=$key2_addr" --set "addr2_pub=$key2_pub" #--debug
   test_exit=$?
 
