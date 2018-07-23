@@ -6,19 +6,13 @@ import (
 	"io"
 	"os"
 
-	"github.com/hyperledger/burrow/client"
-	"github.com/hyperledger/burrow/client/rpc"
-	"github.com/hyperledger/burrow/keys"
-	"github.com/hyperledger/burrow/logging"
-	"github.com/hyperledger/burrow/txs"
 	"github.com/hyperledger/burrow/txs/payload"
-	"github.com/monax/bosmarmot/bos/definitions"
+	"github.com/monax/bosmarmot/bos/def"
 	"github.com/monax/bosmarmot/bos/util"
 	log "github.com/sirupsen/logrus"
 )
 
-func SendJob(send *definitions.Send, do *definitions.Packages) (string, error) {
-
+func SendJob(send *def.Send, do *def.Packages) (string, error) {
 	// Process Variables
 	send.Source, _ = util.PreProcess(send.Source, do)
 	send.Destination, _ = util.PreProcess(send.Destination, do)
@@ -27,13 +21,6 @@ func SendJob(send *definitions.Send, do *definitions.Packages) (string, error) {
 	// Use Default
 	send.Source = useDefault(send.Source, do.Package.Account)
 
-	// Don't use pubKey if account override
-	var oldKey string
-	if send.Source != do.Package.Account {
-		oldKey = do.PublicKey
-		do.PublicKey = ""
-	}
-
 	// Formulate tx
 	log.WithFields(log.Fields{
 		"source":      send.Source,
@@ -41,26 +28,21 @@ func SendJob(send *definitions.Send, do *definitions.Packages) (string, error) {
 		"amount":      send.Amount,
 	}).Info("Sending Transaction")
 
-	monaxNodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
-	monaxKeyClient, err := keys.NewRemoteKeyClient(do.Signer, logging.NewNoopLogger())
+	tx, err := do.Send(def.SendArg{
+		Input:    send.Source,
+		Output:   send.Destination,
+		Amount:   send.Amount,
+		Sequence: send.Sequence,
+	})
 	if err != nil {
-		return "", err
-	}
-	tx, err := rpc.Send(monaxNodeClient, monaxKeyClient, do.PublicKey, send.Source, send.Destination, send.Amount, send.Nonce)
-	if err != nil {
-		return util.MintChainErrorHandler(do, err)
-	}
-
-	// Don't use pubKey if account override
-	if send.Source != do.Package.Account {
-		do.PublicKey = oldKey
+		return "", util.MintChainErrorHandler(do, err)
 	}
 
 	// Sign, broadcast, display
 	return txFinalize(do, tx)
 }
 
-func RegisterNameJob(name *definitions.RegisterName, do *definitions.Packages) (string, error) {
+func RegisterNameJob(name *def.RegisterName, do *def.Packages) (string, error) {
 	// Process Variables
 	name.DataFile, _ = util.PreProcess(name.DataFile, do)
 
@@ -99,13 +81,13 @@ func RegisterNameJob(name *definitions.RegisterName, do *definitions.Packages) (
 
 			// Send an individual Tx for the record
 			// [TODO]: move these to async using goroutines?
-			r, err := registerNameTx(&definitions.RegisterName{
-				Source: name.Source,
-				Name:   record[0],
-				Data:   record[1],
-				Amount: record[2],
-				Fee:    name.Fee,
-				Nonce:  name.Nonce,
+			r, err := registerNameTx(&def.RegisterName{
+				Source:   name.Source,
+				Name:     record[0],
+				Data:     record[1],
+				Amount:   record[2],
+				Fee:      name.Fee,
+				Sequence: name.Sequence,
 			}, do)
 
 			if err != nil {
@@ -131,7 +113,7 @@ func RegisterNameJob(name *definitions.RegisterName, do *definitions.Packages) (
 }
 
 // Runs an individual nametx.
-func registerNameTx(name *definitions.RegisterName, do *definitions.Packages) (string, error) {
+func registerNameTx(name *def.RegisterName, do *def.Packages) (string, error) {
 	// Process Variables
 	name.Source, _ = util.PreProcess(name.Source, do)
 	name.Name, _ = util.PreProcess(name.Name, do)
@@ -144,13 +126,6 @@ func registerNameTx(name *definitions.RegisterName, do *definitions.Packages) (s
 	name.Fee = useDefault(name.Fee, do.DefaultFee)
 	name.Amount = useDefault(name.Amount, do.DefaultAmount)
 
-	// Don't use pubKey if account override
-	var oldKey string
-	if name.Source != do.Package.Account {
-		oldKey = do.PublicKey
-		do.PublicKey = ""
-	}
-
 	// Formulate tx
 	log.WithFields(log.Fields{
 		"name":   name.Name,
@@ -158,26 +133,23 @@ func registerNameTx(name *definitions.RegisterName, do *definitions.Packages) (s
 		"amount": name.Amount,
 	}).Info("NameReg Transaction")
 
-	monaxNodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
-	monaxKeyClient, err := keys.NewRemoteKeyClient(do.Signer, logging.NewNoopLogger())
+	//tx, err := rpc.Name(monaxNodeClient, monaxKeyClient, name.Source, name.Amount, name.Nonce, name.Fee, name.Name, name.Data)
+	tx, err := do.Name(def.NameArg{
+		Input:    name.Source,
+		Sequence: name.Sequence,
+		Name:     name.Name,
+		Amount:   name.Amount,
+		Data:     name.Data,
+		Fee:      name.Fee,
+	})
 	if err != nil {
-		return util.MintChainErrorHandler(do, err)
+		return "", util.MintChainErrorHandler(do, err)
 	}
-	tx, err := rpc.Name(monaxNodeClient, monaxKeyClient, do.PublicKey, name.Source, name.Amount, name.Nonce, name.Fee, name.Name, name.Data)
-	if err != nil {
-		return util.MintChainErrorHandler(do, err)
-	}
-
-	// Don't use pubKey if account override
-	if name.Source != do.Package.Account {
-		do.PublicKey = oldKey
-	}
-
 	// Sign, broadcast, display
 	return txFinalize(do, tx)
 }
 
-func PermissionJob(perm *definitions.Permission, do *definitions.Packages) (string, error) {
+func PermissionJob(perm *def.Permission, do *def.Packages) (string, error) {
 	// Process Variables
 	perm.Source, _ = util.PreProcess(perm.Source, do)
 	perm.Action, _ = util.PreProcess(perm.Action, do)
@@ -194,134 +166,40 @@ func PermissionJob(perm *definitions.Permission, do *definitions.Packages) (stri
 	log.Debug("Action: ", perm.Action)
 	// Populate the transaction appropriately
 
-	// Don't use pubKey if account override
-	var oldKey string
-	if perm.Source != do.Package.Account {
-		oldKey = do.PublicKey
-		do.PublicKey = ""
-	}
-
 	// Formulate tx
-	//arg := fmt.Sprintf("%s:%s", args[0], args[1])
-	//log.WithField(perm.Action, arg).Info("Setting Permissions")
-
-	monaxNodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
-	monaxKeyClient, err := keys.NewRemoteKeyClient(do.Signer, logging.NewNoopLogger())
+	//tx, err := rpc.Permissions(monaxNodeClient, monaxKeyClient, perm.Source, perm.Nonce, perm.Action,
+	//	perm.Target, perm.PermissionFlag, perm.Role, perm.Value)
+	tx, err := do.Permissions(def.PermArg{
+		Input:      perm.Source,
+		Sequence:   perm.Sequence,
+		Action:     perm.Action,
+		Target:     perm.Target,
+		Permission: perm.PermissionFlag,
+		Role:       perm.Role,
+		Value:      perm.Value,
+	})
 	if err != nil {
-		return util.MintChainErrorHandler(do, err)
-	}
-	tx, err := rpc.Permissions(monaxNodeClient, monaxKeyClient, do.PublicKey, perm.Source, perm.Nonce, perm.Action,
-		perm.Target, perm.PermissionFlag, perm.Role, perm.Value)
-	if err != nil {
-		return util.MintChainErrorHandler(do, err)
+		return "", util.MintChainErrorHandler(do, err)
 	}
 
 	log.Debug("What are the args returned in transaction: ", tx.PermArgs)
 
-	// Don't use pubKey if account override
-	if perm.Source != do.Package.Account {
-		do.PublicKey = oldKey
-	}
-
 	// Sign, broadcast, display
 	return txFinalize(do, tx)
 }
 
-func BondJob(bond *definitions.Bond, do *definitions.Packages) (string, error) {
-	// Process Variables
-	bond.Account, _ = util.PreProcess(bond.Account, do)
-	bond.Amount, _ = util.PreProcess(bond.Amount, do)
-	bond.PublicKey, _ = util.PreProcess(bond.PublicKey, do)
-
-	// Use Defaults
-	bond.Account = useDefault(bond.Account, do.Package.Account)
-	do.PublicKey = useDefault(do.PublicKey, bond.PublicKey)
-
-	// Formulate tx
-	log.WithFields(log.Fields{
-		"public key": do.PublicKey,
-		"amount":     bond.Amount,
-	}).Infof("Bond Transaction")
-
-	monaxNodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
-	monaxKeyClient, err := keys.NewRemoteKeyClient(do.Signer, logging.NewNoopLogger())
+func txFinalize(do *def.Packages, tx payload.Payload) (string, error) {
+	txe, err := do.SignAndBroadcast(tx)
 	if err != nil {
-		return util.MintChainErrorHandler(do, err)
-	}
-	tx, err := rpc.Bond(monaxNodeClient, monaxKeyClient, do.PublicKey, bond.Account, bond.Amount, bond.Nonce)
-	if err != nil {
-		return util.MintChainErrorHandler(do, err)
+		return "", util.MintChainErrorHandler(do, err)
 	}
 
-	// Sign, broadcast, display
-	return txFinalize(do, tx)
-}
-
-func UnbondJob(unbond *definitions.Unbond, do *definitions.Packages) (string, error) {
-	// Process Variables
-	var err error
-	unbond.Account, err = util.PreProcess(unbond.Account, do)
-	if err != nil {
-		return "", err
-	}
-	unbond.Height, err = util.PreProcess(unbond.Height, do)
+	util.ReadTxSignAndBroadcast(txe, err)
 	if err != nil {
 		return "", err
 	}
 
-	// Use defaults
-	unbond.Account = useDefault(unbond.Account, do.Package.Account)
-
-	// Don't use pubKey if account override
-	var oldKey string
-	if unbond.Account != do.Package.Account {
-		oldKey = do.PublicKey
-		do.PublicKey = ""
-	}
-
-	// Formulate tx
-	log.WithFields(log.Fields{
-		"account": unbond.Account,
-		"height":  unbond.Height,
-	}).Info("Unbond Transaction")
-
-	tx, err := rpc.Unbond(unbond.Account, unbond.Height)
-	if err != nil {
-		return util.MintChainErrorHandler(do, err)
-	}
-
-	// Don't use pubKey if account override
-	if unbond.Account != do.Package.Account {
-		do.PublicKey = oldKey
-	}
-
-	// Sign, broadcast, display
-	return txFinalize(do, tx)
-}
-
-func txFinalize(do *definitions.Packages, tx payload.Payload) (string, error) {
-	var result string
-
-	nodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
-	keyClient, err := keys.NewRemoteKeyClient(do.Signer, logging.NewNoopLogger())
-	if err != nil {
-		return "", err
-	}
-	_, chainID, _, err := nodeClient.ChainId()
-	if err != nil {
-		return "", err
-	}
-	res, err := rpc.SignAndBroadcast(nodeClient, keyClient, txs.Enclose(chainID, tx), true, true, true)
-	if err != nil {
-		return util.MintChainErrorHandler(do, err)
-	}
-
-	if err := util.ReadTxSignAndBroadcast(res, err); err != nil {
-		return "", err
-	}
-
-	result = fmt.Sprintf("%X", res.Hash)
-	return result, nil
+	return txe.Receipt.TxHash.String(), nil
 }
 
 func useDefault(thisOne, defaultOne string) string {

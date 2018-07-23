@@ -123,6 +123,7 @@ perform_tests(){
   echo ""
   goto_base
   apps=($1*/)
+  echo $apps
   repeats=${2:-1}
   # Useful for soak testing/generating background requests to trigger concurrency issues
   for rep in `seq ${repeats}`

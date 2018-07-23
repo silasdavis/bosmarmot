@@ -12,9 +12,8 @@ import (
 	"strings"
 	"unsafe" // just for Sizeof
 
-	tm_crypto "github.com/ethereum/go-ethereum/crypto"
-
 	"github.com/hyperledger/burrow/crypto"
+	"github.com/hyperledger/burrow/execution/evm/sha3"
 )
 
 // EVM Solidity calls and return values are packed into
@@ -938,7 +937,7 @@ func (abiSpec *AbiSpec) Pack(fname string, args ...interface{}) ([]byte, error) 
 	sig += ")"
 
 	if fname != "" {
-		packed = tm_crypto.Keccak256([]byte(sig))[:4]
+		packed = sha3.Sha3([]byte(sig))[:4]
 	}
 
 	addArg := func(v interface{}, a Argument) error {

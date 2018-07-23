@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/monax/bosmarmot/bos"
-	"github.com/monax/bosmarmot/bos/definitions"
+	"github.com/monax/bosmarmot/bos/def"
 	"github.com/monax/bosmarmot/bos/util"
 	"github.com/monax/bosmarmot/project"
 	log "github.com/sirupsen/logrus"
@@ -37,11 +37,11 @@ Made with <3 by Monax Industries.
 }
 
 // Global Do struct
-var do *definitions.Packages
+var do *def.Packages
 
 // Controls the execution sequence of the cobra global runner
 func Execute() {
-	do = definitions.NewPackage()
+	do = def.NewPackage()
 	AddGlobalFlags()
 	AddCommands()
 	util.IfExit(BosCmd.Execute())

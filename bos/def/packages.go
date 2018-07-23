@@ -1,4 +1,4 @@
-package definitions
+package def
 
 type Packages struct {
 	ABIPath       string   `mapstructure:"," json:"," yaml:"," toml:","`
@@ -13,14 +13,18 @@ type Packages struct {
 	DefaultOutput string   `mapstructure:"," json:"," yaml:"," toml:","`
 	DefaultSets   []string `mapstructure:"," json:"," yaml:"," toml:","`
 	Path          string   `mapstructure:"," json:"," yaml:"," toml:","`
-	PublicKey     string   `mapstructure:"," json:"," yaml:"," toml:","` // needed for bonding/unbonding/rebonding
 	Signer        string   `mapstructure:"," json:"," yaml:"," toml:","`
 	Verbose       bool     `mapstructure:"," json:"," yaml:"," toml:","`
 	YAMLPath      string   `mapstructure:"," json:"," yaml:"," toml:","`
 
 	Package *Package
+	Client
 }
 
 func NewPackage() *Packages {
 	return &Packages{}
+}
+
+func (do *Packages) Dial() error {
+	return do.Client.Dial(do.ChainURL, do.Signer)
 }

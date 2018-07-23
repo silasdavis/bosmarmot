@@ -1,4 +1,4 @@
-package definitions
+package def
 
 // ------------------------------------------------------------------------
 // Meta Jobs
@@ -43,7 +43,7 @@ type Send struct {
 	Amount string `mapstructure:"amount" json:"amount" yaml:"amount" toml:"amount"`
 	// (Optional, advanced only) nonce to use when burrow keys signs the transaction (do not use unless you
 	// know what you're doing)
-	Nonce string `mapstructure:"nonce" json:"nonce" yaml:"nonce" toml:"nonce"`
+	Sequence string `mapstructure:"nonce" json:"nonce" yaml:"nonce" toml:"nonce"`
 }
 
 type RegisterName struct {
@@ -62,7 +62,7 @@ type RegisterName struct {
 	Fee string `mapstructure:"fee" json:"fee" yaml:"fee" toml:"fee"`
 	// (Optional, advanced only) nonce to use when burrow keys signs the transaction (do not use unless you
 	// know what you're doing)
-	Nonce string `mapstructure:"nonce" json:"nonce" yaml:"nonce" toml:"nonce"`
+	Sequence string `mapstructure:"nonce" json:"nonce" yaml:"nonce" toml:"nonce"`
 }
 
 type Permission struct {
@@ -82,12 +82,10 @@ type Permission struct {
 	Role string `mapstructure:"role" json:"role" yaml:"role" toml:"role"`
 	// (Optional, advanced only) nonce to use when burrow keys signs the transaction (do not use unless you
 	// know what you're doing)
-	Nonce string `mapstructure:"nonce" json:"nonce" yaml:"nonce" toml:"nonce"`
+	Sequence string `mapstructure:"nonce" json:"nonce" yaml:"nonce" toml:"nonce"`
 }
 
 type Bond struct {
-	// (Required) public key of the address which will be bonded
-	PublicKey string `mapstructure:"pub_key" json:"pub_key" yaml:"pub_key" toml:"pub_key"`
 	// (Required) address of the account which will be bonded
 	Account string `mapstructure:"account" json:"account" yaml:"account" toml:"account"`
 	// (Required) amount of tokens which will be bonded
@@ -160,7 +158,7 @@ type Deploy struct {
 	SaveBinary bool `mapstructure:"save" json:"save" yaml:"save" toml:"save"`
 	// (Optional, advanced only) nonce to use when burrow keys signs the transaction (do not use unless you
 	// know what you're doing)
-	Nonce string `mapstructure:"nonce" json:"nonce" yaml:"nonce" toml:"nonce"`
+	Sequence string `mapstructure:"nonce" json:"nonce" yaml:"nonce" toml:"nonce"`
 	// (Optional) todo
 	Variables []*Variable
 }
@@ -184,7 +182,7 @@ type Call struct {
 	Gas string `mapstructure:"gas" json:"gas" yaml:"gas" toml:"gas"`
 	// (Optional, advanced only) nonce to use when burrow keys signs the transaction (do not use unless you
 	// know what you're doing)
-	Nonce string `mapstructure:"nonce" json:"nonce" yaml:"nonce" toml:"nonce"`
+	Sequence string `mapstructure:"nonce" json:"nonce" yaml:"nonce" toml:"nonce"`
 	// (Optional) location of the abi file to use (can be relative path or in abi path)
 	// deployed contracts save ABI artifacts in the abi folder as *both* the name of the contract
 	// and the address where the contract was deployed to

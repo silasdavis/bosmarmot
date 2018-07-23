@@ -9,7 +9,7 @@
 
 [[override]]
   name = "github.com/hyperledger/burrow"
-  revision = "ea957bdae632ab61dcf24e6c4673f05bb7c66681"
+  revision = "7beb2fed3d0be86d467b95130856bf7918512894"
 
 # We don't care which version Tendermint wants
 [[override]]

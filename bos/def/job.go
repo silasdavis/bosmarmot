@@ -1,4 +1,4 @@
-package definitions
+package def
 
 //TODO: Interface all the jobs, determine if they should remain in definitions or get their own package
 

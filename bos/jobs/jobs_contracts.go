@@ -8,27 +8,23 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/hyperledger/burrow/client"
-	"github.com/hyperledger/burrow/client/rpc"
-	"github.com/hyperledger/burrow/keys"
-	"github.com/hyperledger/burrow/logging"
-	"github.com/hyperledger/burrow/txs"
+	"github.com/hyperledger/burrow/crypto"
 	"github.com/hyperledger/burrow/txs/payload"
 	"github.com/monax/bosmarmot/bos/abi"
 	compilers "github.com/monax/bosmarmot/bos/compile"
-	"github.com/monax/bosmarmot/bos/definitions"
+	"github.com/monax/bosmarmot/bos/def"
 	"github.com/monax/bosmarmot/bos/util"
 	log "github.com/sirupsen/logrus"
 )
 
-func DeployJob(deploy *definitions.Deploy, do *definitions.Packages) (result string, err error) {
+func DeployJob(deploy *def.Deploy, do *def.Packages) (result string, err error) {
 	// Preprocess variables
 	deploy.Source, _ = util.PreProcess(deploy.Source, do)
 	deploy.Contract, _ = util.PreProcess(deploy.Contract, do)
 	deploy.Instance, _ = util.PreProcess(deploy.Instance, do)
 	deploy.Libraries, _ = util.PreProcessLibs(deploy.Libraries, do)
 	deploy.Amount, _ = util.PreProcess(deploy.Amount, do)
-	deploy.Nonce, _ = util.PreProcess(deploy.Nonce, do)
+	deploy.Sequence, _ = util.PreProcess(deploy.Sequence, do)
 	deploy.Fee, _ = util.PreProcess(deploy.Fee, do)
 	deploy.Gas, _ = util.PreProcess(deploy.Gas, do)
 
@@ -58,13 +54,6 @@ func DeployJob(deploy *definitions.Deploy, do *definitions.Packages) (result str
 		contractPath = deploy.Contract
 	}
 
-	// Don't use pubKey if account override
-	var oldKey string
-	if deploy.Source != do.Package.Account {
-		oldKey = do.PublicKey
-		do.PublicKey = ""
-	}
-
 	// compile
 	if filepath.Ext(deploy.Contract) == ".bin" {
 		log.Info("Binary file detected. Using binary deploy sequence.")
@@ -78,7 +67,7 @@ func DeployJob(deploy *definitions.Deploy, do *definitions.Packages) (result str
 		}
 		contractCode := binaryResponse.Binary
 
-		tx, err := deployRaw(do, deploy, contractName, string(contractCode))
+		tx, err := deployTx(do, deploy, contractName, string(contractCode))
 		if err != nil {
 			return "could not deploy binary contract", err
 		}
@@ -86,7 +75,7 @@ func DeployJob(deploy *definitions.Deploy, do *definitions.Packages) (result str
 		if err != nil {
 			return "", fmt.Errorf("Error finalizing contract deploy from path %s: %v", contractPath, err)
 		}
-		return result, err
+		return result.String(), err
 	} else {
 		contractPath = deploy.Contract
 		log.WithField("=>", contractPath).Info("Contract path")
@@ -149,11 +138,6 @@ func DeployJob(deploy *definitions.Deploy, do *definitions.Packages) (result str
 		}
 	}
 
-	// Don't use pubKey if account override
-	if deploy.Source != do.Package.Account {
-		do.PublicKey = oldKey
-	}
-
 	return result, nil
 }
 
@@ -162,12 +146,13 @@ func matchInstanceName(objectName, deployInstance string) bool {
 		return false
 	}
 	// Ignore the filename component that newer versions of Solidity include in object name
+
 	objectNameParts := strings.Split(objectName, ":")
 	return strings.ToLower(objectNameParts[len(objectNameParts)-1]) == strings.ToLower(deployInstance)
 }
 
 // TODO [rj] refactor to remove [contractPath] from functions signature => only used in a single error throw.
-func deployContract(deploy *definitions.Deploy, do *definitions.Packages, compilersResponse compilers.ResponseItem) (string, error) {
+func deployContract(deploy *def.Deploy, do *def.Packages, compilersResponse compilers.ResponseItem) (string, error) {
 	log.WithField("=>", string(compilersResponse.ABI)).Debug("ABI Specification (From Compilers)")
 	contractCode := compilersResponse.Bytecode
 
@@ -212,20 +197,20 @@ func deployContract(deploy *definitions.Deploy, do *definitions.Packages, compil
 		contractCode = contractCode + callData
 	}
 
-	tx, err := deployRaw(do, deploy, compilersResponse.Objectname, contractCode)
+	tx, err := deployTx(do, deploy, compilersResponse.Objectname, contractCode)
 	if err != nil {
 		return "", err
 	}
 
 	// Sign, broadcast, display
-	result, err := deployFinalize(do, tx)
+	contractAddress, err := deployFinalize(do, tx)
 	if err != nil {
 		return "", fmt.Errorf("Error finalizing contract deploy %s: %v", deploy.Contract, err)
 	}
 
 	// saving contract/library abi at abi/address
-	if result != "" {
-		abiLocation := filepath.Join(do.ABIPath, result)
+	if contractAddress != nil {
+		abiLocation := filepath.Join(do.ABIPath, contractAddress.String())
 		log.WithField("=>", abiLocation).Debug("Saving ABI")
 		if err := ioutil.WriteFile(abiLocation, []byte(compilersResponse.ABI), 0664); err != nil {
 			return "", err
@@ -240,16 +225,14 @@ func deployContract(deploy *definitions.Deploy, do *definitions.Packages, compil
 		} else {
 			log.Debug("Not saving binary.")
 		}
+		return contractAddress.String(), nil
 	} else {
 		// we shouldn't reach this point because we should have an error before this.
-		log.Error("The contract did not deploy. Unable to save abi to abi/contractAddress.")
+		return "", fmt.Errorf("The contract did not deploy. Unable to save abi to abi/contractAddress.")
 	}
-
-	return result, err
 }
 
-func deployRaw(do *definitions.Packages, deploy *definitions.Deploy, contractName, contractCode string) (*payload.CallTx, error) {
-
+func deployTx(do *def.Packages, deploy *def.Deploy, contractName, contractCode string) (*payload.CallTx, error) {
 	// Deploy contract
 	log.WithFields(log.Fields{
 		"name": contractName,
@@ -261,21 +244,17 @@ func deployRaw(do *definitions.Packages, deploy *definitions.Deploy, contractNam
 		"chain-url": do.ChainURL,
 	}).Info()
 
-	monaxNodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
-	monaxKeyClient, err := keys.NewRemoteKeyClient(do.Signer, logging.NewNoopLogger())
-	if err != nil {
-		return nil, err
-	}
-	tx, err := rpc.Call(monaxNodeClient, monaxKeyClient, do.PublicKey, deploy.Source, "", deploy.Amount,
-		deploy.Nonce, deploy.Gas, deploy.Fee, contractCode)
-	if err != nil {
-		return &payload.CallTx{}, fmt.Errorf("error deploying contract %s: %v", contractName, err)
-	}
-
-	return tx, err
+	return do.Call(def.CallArg{
+		Input:    deploy.Source,
+		Amount:   deploy.Amount,
+		Fee:      deploy.Fee,
+		Gas:      deploy.Gas,
+		Data:     contractCode,
+		Sequence: deploy.Sequence,
+	})
 }
 
-func CallJob(call *definitions.Call, do *definitions.Packages) (string, []*definitions.Variable, error) {
+func CallJob(call *def.Call, do *def.Packages) (string, []*def.Variable, error) {
 	var err error
 	var callData string
 	var callDataArray []string
@@ -289,7 +268,7 @@ func CallJob(call *definitions.Call, do *definitions.Packages) (string, []*defin
 	}
 	call.Function, _ = util.PreProcess(call.Function, do)
 	call.Amount, _ = util.PreProcess(call.Amount, do)
-	call.Nonce, _ = util.PreProcess(call.Nonce, do)
+	call.Sequence, _ = util.PreProcess(call.Sequence, do)
 	call.Fee, _ = util.PreProcess(call.Fee, do)
 	call.Gas, _ = util.PreProcess(call.Gas, do)
 	call.ABI, _ = util.PreProcess(call.ABI, do)
@@ -318,57 +297,42 @@ func CallJob(call *definitions.Call, do *definitions.Packages) (string, []*defin
 		}
 	}
 
-	// Don't use pubKey if account override
-	var oldKey string
-	if call.Source != do.Package.Account {
-		oldKey = do.PublicKey
-		do.PublicKey = ""
-	}
-
 	log.WithFields(log.Fields{
 		"destination": call.Destination,
 		"function":    call.Function,
 		"data":        callData,
 	}).Info("Calling")
 
-	nodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
-	keyClient, err := keys.NewRemoteKeyClient(do.Signer, logging.NewNoopLogger())
+	tx, err := do.Call(def.CallArg{
+		Input:    call.Source,
+		Amount:   call.Amount,
+		Address:  call.Destination,
+		Fee:      call.Fee,
+		Gas:      call.Gas,
+		Data:     callData,
+		Sequence: call.Sequence,
+	})
 	if err != nil {
 		return "", nil, err
-	}
-	tx, err := rpc.Call(nodeClient, keyClient, do.PublicKey, call.Source, call.Destination, call.Amount, call.Nonce, call.Gas, call.Fee, callData)
-	if err != nil {
-		return "", nil, err
-	}
-
-	// Don't use pubKey if account override
-	if call.Source != do.Package.Account {
-		do.PublicKey = oldKey
 	}
 
 	// Sign, broadcast, display
-
-	_, chainID, _, err := nodeClient.ChainId()
+	txe, err := do.SignAndBroadcast(tx)
 	if err != nil {
+		var err = util.MintChainErrorHandler(do, err)
 		return "", nil, err
 	}
-	res, err := rpc.SignAndBroadcast(nodeClient, keyClient, txs.Enclose(chainID, tx), true, true, true)
-	if err != nil {
-		var str, err = util.MintChainErrorHandler(do, err)
-		return str, nil, err
-	}
 
-	txResult := res.Return
 	var result string
-	log.Debug(txResult)
+	log.Debug(txe.Result.Return)
 
 	// Formally process the return
-	if txResult != nil {
+	if txe.Result.Return != nil {
 		log.WithField("=>", result).Debug("Decoding Raw Result")
 		if call.ABI == "" {
-			call.Variables, err = abi.ReadAndDecodeContractReturn(call.Destination, call.Function, txResult, do)
+			call.Variables, err = abi.ReadAndDecodeContractReturn(call.Destination, call.Function, txe.Result.Return, do)
 		} else {
-			call.Variables, err = abi.ReadAndDecodeContractReturn(call.ABI, call.Function, txResult, do)
+			call.Variables, err = abi.ReadAndDecodeContractReturn(call.ABI, call.Function, txe.Result.Return, do)
 		}
 		if err != nil {
 			return "", nil, err
@@ -386,33 +350,25 @@ func CallJob(call *definitions.Call, do *definitions.Packages) (string, []*defin
 
 	if call.Save == "tx" {
 		log.Info("Saving tx hash instead of contract return")
-		result = fmt.Sprintf("%X", res.Hash)
+		result = fmt.Sprintf("%X", txe.Receipt.TxHash)
 	}
 
 	return result, call.Variables, nil
 }
 
-func deployFinalize(do *definitions.Packages, tx payload.Payload) (string, error) {
-	nodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
-	_, chainID, _, err := nodeClient.ChainId()
+func deployFinalize(do *def.Packages, tx payload.Payload) (*crypto.Address, error) {
+	txe, err := do.SignAndBroadcast(tx)
 	if err != nil {
-		return "", err
-	}
-	keyClient, err := keys.NewRemoteKeyClient(do.Signer, logging.NewNoopLogger())
-	if err != nil {
-		return "", err
-	}
-	res, err := rpc.SignAndBroadcast(nodeClient, keyClient, txs.Enclose(chainID, tx), true, true, true)
-	if err != nil {
-		return util.MintChainErrorHandler(do, err)
+		return nil, util.MintChainErrorHandler(do, err)
 	}
 
-	if err := util.ReadTxSignAndBroadcast(res, err); err != nil {
-		return "", err
+	if err := util.ReadTxSignAndBroadcast(txe, err); err != nil {
+		return nil, err
 	}
 
-	if res.Address == nil {
-		return "", fmt.Errorf("result from SignAndBroadcast contains address for the deployed contract")
+	if !txe.Receipt.CreatesContract || txe.Receipt.ContractAddress == crypto.ZeroAddress {
+		// Shouldn't get ZeroAddress when CreatesContract is true, but still
+		return nil, fmt.Errorf("result from SignAndBroadcast does not contain address for the deployed contract")
 	}
-	return res.Address.String(), nil
+	return &txe.Receipt.ContractAddress, nil
 }
