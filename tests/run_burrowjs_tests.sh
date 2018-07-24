@@ -43,6 +43,7 @@ keys_port=48002
 rpc_tm_port=48003
 export BURROW_HOST='127.0.0.1'
 export BURROW_GRPC_PORT='20997'
+
 burrow_root="${chain_dir}/.burrow"
 
 # Temporary logs
@@ -67,7 +68,6 @@ test_setup(){
 
   # start test chain
   if [[ "$boot" = true ]]; then
-    echo "Starting Burrow with tendermint RPC port: $rpc_tm_port"
     rm -rf ${burrow_root}
 
     cd "$chain_dir"
@@ -77,7 +77,7 @@ test_setup(){
     sleep 1
 
   else
-    echo "Not booting Burrow, but expecting Burrow to be running with tm RPC on port $rpc_tm_port"
+    echo "Not booting Burrow, but expecting Burrow to be running"
   fi
 
   account_data
