@@ -55,7 +55,7 @@ var unpackOutput = function (output, abi, objectReturn) {
   };
 
   if (!objectReturn) {
-    return raw.length === 1 ? raw[0] : raw
+    return raw
   }
 
   // If an object is wanted,
@@ -71,7 +71,6 @@ var unpackOutput = function (output, abi, objectReturn) {
 
   result = Object.assign({}, result, args)
 
-  result.raw = result.raw.length === 1 ? result.raw[0] : result.raw
   return result
 }
 
@@ -96,7 +95,7 @@ var SolidityFunction = function (abi) {
   }
 
   var call = function () {
-    var args = Array.prototype.slice.call(arguments).filter(function (a) { return a !== undefined })
+    var args = Array.prototype.slice.call(arguments)
     var isSim = args.shift()
     var address = args.shift() || this.address
 

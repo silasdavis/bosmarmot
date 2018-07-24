@@ -20,7 +20,7 @@ describe('Namereg', function () {
       .then(() => {
         return burrow.namereg.get('DOUG')
           .then((data) => {
-            assert.equal(data, 'ABCDEF0123456789')
+            assert.equal(data.Data, 'ABCDEF0123456789')
           })
       })
   }))

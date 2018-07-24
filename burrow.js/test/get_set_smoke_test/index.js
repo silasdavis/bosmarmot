@@ -36,7 +36,7 @@ describe('Setting and Getting Values:', function () {
         TestContract.getUint(function (err, output) {
           if (err) { reject(err) }
 
-          assert.equal(output, testUint)
+          assert.equal(output[0], testUint)
           resolve()
         })
       })
@@ -51,7 +51,7 @@ describe('Setting and Getting Values:', function () {
         TestContract.getBool(function (err, output) {
           if (err) { reject(err) }
 
-          assert.equal(output, testBool)
+          assert.equal(output[0], testBool)
           resolve()
         })
       })
@@ -66,7 +66,7 @@ describe('Setting and Getting Values:', function () {
         TestContract.getBytes(function (err, output) {
           if (err) { reject(err) }
 
-          assert.equal(output, testBytes)
+          assert.equal(output[0], testBytes)
           resolve()
         })
       })
@@ -81,7 +81,7 @@ describe('Setting and Getting Values:', function () {
         TestContract.getString(function (err, output) {
           if (err) { reject(err) }
 
-          assert.equal(output, testString)
+          assert.equal(output[0], testString)
           resolve()
         })
       })

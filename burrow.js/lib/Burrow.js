@@ -21,6 +21,7 @@ var Namereg = require('./namereg')
  * @returns {Burrow} - A new instance of the Burrow class.
  */
 exports.createInstance = function (URL, account, options) {
+  URL = (typeof URL === 'string' ? URL : URL.host + ':' + URL.port)
   return new Burrow(URL, account, options)
 }
 

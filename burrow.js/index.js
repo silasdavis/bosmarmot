@@ -12,18 +12,6 @@ var utils = require('./lib/utils/utils')
 
 module.exports = {
   createInstance: Burrow.createInstance,
-  Burrow: Burrow
+  Burrow: Burrow,
+  utils: utils
 }
-
-/**
- * Utils has methods for working with strings.
- *
- * @type {{}}
- */
-exports.utils = {}
-exports.utils.hexToAscii = utils.hexToAscii
-exports.utils.asciiToHex = utils.asciiToHex
-exports.utils.padLeft = utils.padLeft
-exports.utils.padRight = utils.padRight
-exports.utils.htoa = utils.hexToAscii
-exports.utils.atoh = utils.asciiToHex
