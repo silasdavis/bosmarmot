@@ -39,8 +39,6 @@ set -e
 # Constants
 
 # Ports etc must match those in burrow.toml
-keys_port=48002
-rpc_tm_port=48003
 burrow_root="${chain_dir}/.burrow"
 
 # Temporary logs
@@ -65,7 +63,6 @@ test_setup(){
 
   # start test chain
   if [[ "$boot" = true ]]; then
-    echo "Starting Burrow with tendermint RPC port: $rpc_tm_port"
     rm -rf ${burrow_root}
 
     cd "$chain_dir"
@@ -75,7 +72,7 @@ test_setup(){
     sleep 1
 
   else
-    echo "Not booting Burrow, but expecting Burrow to be running with tm RPC on port $rpc_tm_port"
+    echo "Not booting Burrow, but expecting Burrow to be running"
   fi
 
   account_data
