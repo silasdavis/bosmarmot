@@ -41,6 +41,8 @@ set -e
 # Ports etc must match those in burrow.toml
 keys_port=48002
 rpc_tm_port=48003
+export BURROW_HOST='127.0.0.1'
+export BURROW_GRPC_PORT='20997'
 burrow_root="${chain_dir}/.burrow"
 
 # Temporary logs
