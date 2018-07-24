@@ -62,18 +62,23 @@ test_integration_bos: build_bin bin/solc bin/burrow
 	@tests/scripts/bin_wrapper.sh tests/run_pkgs_tests.sh
 
 .PHONY:	test_burrow_js
-test_integration_js: build_bin bin/solc bin/burrow
+test_burrow_js: build_bin bin/solc bin/burrow
 	@cd burrow.js && ../tests/scripts/bin_wrapper.sh npm test
 
 .PHONY:	test_integration
-test_integration: test_integration_bos test_integration_js test_burrow_js
+test_integration: test_integration_bos test_burrow_js
+
+# Use a provided/local Burrow
+.PHONY:	test_burrow_js_no_burrow
+test_burrow_js_no_burrow: build_bin bin/solc
+	@cd burrow.js && ../tests/scripts/bin_wrapper.sh npm test
 
 .PHONY:	test_integration_bos_no_burrow
 test_integration_bos_no_burrow: build_bin bin/solc
 	@tests/scripts/bin_wrapper.sh tests/run_pkgs_tests.sh
 
 PHONY:	test_integration_no_burrow
-test_integration_no_burrow: test_integration_bos_no_burrow test_integration_js_no_burrow
+test_integration_no_burrow: test_integration_bos_no_burrow test_burrow_js_no_burrow
 
 ### Vendoring
 
