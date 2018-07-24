@@ -3,15 +3,14 @@
   go-tests = true
   non-go = true
     [[prune.project]]
-    name = "github.com/hyperledger/burrow"
-    unused-packages = false
-    non-go = false
+      name = "github.com/hyperledger/burrow"
+      unused-packages = false
+      non-go = false
 
 [[override]]
   name = "github.com/hyperledger/burrow"
-  revision = "7beb2fed3d0be86d467b95130856bf7918512894"
+  branch = "develop"
 
-# We don't care which version Tendermint wants
 [[override]]
   name = "github.com/tendermint/tendermint"
   version = "=0.22.4"

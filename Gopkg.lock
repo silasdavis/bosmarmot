@@ -145,7 +145,8 @@
   revision = "ef8a98b0bbce4a65b5aa4c368430a80ddc533168"
 
 [[projects]]
-  digest = "1:4aadcb880e102faffc6330d1a8c120c28412a27a384df560753b113966b7336a"
+  branch = "develop"
+  digest = "1:da1bc21c0145dc2044de62fa23717a4ec3994cdbcaf408ceca41ebd513c4457f"
   name = "github.com/hyperledger/burrow"
   packages = [
     "acm",
@@ -188,7 +189,7 @@
     "txs/payload",
   ]
   pruneopts = "T"
-  revision = "7beb2fed3d0be86d467b95130856bf7918512894"
+  revision = "96830d6feb6f7f8438fe96de29000e12c03175cb"
 
 [[projects]]
   digest = "1:406338ad39ab2e37b7f4452906442a3dbf0eb3379dd1f06aafb5c07e769a5fbb"
