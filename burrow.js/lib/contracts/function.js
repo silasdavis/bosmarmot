@@ -130,9 +130,7 @@ var SolidityFunction = function (abi) {
 
       var payload = txPayload(abi, utils.burrowToWeb3(args), self.burrow.account || ZERO_ADDRESS, address, self.code)
 
-      if (isCon) {
-        self.burrow.pipe.transact(payload, post)
-      } else if (isSim) {
+      if (isSim) {
         self.burrow.pipe.call(payload, post)
       } else {
         self.burrow.pipe.transact(payload, post)
