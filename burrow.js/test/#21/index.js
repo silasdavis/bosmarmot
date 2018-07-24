@@ -43,7 +43,7 @@ describe('issue #21', function () {
       .then((bytes) => {
         assert.deepEqual(
           bytes,
-          ['68', '65', '6C', '6C', '6F', '00', '00', '00', '00', 'FF']
+          [['68', '65', '6C', '6C', '6F', '00', '00', '00', '00', 'FF']]
         )
       })
   }))

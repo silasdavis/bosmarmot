@@ -58,8 +58,8 @@ describe('#45', function () {
     return burrow.contracts.deploy(abi, bytecode).then((contract) =>
       Promise.all([contract.getAddress(), contract.getNumber()])
         .then(([address, number]) => {
-          assert.equal(address.length, 40)
-          assert.equal(number, 100)
+          assert.equal(address[0].length, 40)
+          assert.equal(number[0], 100)
         })
     )
   }))

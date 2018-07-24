@@ -16,10 +16,6 @@ Namereg.prototype.set = function (name, data, lease, callback) {
 Namereg.prototype.get = function (name, callback) {
   var payload = {Name: name}
   return this.burrow.query.GetName(payload, callback)
-    .then((result) => {
-      // console.log(result)
-      return result.Data
-    })
 }
 
 module.exports = Namereg

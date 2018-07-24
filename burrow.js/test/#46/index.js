@@ -36,7 +36,7 @@ describe('#46', function () {
       .then((contract) => contract.setName('Batman')
         .then(() => Promise.all([contract.getNameConstant(), contract.getName()])))
       .then(([constant, nonConstant]) => {
-        assert.equal(constant, nonConstant)
+        assert.equal(constant[0], nonConstant[0])
       })
   }))
 })

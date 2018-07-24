@@ -133,7 +133,7 @@ var hexToAscii = function (hex) {
   for (; i < l; i += 2) {
     for (; i < l; i += 2) {
       var code = parseInt(hex.substr(i, 2), 16)
-      str += String.fromCharCode(code)
+      if (code !== 0) str += String.fromCharCode(code)
     }
   }
 
