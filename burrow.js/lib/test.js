@@ -5,7 +5,11 @@ const url = require('url')
 const Solidity = require('solc')
 
 const blockchainUrl = (urlObj) => {
-  urlObj = Object.assign({port: '20997', hostname: '127.0.0.1'}, urlObj)
+  var envUrl = {}
+  if (process.env.BURROW_GRPC_PORT) envUrl.port = process.env.BURROW_GRPC_PORT;
+  if (process.env.BURROW_HOST) envUrl.hostname = process.env.BURROW_HOST
+  
+  var urlObj = Object.assign({port: '20997', hostname: '127.0.0.1'}, envUrl, urlObj)
   return url.format(urlObj)
 }
 
