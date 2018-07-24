@@ -55,6 +55,11 @@ func RunPackage(do *def.Packages) error {
 		do.ABIPath = filepath.Join(do.Path, "abi")
 	}
 
+	// ensure keys pathway properly utilized
+	if do.Signer == "" {
+		do.Signer = do.ChainURL
+	}
+
 	// useful for debugging
 	printPathPackage(do)
 
