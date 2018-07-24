@@ -105,9 +105,9 @@ run_test(){
   cat readme.md
   echo
 
-  echo ${bos_bin} --keys "localhost:$grpc_port" --chain-url="localhost:$grpc_port" --address "$key1_addr" \
+  echo ${bos_bin} --chain-url="localhost:$grpc_port" --address "$key1_addr" \
     --set "addr1=$key1_addr" --set "addr2=$key2_addr" --set "addr2_pub=$key2_pub" #--debug
-  ${bos_bin} --keys "localhost:$grpc_port" --chain-url="localhost:$grpc_port" --address "$key1_addr" \
+  ${bos_bin} --chain-url="localhost:$grpc_port" --address "$key1_addr" \
     --set "addr1=$key1_addr" --set "addr2=$key2_addr" --set "addr2_pub=$key2_pub" #--debug
   test_exit=$?
 

@@ -49,8 +49,8 @@ func Execute() {
 
 // Flags that are to be used by commands are handled by the Do struct
 func AddGlobalFlags() {
-	BosCmd.Flags().StringVarP(&do.ChainURL, "chain-url", "u", "tcp://localhost:46657", "chain-url to be used in tcp://IP:PORT format (only necessary for cluster and remote operations)")
-	BosCmd.Flags().StringVarP(&do.Signer, "keys", "s", "localhost:10997", "IP:PORT of grpc keys daemon which jobs should use")
+	BosCmd.Flags().StringVarP(&do.ChainURL, "chain-url", "u", "localhost:20997", "chain-url to be used in IP:PORT format")
+	BosCmd.Flags().StringVarP(&do.Signer, "keys", "s", "", "IP:PORT of burrow keys server which jobs should use (defaults to --chain-url)")
 	BosCmd.Flags().StringVarP(&do.Path, "dir", "i", "", "root directory of app (will use pwd by default)")
 	BosCmd.Flags().StringVarP(&do.DefaultOutput, "output", "o", "epm.output.json", "filename for jobs output file. by default, this name will reflect the name passed in on the optional [--file]")
 	BosCmd.Flags().StringVarP(&do.YAMLPath, "file", "f", "epm.yaml", "path to package file which jobs should use. if also using the --dir flag, give the relative path to jobs file, which should be in the same directory")
