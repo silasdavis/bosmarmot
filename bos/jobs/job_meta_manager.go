@@ -5,12 +5,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/monax/bosmarmot/bos/definitions"
+	"github.com/monax/bosmarmot/bos/def"
 	"github.com/monax/bosmarmot/bos/loader"
 	log "github.com/sirupsen/logrus"
 )
 
-func MetaJob(meta *definitions.Meta, do *definitions.Packages) (string, error) {
+func MetaJob(meta *def.Meta, do *def.Packages) (string, error) {
 	var err error
 	var pwd string
 
@@ -20,7 +20,7 @@ func MetaJob(meta *definitions.Meta, do *definitions.Packages) (string, error) {
 	}
 
 	// work from a fresh Do object
-	newDo := definitions.NewPackage()
+	newDo := def.NewPackage()
 	newDo.Address = do.Address
 	newDo.ChainURL = do.ChainURL
 	newDo.CurrentOutput = do.CurrentOutput
@@ -28,7 +28,6 @@ func MetaJob(meta *definitions.Meta, do *definitions.Packages) (string, error) {
 	newDo.DefaultFee = do.DefaultFee
 	newDo.DefaultGas = do.DefaultGas
 	newDo.DefaultSets = do.DefaultSets
-	newDo.PublicKey = do.PublicKey
 	newDo.Signer = do.Signer
 
 	// Set subYAMLPath

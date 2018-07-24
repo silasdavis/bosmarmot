@@ -5,59 +5,48 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/monax/bosmarmot/bos/definitions"
+	"github.com/monax/bosmarmot/bos/def"
 
-	"github.com/hyperledger/burrow/client"
 	"github.com/hyperledger/burrow/crypto"
-	"github.com/hyperledger/burrow/logging"
 )
 
-func GetBlockHeight(do *definitions.Packages) (latestBlockHeight uint64, err error) {
-	nodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
-	// NOTE: NodeInfo is no longer exposed through Status();
-	// other values are currently not use by the package manager
-	_, _, _, latestBlockHeight, _, err = nodeClient.Status()
+func GetBlockHeight(do *def.Packages) (latestBlockHeight uint64, err error) {
+	stat, err := do.Status()
 	if err != nil {
 		return 0, err
 	}
-	// set return values
-	return
+	return stat.LatestBlockHeight, nil
 }
 
-func AccountsInfo(account, field string, do *definitions.Packages) (string, error) {
-
+func AccountsInfo(account, field string, do *def.Packages) (string, error) {
 	address, err := crypto.AddressFromHexString(account)
-	if err != nil {
-		return "", fmt.Errorf("Account Addr %s is improper hex: %v", account, err)
-	}
-	nodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
-
-	r, err := nodeClient.GetAccount(address)
 	if err != nil {
 		return "", err
 	}
-	if r == nil {
+	acc, err := do.GetAccount(address)
+	if err != nil {
+		return "", err
+	}
+	if acc == nil {
 		return "", fmt.Errorf("Account %s does not exist", account)
 	}
 
 	var s string
 	if strings.Contains(field, "permissions") {
-		// TODO: [ben] resolve conflict between explicit types and json better
-
 		fields := strings.Split(field, ".")
 
 		if len(fields) > 1 {
 			switch fields[1] {
 			case "roles":
-				s = strings.Join(r.Permissions().Roles, ",")
+				s = strings.Join(acc.Permissions.Roles, ",")
 			case "base", "perms":
-				s = strconv.Itoa(int(r.Permissions().Base.Perms))
+				s = strconv.Itoa(int(acc.Permissions.Base.Perms))
 			case "set":
-				s = strconv.Itoa(int(r.Permissions().Base.SetBit))
+				s = strconv.Itoa(int(acc.Permissions.Base.SetBit))
 			}
 		}
 	} else if field == "balance" {
-		s = itoaU64(r.Balance())
+		s = itoaU64(acc.Balance)
 	}
 
 	if err != nil {
@@ -67,9 +56,8 @@ func AccountsInfo(account, field string, do *definitions.Packages) (string, erro
 	return s, nil
 }
 
-func NamesInfo(name, field string, do *definitions.Packages) (string, error) {
-	nodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
-	owner, data, expirationBlock, err := nodeClient.GetName(name)
+func NamesInfo(name, field string, do *def.Packages) (string, error) {
+	entry, err := do.GetName(name)
 	if err != nil {
 		return "", err
 	}
@@ -78,37 +66,27 @@ func NamesInfo(name, field string, do *definitions.Packages) (string, error) {
 	case "name":
 		return name, nil
 	case "owner":
-		return owner.String(), nil
+		return entry.Owner.String(), nil
 	case "data":
-		return data, nil
+		return entry.Data, nil
 	case "expires":
-		return itoaU64(expirationBlock), nil
+		return itoaU64(entry.Expires), nil
 	default:
 		return "", fmt.Errorf("Field %s not recognized", field)
 	}
 }
 
-func ValidatorsInfo(field string, do *definitions.Packages) (string, error) {
-	nodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
-	_, bondedValidators, unbondingValidators, err := nodeClient.ListValidators()
-	if err != nil {
-		return "", err
-	}
-
-	vals := []string{}
-	switch strings.ToLower(field) {
-	case "bonded_validators":
-		for _, v := range bondedValidators {
-			vals = append(vals, v.Address().String())
+func ValidatorsInfo(field string, do *def.Packages) (string, error) {
+	// Currently there is no notion of 'unbonding validators' we can revisit what should go here or whether this deserves
+	// to exist as a job
+	if field == "bonded_validators" {
+		set, err := do.GetValidatorSet()
+		if err != nil {
+			return "", err
 		}
-	case "unbonding_validators":
-		for _, v := range unbondingValidators {
-			vals = append(vals, v.Address().String())
-		}
-	default:
-		return "", fmt.Errorf("Field %s not recognized", field)
+		return set.String(), nil
 	}
-	return strings.Join(vals, ","), nil
+	return "", nil
 }
 
 func itoaU64(i uint64) string {

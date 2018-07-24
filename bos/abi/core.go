@@ -3,12 +3,12 @@ package abi
 import (
 	"fmt"
 
-	"github.com/monax/bosmarmot/bos/definitions"
+	"github.com/monax/bosmarmot/bos/def"
 	"github.com/monax/bosmarmot/bos/util"
 	log "github.com/sirupsen/logrus"
 )
 
-func ReadAbiFormulateCall(abiLocation string, funcName string, args []string, do *definitions.Packages) ([]byte, error) {
+func ReadAbiFormulateCall(abiLocation string, funcName string, args []string, do *def.Packages) ([]byte, error) {
 	abiSpecBytes, err := util.ReadAbi(do.ABIPath, abiLocation)
 	if err != nil {
 		return []byte{}, err
@@ -22,7 +22,7 @@ func ReadAbiFormulateCall(abiLocation string, funcName string, args []string, do
 	return Packer(abiSpecBytes, funcName, args...)
 }
 
-func ReadAndDecodeContractReturn(abiLocation, funcName string, resultRaw []byte, do *definitions.Packages) ([]*definitions.Variable, error) {
+func ReadAndDecodeContractReturn(abiLocation, funcName string, resultRaw []byte, do *def.Packages) ([]*def.Variable, error) {
 	abiSpecBytes, err := util.ReadAbi(do.ABIPath, abiLocation)
 	if err != nil {
 		return nil, err
@@ -52,7 +52,7 @@ func Packer(abiData, funcName string, args ...string) ([]byte, error) {
 	return packedBytes, nil
 }
 
-func Unpacker(abiData, name string, data []byte) ([]*definitions.Variable, error) {
+func Unpacker(abiData, name string, data []byte) ([]*def.Variable, error) {
 	abiSpec, err := ReadAbiSpec([]byte(abiData))
 	if err != nil {
 		return nil, err
@@ -73,7 +73,7 @@ func Unpacker(abiData, name string, data []byte) ([]*definitions.Variable, error
 	if args == nil {
 		return nil, fmt.Errorf("no such function")
 	}
-	vars := make([]*definitions.Variable, len(args))
+	vars := make([]*def.Variable, len(args))
 
 	if len(args) == 0 {
 		return nil, nil
@@ -90,9 +90,9 @@ func Unpacker(abiData, name string, data []byte) ([]*definitions.Variable, error
 
 	for i, a := range args {
 		if a.Name != "" {
-			vars[i] = &definitions.Variable{Name: a.Name, Value: *(vals[i].(*string))}
+			vars[i] = &def.Variable{Name: a.Name, Value: *(vals[i].(*string))}
 		} else {
-			vars[i] = &definitions.Variable{Name: fmt.Sprintf("%d", i), Value: *(vals[i].(*string))}
+			vars[i] = &def.Variable{Name: fmt.Sprintf("%d", i), Value: *(vals[i].(*string))}
 		}
 	}
 
