@@ -38,11 +38,12 @@ describe('#42', function () {
       address = contract.address
       return contract.getCombination()
     }).then((returnObject) => {
-      const expected = {
-        _number: 100,
-        _address: address,
-        _saying: 'hello moto',
-        _randomBytes: '000000000000000000000000000000000000000000000000DEADBEEFFEEDFACE',
+      const expected = {values: {
+          _number: 100,
+          _address: address,
+          _saying: 'hello moto',
+          _randomBytes: '000000000000000000000000000000000000000000000000DEADBEEFFEEDFACE',
+        },
         raw: [100, address, 'hello moto', '000000000000000000000000000000000000000000000000DEADBEEFFEEDFACE']
       }
       assert.deepEqual(returnObject, expected)

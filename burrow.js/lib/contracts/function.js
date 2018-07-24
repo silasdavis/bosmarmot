@@ -69,7 +69,7 @@ var unpackOutput = function (output, abi, objectReturn) {
     return acc
   }, {})
 
-  result = Object.assign({}, result, args)
+  result.values = args
 
   return result
 }
