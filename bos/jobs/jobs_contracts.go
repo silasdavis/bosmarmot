@@ -336,7 +336,7 @@ func CallJob(call *def.Call, do *def.Packages) (string, []*def.Variable, error) 
 	// Sign, broadcast, display
 	txe, err := do.SignAndBroadcast(tx)
 	if err != nil {
-		var err = util.MintChainErrorHandler(do, err)
+		var err = util.ChainErrorHandler(do, err)
 		return "", nil, err
 	}
 
@@ -377,7 +377,7 @@ func CallJob(call *def.Call, do *def.Packages) (string, []*def.Variable, error) 
 func deployFinalize(do *def.Packages, tx payload.Payload) (*crypto.Address, error) {
 	txe, err := do.SignAndBroadcast(tx)
 	if err != nil {
-		return nil, util.MintChainErrorHandler(do, err)
+		return nil, util.ChainErrorHandler(do, err)
 	}
 
 	if err := util.ReadTxSignAndBroadcast(txe, err); err != nil {

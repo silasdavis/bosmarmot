@@ -13,6 +13,7 @@ GO_FILES := $(shell go list -f "{{.Dir}}" ./...)
 GOPACKAGES_NOVENDOR := $(shell go list ./...)
 COMMIT := $(shell git rev-parse --short HEAD)
 BURROW_PACKAGE := github.com/hyperledger/burrow
+CI_IMAGE := quay.io/monax/build:bosmarmot-ci
 
 ### Integration test binaries
 # We make the relevant targets for building/fetching these depend on the Makefile itself - if unnecessary rebuilds
@@ -59,7 +60,7 @@ npm_install:
 # Run tests including integration tests
 .PHONY:	test_integration_bos
 test_integration_bos: build_bin bin/solc bin/burrow
-	@tests/scripts/bin_wrapper.sh tests/run_pkgs_tests.sh
+	@tests/scripts/bin_wrapper.sh tests/bos.sh
 
 .PHONY:	test_burrow_js
 test_burrow_js: build_bin bin/solc bin/burrow
@@ -75,7 +76,7 @@ test_burrow_js_no_burrow: build_bin bin/solc
 
 .PHONY:	test_integration_bos_no_burrow
 test_integration_bos_no_burrow: build_bin bin/solc
-	@tests/scripts/bin_wrapper.sh tests/run_pkgs_tests.sh
+	@tests/scripts/bin_wrapper.sh tests/bos.sh
 
 PHONY:	test_integration_no_burrow
 test_integration_no_burrow: test_integration_bos_no_burrow test_burrow_js_no_burrow
@@ -139,6 +140,11 @@ bin/burrow: ./tests/scripts/deps/burrow.sh
 .PHONY: build
 build:	build_bin
 
+.PHONY: install
+install: build_bin
+	@cp bin/bos ${GOPATH}/bin/bos
+
+
 # Build binaries for all architectures
 .PHONY: build_dist
 build_dist:
@@ -177,3 +183,11 @@ tag_release: test check CHANGELOG.md build_bin
 .PHONY: release
 release: NOTES.md
 	@tests/scripts/release.sh
+
+.PHONY: build_ci_image
+build_ci_image:
+	docker build --no-cache -t ${CI_IMAGE} -f ./.circleci/Dockerfile .
+
+.PHONY: push_ci_image
+push_ci_image: build_ci_image
+	docker push ${CI_IMAGE}

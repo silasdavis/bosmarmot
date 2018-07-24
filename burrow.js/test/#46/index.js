@@ -13,25 +13,26 @@ describe('#46', function () {
 
   it('#46', Test.it(function (burrow) {
     const source = `
+      pragma solidity ^0.4.21;
       contract Test{
 
         string _name;
 
-        function setName(string newname) {
+        function setName(string newname) public {
           _name = newname;
         }
 
-        function getNameConstant() constant returns (string) {
+        function getNameConstant() public view returns (string) {
           return _name;
         }
 
-        function getName() returns (string) {
+        function getName() public view returns (string) {
           return _name;
         }
       }
     `
 
-    const {abi, bytecode} = test.compile(source, 'Test')
+    const {abi, bytecode} = test.compile(source, ':Test')
     return burrow.contracts.deploy(abi, bytecode)
       .then((contract) => contract.setName('Batman')
         .then(() => Promise.all([contract.getNameConstant(), contract.getName()])))

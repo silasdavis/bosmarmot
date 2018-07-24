@@ -9,7 +9,7 @@
 
 [[override]]
   name = "github.com/hyperledger/burrow"
-  version = "=0.20.0"
+  branch = "develop"
 
 [[override]]
   name = "github.com/tendermint/tendermint"

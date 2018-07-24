@@ -13,17 +13,18 @@ describe('event', function () {
 
   it('listens to an event from a contract', Test.it(function (burrow) {
     const source = `
+      pragma solidity ^0.4.21;
       contract Contract {
           event Event(
               address from
           );
 
-          function emit() {
-              Event(msg.sender);
+          function emit() public {
+              emit Event(msg.sender);
           }
       }
     `
-    const {abi, bytecode} = test.compile(source, 'Contract')
+    const {abi, bytecode} = test.compile(source, ':Contract')
     return burrow.contracts.deploy(abi, bytecode)
       .then((contract) => {
         let count = 0

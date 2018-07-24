@@ -13,19 +13,20 @@ describe('#50', function () {
 
   it('#50', Test.it(function (burrow) {
     const source = `
+      pragma solidity ^0.4.21;
       contract SimpleStorage {
           uint storedData;
 
-          function set(uint x) {
+          function set(uint x) public {
               storedData = x;
           }
 
-          function get() returns (uint retVal) {
+          function get() public view returns (uint retVal) {
               return storedData;
           }
       }
     `
-    const {abi, bytecode} = test.compile(source, 'SimpleStorage')
+    const {abi, bytecode} = test.compile(source, ':SimpleStorage')
     return burrow.contracts.deploy(abi, bytecode)
       .then((contract) => contract.set(42)
         .then(() => contract.get.call())

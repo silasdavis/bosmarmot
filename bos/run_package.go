@@ -52,11 +52,6 @@ func RunPackage(do *def.Packages) error {
 		do.BinPath = filepath.Join(do.Path, "bin")
 	}
 
-	// ensure keys pathway properly utilized
-	if do.Signer == "" {
-		do.Signer = do.ChainURL
-	}
-
 	// useful for debugging
 	printPathPackage(do)
 

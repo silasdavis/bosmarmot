@@ -18,13 +18,12 @@ const compile = (source, name) => {
   const compiled = Solidity.compile(source, 1)
   if (compiled.errors) {
     throw new Error(compiled.errors)
-  } else {
-    const contract = compiled.contracts[name]
-    const abi = JSON.parse(contract.interface)
-    const bytecode = contract.bytecode
-
-    return {abi, bytecode}
   }
+  const contract = compiled.contracts[name]
+  const abi = JSON.parse(contract.interface)
+  const bytecode = contract.bytecode
+
+  return {abi, bytecode}
 }
 
 // Return a contract manager in the test harness.
@@ -47,7 +46,7 @@ const Test = (options) => {
         try {
           account = JSON.parse(process.env.account)
         } catch (err) {
-          return Promise.reject(new Error('Could not parse required account JSON: ' + process.env.account + " Make sure you are passing a valid account json string as an env var account='{accountdata}'"))
+          return Promise.reject(new Error('Could not parse required account JSON: ' + process.env.account + ' Make sure you are passing a valid account json string as an env var account=\'{accountdata}\''))
         }
 
         // Options overrules defaults

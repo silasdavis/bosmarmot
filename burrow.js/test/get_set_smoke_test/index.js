@@ -9,7 +9,7 @@ const Test = test.Test()
 const sourcePath = './GetSet.sol'
 
 const source = fs.readFileSync(path.join(__dirname, sourcePath)).toString()
-const {abi, bytecode} = test.compile(source, 'GetSet')
+const {abi, bytecode} = test.compile(source, ':GetSet')
 
 const testUint = 42
 const testBytes = 'DEADBEEF00000000000000000000000000000000000000000000000000000000'
