@@ -2,12 +2,15 @@ package util
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
 	"strconv"
 	"strings"
+
+	"github.com/monax/bosmarmot/bos/compile"
 
 	"github.com/hyperledger/burrow/execution/exec"
 	log "github.com/sirupsen/logrus"
@@ -49,15 +52,25 @@ func ReadTxSignAndBroadcast(txe *exec.TxExecution, err error) error {
 func ReadAbi(root, contract string) (string, error) {
 	p := path.Join(root, stripHex(contract))
 	if _, err := os.Stat(p); err != nil {
-		return "", fmt.Errorf("Abi doesn't exist for =>\t%s", p)
+		log.WithField("abifile", p).Debug("Tried, not found")
+		p = path.Join(root, stripHex(contract)+".bin")
+		if _, err = os.Stat(p); err != nil {
+			log.WithField("abifile", p).Debug("Tried, not found")
+			return "", fmt.Errorf("Abi doesn't exist for =>\t%s", p)
+		}
 	}
-
+	log.WithField("abifile", p).Debug("Found ABI")
 	b, err := ioutil.ReadFile(p)
 	if err != nil {
 		return "", err
 	}
+	sol := compile.SolidityOutputContract{}
+	err = json.Unmarshal(b, &sol)
+	if err != nil {
+		return "", err
+	}
 
-	return string(b), nil
+	return string(sol.Abi), nil
 }
 
 func GetStringResponse(question string, defaultAnswer string, reader *os.File) (string, error) {

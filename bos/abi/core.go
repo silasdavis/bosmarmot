@@ -8,8 +8,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func ReadAbiFormulateCall(abiLocation string, funcName string, args []string, do *def.Packages) ([]byte, error) {
-	abiSpecBytes, err := util.ReadAbi(do.ABIPath, abiLocation)
+func ReadAbiFormulateCallFile(abiLocation string, funcName string, args []string, do *def.Packages) ([]byte, error) {
+	abiSpecBytes, err := util.ReadAbi(do.BinPath, abiLocation)
 	if err != nil {
 		return []byte{}, err
 	}
@@ -22,8 +22,18 @@ func ReadAbiFormulateCall(abiLocation string, funcName string, args []string, do
 	return Packer(abiSpecBytes, funcName, args...)
 }
 
+func ReadAbiFormulateCall(abiSpecBytes []byte, funcName string, args []string, do *def.Packages) ([]byte, error) {
+	log.WithField("=>", string(abiSpecBytes)).Debug("ABI Specification (Formulate)")
+	log.WithFields(log.Fields{
+		"function":  funcName,
+		"arguments": fmt.Sprintf("%v", args),
+	}).Debug("Packing Call via ABI")
+
+	return Packer(string(abiSpecBytes), funcName, args...)
+}
+
 func ReadAndDecodeContractReturn(abiLocation, funcName string, resultRaw []byte, do *def.Packages) ([]*def.Variable, error) {
-	abiSpecBytes, err := util.ReadAbi(do.ABIPath, abiLocation)
+	abiSpecBytes, err := util.ReadAbi(do.BinPath, abiLocation)
 	if err != nil {
 		return nil, err
 	}

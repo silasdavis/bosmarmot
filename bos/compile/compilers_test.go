@@ -6,13 +6,34 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
-	"regexp"
 	"strings"
 	"testing"
 
-	"github.com/monax/bosmarmot/bos/util"
 	"github.com/stretchr/testify/assert"
 )
+
+// full solc response object
+// individual contract items
+type SolcItem struct {
+	Bin string `json:"bin"`
+	Abi string `json:"abi"`
+}
+
+type SolcResponse struct {
+	Contracts map[string]*SolcItem `mapstructure:"contracts" json:"contracts"`
+	Version   string               `mapstructure:"version" json:"version"` // json encoded
+}
+
+func BlankSolcItem() *SolcItem {
+	return &SolcItem{}
+}
+
+func BlankSolcResponse() *SolcResponse {
+	return &SolcResponse{
+		Version:   "",
+		Contracts: make(map[string]*SolcItem),
+	}
+}
 
 func TestRequestCreation(t *testing.T) {
 	os.Chdir(testContractPath()) // important to maintain relative paths
@@ -25,23 +46,19 @@ contract c {
     }
 }`
 
-	var testMap = map[string]*util.IncludedFiles{
-		"27fbf28c5dfb221f98526c587c5762cdf4025e85809c71ba871caa2ca42a9d85.sol": {
-			ObjectNames: []string{"c"},
-			Script:      []byte(contractCode),
+	var testMap = map[string]*IncludedFiles{
+		"simpleContract.sol": {
+			Script: []byte(contractCode),
 		},
 	}
 
-	req, err := CreateRequest("simpleContract.sol", "", false)
+	req, err := CreateRequest("simpleContract.sol", make(map[string]string), false)
 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if req.Libraries != "" {
+	if len(req.Libraries) > 0 {
 		t.Errorf("Expected empty libraries, got %s", req.Libraries)
-	}
-	if req.Language != "sol" {
-		t.Errorf("Expected Solidity file, got %s", req.Language)
 	}
 	if req.Optimize != false {
 		t.Errorf("Expected false optimize, got true")
@@ -53,8 +70,7 @@ contract c {
 }
 
 func TestLocalMulti(t *testing.T) {
-	ClearCache(util.SolcScratchPath)
-	expectedSolcResponse := util.BlankSolcResponse()
+	expectedSolcResponse := BlankSolcResponse()
 	actualOutput, err := exec.Command("solc", "--combined-json", "bin,abi", "contractImport1.sol").CombinedOutput()
 	if err != nil {
 		t.Fatal(err)
@@ -68,9 +84,8 @@ func TestLocalMulti(t *testing.T) {
 	for contract, item := range expectedSolcResponse.Contracts {
 		respItem := ResponseItem{
 			Objectname: objectName(strings.TrimSpace(contract)),
-			Bytecode:   trimAuxdata(strings.TrimSpace(item.Bin)),
-			ABI:        strings.TrimSpace(item.Abi),
 		}
+		respItem.Binary.Evm.Bytecode.Object = item.Bin
 		respItemArray = append(respItemArray, respItem)
 	}
 	expectedResponse := &Response{
@@ -79,12 +94,10 @@ func TestLocalMulti(t *testing.T) {
 		Version: "",
 		Error:   "",
 	}
-	ClearCache(util.SolcScratchPath)
-	resp, err := RequestCompile("contractImport1.sol", false, "")
+	resp, err := RequestCompile("contractImport1.sol", false, make(map[string]string))
 	if err != nil {
 		t.Fatal(err)
 	}
-	fixupCompilersResponse(resp, "contractImport1.sol")
 	allClear := true
 	for _, object := range expectedResponse.Objects {
 		if !contains(resp.Objects, object) {
@@ -94,12 +107,10 @@ func TestLocalMulti(t *testing.T) {
 	if !allClear {
 		t.Errorf("Got incorrect response, expected %v, \n\n got %v", expectedResponse, resp)
 	}
-	ClearCache(util.SolcScratchPath)
 }
 
 func TestLocalSingle(t *testing.T) {
-	ClearCache(util.SolcScratchPath)
-	expectedSolcResponse := util.BlankSolcResponse()
+	expectedSolcResponse := BlankSolcResponse()
 
 	shellCmd := exec.Command("solc", "--combined-json", "bin,abi", "simpleContract.sol")
 	actualOutput, err := shellCmd.CombinedOutput()
@@ -115,9 +126,10 @@ func TestLocalSingle(t *testing.T) {
 	for contract, item := range expectedSolcResponse.Contracts {
 		respItem := ResponseItem{
 			Objectname: objectName(strings.TrimSpace(contract)),
-			Bytecode:   trimAuxdata(strings.TrimSpace(item.Bin)),
-			ABI:        strings.TrimSpace(item.Abi),
 		}
+		respItem.Binary.Abi = json.RawMessage(item.Abi)
+		respItem.Binary.Evm.Bytecode.Object = item.Bin
+		respItem.Binary.Evm.Bytecode.LinkReferences = []byte("{}")
 		respItemArray = append(respItemArray, respItem)
 	}
 	expectedResponse := &Response{
@@ -126,24 +138,24 @@ func TestLocalSingle(t *testing.T) {
 		Version: "",
 		Error:   "",
 	}
-	ClearCache(util.SolcScratchPath)
-	resp, err := RequestCompile("simpleContract.sol", false, "")
+	resp, err := RequestCompile("simpleContract.sol", false, make(map[string]string))
 	if err != nil {
 		t.Fatal(err)
 	}
-	fixupCompilersResponse(resp, "simpleContract.sol")
+	for i := range resp.Objects {
+		resp.Objects[i].Binary.Metadata = ""
+		resp.Objects[i].Binary.Evm.Bytecode.Opcodes = ""
+	}
 	assert.Equal(t, expectedResponse, resp)
-	ClearCache(util.SolcScratchPath)
 }
 
 func TestFaultyContract(t *testing.T) {
-	ClearCache(util.SolcScratchPath)
 	var expectedSolcResponse Response
 
 	actualOutput, err := exec.Command("solc", "--combined-json", "bin,abi", "faultyContract.sol").CombinedOutput()
 	err = json.Unmarshal(actualOutput, expectedSolcResponse)
 	t.Log(expectedSolcResponse.Error)
-	resp, err := RequestCompile("faultyContract.sol", false, "")
+	resp, err := RequestCompile("faultyContract.sol", false, make(map[string]string))
 	t.Log(resp.Error)
 	if err != nil {
 		if expectedSolcResponse.Error != resp.Error {
@@ -178,18 +190,9 @@ func extractWarningJSON(output string) (warning string, json string) {
 	return
 }
 
-func fixupCompilersResponse(resp *Response, filename string) {
-	for i := range resp.Objects {
-		resp.Objects[i].Bytecode = trimAuxdata(resp.Objects[i].Bytecode)
-	}
-	// compilers changes the filename, change it back again in the warning
-	re := regexp.MustCompile("[0-9a-f]+\\.sol")
-	resp.Warning = re.ReplaceAllString(resp.Warning, filename)
-}
-
 func contains(s []ResponseItem, e ResponseItem) bool {
 	for _, a := range s {
-		if a == e {
+		if a.Binary.Evm.Bytecode.Object == e.Binary.Evm.Bytecode.Object {
 			return true
 		}
 	}

@@ -5,14 +5,84 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"os/exec"
 	"path"
+	"regexp"
 	"strings"
 
-	"github.com/monax/bosmarmot/bos/util"
 	log "github.com/sirupsen/logrus"
 )
+
+// New Request object from script and map of include files
+func CompilerRequest(file string,
+	includes map[string]*IncludedFiles, libs map[string]string, optimize bool) *Request {
+	if includes == nil {
+		includes = make(map[string]*IncludedFiles)
+	}
+	return &Request{
+		Includes:  includes,
+		Libraries: libs,
+		Optimize:  optimize,
+	}
+}
+
+// Compile request object
+type Request struct {
+	ScriptName      string                    `json:"name"`
+	Includes        map[string]*IncludedFiles `json:"includes"`  // our required files and metadata
+	Libraries       map[string]string         `json:"libraries"` // string of libName:LibAddr separated by comma
+	Optimize        bool                      `json:"optimize"`  // run with optimize flag
+	FileReplacement map[string]string         `json:"replacement"`
+}
+
+type BinaryRequest struct {
+	BinaryFile string `json:"binary"`
+	Libraries  string `json:"libraries"`
+}
+
+type SolidityInput struct {
+	Language string                         `json:"language"`
+	Sources  map[string]SolidityInputSource `json:"sources"`
+	Settings struct {
+		Libraries map[string]map[string]string `json:"libraries"`
+		Optimizer struct {
+			Enabled bool `json:"enabled"`
+		} `json:"optimizer"`
+		OutputSelection struct {
+			File struct {
+				OutputType []string `json:"*"`
+			} `json:"*"`
+		} `json:"outputSelection"`
+	} `json:"settings"`
+}
+
+type SolidityInputSource struct {
+	Content string   `json:"content,omitempty"`
+	Urls    []string `json:"urls,omitempty"`
+}
+
+type SolidityOutput struct {
+	Contracts map[string]map[string]SolidityOutputContract
+	Errors    []struct {
+		Component        string
+		FormattedMessage string
+		Message          string
+		Severity         string
+		Type             string
+	}
+}
+
+type SolidityOutputContract struct {
+	Abi json.RawMessage
+	Evm struct {
+		Bytecode struct {
+			Object         string
+			Opcodes        string
+			LinkReferences json.RawMessage
+		}
+	}
+	Metadata string
+}
 
 type Response struct {
 	Objects []ResponseItem `json:"objects"`
@@ -28,92 +98,71 @@ type BinaryResponse struct {
 
 // Compile response object
 type ResponseItem struct {
-	Objectname string `json:"objectname"`
-	Bytecode   string `json:"bytecode"`
-	ABI        string `json:"abi"` // json encoded
+	Objectname string                 `json:"objectname"`
+	Binary     SolidityOutputContract `json:"binary"`
 }
 
-func (resp Response) CacheNewResponse(req util.Request) {
-	objects := resp.Objects
-	//log.Debug(objects)
-	cacheLocation := util.Languages[req.Language].CacheDir
-	cur, _ := os.Getwd()
-	os.Chdir(cacheLocation)
-	defer func() {
-		os.Chdir(cur)
-	}()
-	for fileDir, metadata := range req.Includes {
-		dir := path.Join(cacheLocation, strings.TrimRight(fileDir, "."+req.Language))
-		os.MkdirAll(dir, 0700)
-		objectNames := metadata.ObjectNames
-		for _, name := range objectNames {
-			for _, object := range objects {
-				if object.Objectname == name {
-					//log.WithField("=>", resp.Objects).Debug("Response objects over the loop")
-					CacheResult(object, dir, resp.Warning, resp.Version, resp.Error)
-					break
-				}
-			}
-		}
-	}
-}
+const (
+	AddressLength    = 40
+	RelocationLength = 20
+)
 
-func linkBinaries(req *util.BinaryRequest) *BinaryResponse {
-	// purely for solidity and solidity alone as this is soon to be deprecated.
-	if req.Libraries == "" {
-		return &BinaryResponse{
-			Binary: req.BinaryFile,
-			Error:  "",
-		}
-	}
-
-	buf := bytes.NewBufferString(req.BinaryFile)
-	var output bytes.Buffer
-	var stderr bytes.Buffer
-	args := []string{"--link"}
-	for _, l := range strings.Split(req.Libraries, " ") {
-		if len(l) > 0 {
-			args = append(args, "--libraries", l)
-		}
-	}
-	linkCmd := exec.Command("solc", args...)
-	linkCmd.Stdin = buf
-	linkCmd.Stderr = &stderr
-	linkCmd.Stdout = &output
-	linkCmd.Start()
-	linkCmd.Wait()
-
-	return &BinaryResponse{
-		Binary: strings.TrimSpace(output.String()),
-		Error:  stderr.String(),
-	}
-}
-
-func RequestBinaryLinkage(file string, libraries string) (*BinaryResponse, error) {
+func RequestBinaryLinkage(file string, libraries map[string]string) (*BinaryResponse, error) {
 	//Create Binary Request, send it off
-	code, err := ioutil.ReadFile(file)
+	codeB, err := ioutil.ReadFile(file)
 	if err != nil {
 		return &BinaryResponse{}, err
 	}
-	request := &util.BinaryRequest{
-		BinaryFile: string(code),
-		Libraries:  libraries,
+	contract := SolidityOutputContract{}
+	err = json.Unmarshal(codeB, &contract)
+	if err != nil {
+		return &BinaryResponse{}, err
 	}
-	return linkBinaries(request), nil
+	bin := contract.Evm.Bytecode.Object
+	if !strings.Contains(bin, "_") {
+		return &BinaryResponse{
+			Binary: bin,
+			Error:  "",
+		}, nil
+	}
+	var links map[string]map[string]struct{ Start, Length int }
+	err = json.Unmarshal(contract.Evm.Bytecode.LinkReferences, &links)
+	if err != nil {
+		return &BinaryResponse{}, err
+	}
+	for _, f := range links {
+		for name, relo := range f {
+			addr, ok := libraries[name]
+			if !ok {
+				return &BinaryResponse{}, fmt.Errorf("library %s is not defined", name)
+			}
+			if relo.Length != RelocationLength {
+				return &BinaryResponse{}, fmt.Errorf("linkReference should be %d bytes long, not %d", RelocationLength, relo.Length)
+			}
+			if len(addr) != AddressLength {
+				return &BinaryResponse{}, fmt.Errorf("address %s should be %d character long, not %d", addr, AddressLength, len(addr))
+			}
+			start := relo.Start * 2
+			end := relo.Start*2 + AddressLength
+			if bin[start+1] != '_' || bin[end-1] != '_' {
+				return &BinaryResponse{}, fmt.Errorf("relocation dummy not found at %d in %s ", relo.Start, bin)
+			}
+			bin = bin[:start] + addr + bin[end:]
+		}
+	}
+
+	return &BinaryResponse{
+		Binary: bin,
+		Error:  "",
+	}, nil
 }
 
 //todo: Might also need to add in a map of library names to addrs
-func RequestCompile(file string, optimize bool, libraries string) (*Response, error) {
-	util.InitScratchDir()
+func RequestCompile(file string, optimize bool, libraries map[string]string) (*Response, error) {
 	request, err := CreateRequest(file, libraries, optimize)
 	if err != nil {
 		return nil, err
 	}
-	//todo: check server for newer version of same files...
-	// go through all includes, check if they have changed
-	cached := CheckCached(request.Includes, request.Language)
-
-	log.WithField("cached?", cached).Debug("Cached Item(s)")
 
 	/*for k, v := range request.Includes {
 		log.WithFields(log.Fields{
@@ -122,112 +171,84 @@ func RequestCompile(file string, optimize bool, libraries string) (*Response, er
 		}).Debug("check request loop")
 	}*/
 
-	var resp *Response
-	// if everything is cached, no need for request
-	if cached {
-		// TODO: need to return all contracts/libs tied to the original src file
-		resp, err = CachedResponse(request.Includes, request.Language)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		log.Debug("Could not find cached object, compiling...")
-		resp = compile(request)
-		resp.CacheNewResponse(*request)
-	}
+	resp := compile(request)
 
 	PrintResponse(*resp, false)
 
 	return resp, nil
 }
 
-// Compile takes a dir and some code, replaces all includes, checks cache, compiles, caches
-func compile(req *util.Request) *Response {
-
-	if _, ok := util.Languages[req.Language]; !ok {
-		return compilerResponse("", "", "", "", "", fmt.Errorf("No script provided"))
-	}
-
-	lang := util.Languages[req.Language]
-
-	includes := []string{}
-	currentDir, _ := os.Getwd()
-	defer os.Chdir(currentDir)
+// Compile takes a dir and some code, replaces all includes, compiles
+func compile(req *Request) *Response {
+	input := SolidityInput{Language: "Solidity", Sources: make(map[string]SolidityInputSource)}
 
 	for k, v := range req.Includes {
-		os.Chdir(lang.CacheDir)
-		file, err := CreateTemporaryFile(k, v.Script)
-		if err != nil {
-			return compilerResponse("", "", "", "", "", err)
-		}
-		defer os.Remove(file.Name())
-		includes = append(includes, file.Name())
-		log.WithField("Filepath of include: ", file.Name()).Debug("To Cache")
+		input.Sources[k] = SolidityInputSource{Content: string(v.Script)}
 	}
 
-	libsFile, err := CreateTemporaryFile("monax-libs", []byte(req.Libraries))
-	if err != nil {
-		return compilerResponse("", "", "", "", "", err)
+	input.Settings.Optimizer.Enabled = req.Optimize
+	input.Settings.OutputSelection.File.OutputType = []string{"abi", "evm.bytecode.linkReferences", "metadata", "bin"}
+	input.Settings.Libraries = make(map[string]map[string]string)
+	input.Settings.Libraries[""] = make(map[string]string)
+
+	if req.Libraries != nil {
+		for l, a := range req.Libraries {
+			input.Settings.Libraries[""][l] = "0x" + a
+		}
 	}
-	defer os.Remove(libsFile.Name())
-	command := lang.Cmd(includes, libsFile.Name(), req.Optimize)
+
+	command, err := json.Marshal(input)
+	if err != nil {
+		return &Response{Error: err.Error()}
+	}
+	//fmt.Printf("INPUT JSON: %s\n", string(command))
 	log.WithField("Command: ", command).Debug("Command Input")
-	output, err := runCommand(command...)
-
-	var warning string
-	jsonBeginsCertainly := strings.Index(output, `{"contracts":`)
-
-	if jsonBeginsCertainly > 0 {
-		warning = output[:jsonBeginsCertainly]
-		output = output[jsonBeginsCertainly:]
-	}
-
-	//cleanup
-	log.WithField("=>", output).Debug("Output from command: ")
+	result, err := runSolidity(string(command))
+	//fmt.Printf("OUTPUT JSON: %s\n", result)
+	output := SolidityOutput{}
+	err = json.Unmarshal([]byte(result), &output)
 	if err != nil {
-		for _, str := range includes {
-			output = strings.Replace(output, str, req.FileReplacement[str], -1)
-		}
-		log.WithFields(log.Fields{
-			"err":      err,
-			"command":  command,
-			"response": output,
-		}).Debug("Could not compile")
-		return compilerResponse("", "", "", "", "", fmt.Errorf("%v: %v", err, output))
+		return &Response{Error: err.Error()}
 	}
 
-	solcResp := util.BlankSolcResponse()
-
-	//todo: provide unmarshalling for serpent and lll
-	log.WithField("Json: ", output).Debug("Command Output")
-	err = json.Unmarshal([]byte(output), solcResp)
-	if err != nil {
-		log.Debug("Could not unmarshal json")
-		return compilerResponse("", "", "", "", "", err)
-	}
 	respItemArray := make([]ResponseItem, 0)
 
-	for contract, item := range solcResp.Contracts {
-		respItem := ResponseItem{
-			Objectname: objectName(contract),
-			Bytecode:   strings.TrimSpace(item.Bin),
-			ABI:        strings.TrimSpace(item.Abi),
+	for _, s := range output.Contracts {
+		for contract, item := range s {
+			linkRefs := string(item.Evm.Bytecode.LinkReferences)
+			if linkRefs == "{}" {
+				linkRefs = ""
+			}
+			respItem := ResponseItem{
+				Objectname: objectName(contract),
+				Binary:     item,
+			}
+			respItemArray = append(respItemArray, respItem)
 		}
-		respItemArray = append(respItemArray, respItem)
+	}
+
+	warnings := ""
+	errors := ""
+	for _, msg := range output.Errors {
+		if msg.Type == "Warning" {
+			warnings += msg.FormattedMessage
+		} else {
+			errors += msg.FormattedMessage
+		}
 	}
 
 	for _, re := range respItemArray {
 		log.WithFields(log.Fields{
 			"name": re.Objectname,
-			"bin":  re.Bytecode,
-			"abi":  re.ABI,
+			"bin":  re.Binary.Evm.Bytecode,
+			"abi":  re.Binary.Abi,
 		}).Debug("Response formulated")
 	}
 
 	return &Response{
 		Objects: respItemArray,
-		Warning: warning,
-		Error:   "",
+		Warning: warnings,
+		Error:   errors,
 	}
 }
 
@@ -239,63 +260,30 @@ func objectName(contract string) string {
 	return parts[len(parts)-1]
 }
 
-func runCommand(tokens ...string) (string, error) {
-	cmd := tokens[0]
-	args := tokens[1:]
-	shellCmd := exec.Command(cmd, args...)
+func runSolidity(jsonCmd string) (string, error) {
+	buf := bytes.NewBufferString(jsonCmd)
+	shellCmd := exec.Command("solc", "--standard-json")
+	shellCmd.Stdin = buf
 	output, err := shellCmd.CombinedOutput()
-	s := strings.TrimSpace(string(output))
+	s := string(output)
 	return s, err
 }
 
-func CreateRequest(file string, libraries string, optimize bool) (*util.Request, error) {
-	var includes = make(map[string]*util.IncludedFiles)
+func CreateRequest(file string, libraries map[string]string, optimize bool) (*Request, error) {
+	var includes = make(map[string]*IncludedFiles)
 
-	//maps hashes to original file name
-	var hashFileReplacement = make(map[string]string)
-	language, err := LangFromFile(file)
-	if err != nil {
-		return &util.Request{}, err
-	}
-	compiler := &util.Compiler{
-		Config: util.Languages[language],
-		Lang:   language,
-	}
 	code, err := ioutil.ReadFile(file)
 	if err != nil {
-		return &util.Request{}, err
+		return &Request{}, err
 	}
 	dir := path.Dir(file)
 	//log.Debug("Before parsing includes =>\n\n%s", string(code))
-	code, err = compiler.ReplaceIncludes(code, dir, file, includes, hashFileReplacement)
+	err = FindIncludes(code, dir, file, includes)
 	if err != nil {
-		return &util.Request{}, err
+		return &Request{}, err
 	}
 
-	return compiler.CompilerRequest(file, includes, libraries, optimize, hashFileReplacement), nil
-}
-
-// New response object from bytecode and an error
-func compilerResponse(objectname, bytecode, abi, warning, version string, err error) *Response {
-	e := ""
-	if err != nil {
-		e = err.Error()
-	}
-
-	respItem := ResponseItem{
-		Objectname: objectname,
-		Bytecode:   bytecode,
-		ABI:        abi}
-
-	respItemArray := make([]ResponseItem, 1)
-	respItemArray[0] = respItem
-
-	return &Response{
-		Objects: respItemArray,
-		Warning: warning,
-		Version: version,
-		Error:   e,
-	}
+	return CompilerRequest(file, includes, libraries, optimize), nil
 }
 
 func PrintResponse(resp Response, cli bool) {
@@ -305,8 +293,9 @@ func PrintResponse(resp Response, cli bool) {
 		for _, r := range resp.Objects {
 			message := log.WithFields((log.Fields{
 				"name": r.Objectname,
-				"bin":  r.Bytecode,
-				"abi":  r.ABI,
+				"bin":  r.Binary.Evm.Bytecode,
+				"abi":  string(r.Binary.Abi[:]),
+				"link": string(r.Binary.Evm.Bytecode.LinkReferences[:]),
 			}))
 			if cli {
 				message.Warn("Response")
@@ -315,4 +304,77 @@ func PrintResponse(resp Response, cli bool) {
 			}
 		}
 	}
+}
+
+// this handles all of our imports
+type IncludedFiles struct {
+	ObjectNames []string `json:"objectNames"` //objects in the file
+	Script      []byte   `json:"script"`      //actual code
+}
+
+// Find all matches to the include regex
+// Replace filenames with hashes
+func FindIncludes(code []byte, dir, file string, includes map[string]*IncludedFiles) error {
+	// find includes, load those as well
+	regexPattern := `import (.+?)??("|')(.+?)("|')(as)?(.+)?;`
+	var regExpression *regexp.Regexp
+	var err error
+	if regExpression, err = regexp.Compile(regexPattern); err != nil {
+		return err
+	}
+	// Find all includes of included imports
+	// do it recursively
+	for _, s := range regExpression.FindAll(code, -1) {
+		log.WithField("=>", string(s)).Debug("Include FindAll result")
+		err := includeFinder(regExpression, s, dir, includes)
+		if err != nil {
+			log.Error("ERR!:", err)
+		}
+	}
+
+	includeFile := &IncludedFiles{
+		Script: code,
+	}
+
+	includes[file] = includeFile
+
+	return nil
+}
+
+// read the included file, hash it; if we already have it, return include replacement
+// if we don't, run replaceIncludes on it (recursive)
+// modifies the "includes" map
+func includeFinder(r *regexp.Regexp, originCode []byte, dir string, included map[string]*IncludedFiles) error {
+	// regex look for strings that would match the import statement
+	m := r.FindStringSubmatch(string(originCode))
+	match := m[3]
+	log.WithField("=>", match).Debug("Match")
+	// load the file
+	newFilePath := path.Join(dir, match)
+	incl_code, err := ioutil.ReadFile(newFilePath)
+	if err != nil {
+		log.Errorln("failed to read include file", err)
+		return fmt.Errorf("Failed to read include file: %s", err.Error())
+	}
+
+	if _, ok := included[match]; ok {
+		return nil
+	}
+
+	// recursively replace the includes for this file
+	this_dir := path.Dir(newFilePath)
+	return FindIncludes(incl_code, this_dir, newFilePath, included)
+}
+
+func extractObjectNames(script []byte) ([]string, error) {
+	regExpression, err := regexp.Compile("(contract|library) (.+?) (is)?(.+?)?({)")
+	if err != nil {
+		return nil, err
+	}
+	objectNamesList := regExpression.FindAllSubmatch(script, -1)
+	var objects []string
+	for _, objectNames := range objectNamesList {
+		objects = append(objects, string(objectNames[2]))
+	}
+	return objects, nil
 }

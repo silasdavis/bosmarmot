@@ -15,7 +15,7 @@ func QueryContractJob(query *def.QueryContract, do *def.Packages) (string, []*de
 	// Preprocess variables. We don't preprocess data as it is processed by ReadAbiFormulateCall
 	query.Source, _ = util.PreProcess(query.Source, do)
 	query.Destination, _ = util.PreProcess(query.Destination, do)
-	query.ABI, _ = util.PreProcess(query.ABI, do)
+	query.Bin, _ = util.PreProcess(query.Bin, do)
 
 	var queryDataArray []string
 	var err error
@@ -27,11 +27,12 @@ func QueryContractJob(query *def.QueryContract, do *def.Packages) (string, []*de
 	// Get the packed data from the ABI functions
 	var data string
 	var packedBytes []byte
-	if query.ABI == "" {
-		packedBytes, err = abi.ReadAbiFormulateCall(query.Destination, query.Function, queryDataArray, do)
+	if query.Bin != "" {
+		packedBytes, err = abi.ReadAbiFormulateCallFile(query.Bin, query.Function, queryDataArray, do)
 		data = hex.EncodeToString(packedBytes)
-	} else {
-		packedBytes, err = abi.ReadAbiFormulateCall(query.ABI, query.Function, queryDataArray, do)
+	}
+	if query.Bin == "" || err != nil {
+		packedBytes, err = abi.ReadAbiFormulateCallFile(query.Destination, query.Function, queryDataArray, do)
 		data = hex.EncodeToString(packedBytes)
 	}
 	if err != nil {
@@ -51,12 +52,13 @@ func QueryContractJob(query *def.QueryContract, do *def.Packages) (string, []*de
 
 	// Formally process the return
 	log.WithField("res", txe.Result.Return).Debug("Decoding Raw Result")
-	if query.ABI == "" {
+	if query.Bin != "" {
+		log.WithField("abi", query.Bin).Debug()
+		query.Variables, err = abi.ReadAndDecodeContractReturn(query.Bin, query.Function, txe.Result.Return, do)
+	}
+	if query.Bin == "" || err != nil {
 		log.WithField("abi", query.Destination).Debug()
 		query.Variables, err = abi.ReadAndDecodeContractReturn(query.Destination, query.Function, txe.Result.Return, do)
-	} else {
-		log.WithField("abi", query.ABI).Debug()
-		query.Variables, err = abi.ReadAndDecodeContractReturn(query.ABI, query.Function, txe.Result.Return, do)
 	}
 	if err != nil {
 		return "", nil, err

@@ -51,9 +51,6 @@ func RunPackage(do *def.Packages) error {
 	if do.BinPath == "[dir]/bin" {
 		do.BinPath = filepath.Join(do.Path, "bin")
 	}
-	if do.ABIPath == "[dir]/abi" {
-		do.ABIPath = filepath.Join(do.Path, "abi")
-	}
 
 	// ensure keys pathway properly utilized
 	if do.Signer == "" {

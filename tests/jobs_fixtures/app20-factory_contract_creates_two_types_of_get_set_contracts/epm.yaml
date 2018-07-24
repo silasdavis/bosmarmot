@@ -12,14 +12,14 @@ jobs:
 - name: createGSContract
   call:
       destination: $deployGSFactory
-      abi: GSFactory
+      bin: GSFactory
       function: create
 
 # contract 1
 - name: setStorage
   call:
       destination: $createGSContract
-      abi: GSContract
+      bin: GSContract
       function: set 
       data:
         - $setStorageBase
@@ -27,7 +27,7 @@ jobs:
 - name: queryStorage
   query-contract:
       destination: $createGSContract
-      abi: GSContract
+      bin: GSContract
       function: get
 
 - name: assertStorage
@@ -40,13 +40,13 @@ jobs:
 - name: createGSContract2
   call:
       destination: $deployGSFactory
-      abi: GSFactory
+      bin: GSFactory
       function: create2
 
 - name: setStorage2
   call:
       destination: $createGSContract2
-      abi: GSContract2
+      bin: GSContract2
       function: set2 
       data:
         - $setStorageBase
@@ -54,7 +54,7 @@ jobs:
 - name: queryStorage
   query-contract:
       destination: $createGSContract2
-      abi: GSContract2
+      bin: GSContract2
       function: get2
 
 - name: assertStorage

@@ -1,7 +1,6 @@
 package def
 
 type Packages struct {
-	ABIPath       string   `mapstructure:"," json:"," yaml:"," toml:","`
 	Address       string   `mapstructure:"," json:"," yaml:"," toml:","`
 	BinPath       string   `mapstructure:"," json:"," yaml:"," toml:","`
 	ChainURL      string   `mapstructure:"," json:"," yaml:"," toml:","`
