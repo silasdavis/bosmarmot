@@ -28,11 +28,10 @@ func CompilerRequest(file string,
 
 // Compile request object
 type Request struct {
-	ScriptName      string                    `json:"name"`
-	Includes        map[string]*IncludedFiles `json:"includes"`  // our required files and metadata
-	Libraries       map[string]string         `json:"libraries"` // string of libName:LibAddr separated by comma
-	Optimize        bool                      `json:"optimize"`  // run with optimize flag
-	FileReplacement map[string]string         `json:"replacement"`
+	ScriptName string                    `json:"name"`
+	Includes   map[string]*IncludedFiles `json:"includes"`  // our required files and metadata
+	Libraries  map[string]string         `json:"libraries"` // string of libName:LibAddr separated by comma
+	Optimize   bool                      `json:"optimize"`  // run with optimize flag
 }
 
 type BinaryRequest struct {
@@ -81,6 +80,8 @@ type SolidityOutputContract struct {
 			LinkReferences json.RawMessage
 		}
 	}
+	Devdoc   json.RawMessage
+	Userdoc  json.RawMessage
 	Metadata string
 }
 
@@ -187,7 +188,7 @@ func compile(req *Request) *Response {
 	}
 
 	input.Settings.Optimizer.Enabled = req.Optimize
-	input.Settings.OutputSelection.File.OutputType = []string{"abi", "evm.bytecode.linkReferences", "metadata", "bin"}
+	input.Settings.OutputSelection.File.OutputType = []string{"abi", "evm.bytecode.linkReferences", "metadata", "bin", "devdoc"}
 	input.Settings.Libraries = make(map[string]map[string]string)
 	input.Settings.Libraries[""] = make(map[string]string)
 
@@ -201,10 +202,11 @@ func compile(req *Request) *Response {
 	if err != nil {
 		return &Response{Error: err.Error()}
 	}
-	//fmt.Printf("INPUT JSON: %s\n", string(command))
+
 	log.WithField("Command: ", command).Debug("Command Input")
 	result, err := runSolidity(string(command))
-	//fmt.Printf("OUTPUT JSON: %s\n", result)
+	log.WithField("Command Result: ", result).Debug("Command Output")
+
 	output := SolidityOutput{}
 	err = json.Unmarshal([]byte(result), &output)
 	if err != nil {
@@ -215,10 +217,6 @@ func compile(req *Request) *Response {
 
 	for _, s := range output.Contracts {
 		for contract, item := range s {
-			linkRefs := string(item.Evm.Bytecode.LinkReferences)
-			if linkRefs == "{}" {
-				linkRefs = ""
-			}
 			respItem := ResponseItem{
 				Objectname: objectName(contract),
 				Binary:     item,

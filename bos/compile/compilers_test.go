@@ -144,6 +144,7 @@ func TestLocalSingle(t *testing.T) {
 	}
 	for i := range resp.Objects {
 		resp.Objects[i].Binary.Metadata = ""
+		resp.Objects[i].Binary.Devdoc = nil
 		resp.Objects[i].Binary.Evm.Bytecode.Opcodes = ""
 	}
 	assert.Equal(t, expectedResponse, resp)
