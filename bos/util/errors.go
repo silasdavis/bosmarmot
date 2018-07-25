@@ -5,7 +5,7 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/monax/bosmarmot/bos/definitions"
+	"github.com/monax/bosmarmot/bos/def"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -25,13 +25,13 @@ func IfExit(err error) {
 	}
 }
 
-func MintChainErrorHandler(do *definitions.Packages, err error) (string, error) {
+func MintChainErrorHandler(do *def.Packages, err error) error {
 	log.WithFields(log.Fields{
 		"defAddr": do.Package.Account,
 		"rawErr":  err,
 	}).Error("")
 
-	return "", fmt.Errorf(`
+	return fmt.Errorf(`
 There has been an error talking to your monax chain.
 
 %v
@@ -44,7 +44,7 @@ Debugging this error is tricky, but don't worry the marmot recovery checklist is
 `, err, do.Package.Account)
 }
 
-func KeysErrorHandler(do *definitions.Packages, err error) (string, error) {
+func KeysErrorHandler(do *def.Packages, err error) (string, error) {
 	log.WithFields(log.Fields{
 		"defAddr": do.Package.Account,
 	}).Error("")
@@ -77,7 +77,7 @@ Debugging this error is tricky, but don't worry the marmot recovery checklist is
 `, err, do.Package.Account, do.Package.Account)
 }
 
-func ABIErrorHandler(do *definitions.Packages, err error, call *definitions.Call, query *definitions.QueryContract) (string, error) {
+func ABIErrorHandler(do *def.Packages, err error, call *def.Call, query *def.QueryContract) (string, error) {
 	switch {
 	case call != nil:
 		log.WithFields(log.Fields{

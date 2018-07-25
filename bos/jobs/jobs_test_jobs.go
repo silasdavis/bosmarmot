@@ -5,16 +5,13 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/hyperledger/burrow/client"
-	"github.com/hyperledger/burrow/crypto"
-	"github.com/hyperledger/burrow/logging"
 	"github.com/monax/bosmarmot/bos/abi"
-	"github.com/monax/bosmarmot/bos/definitions"
+	"github.com/monax/bosmarmot/bos/def"
 	"github.com/monax/bosmarmot/bos/util"
 	log "github.com/sirupsen/logrus"
 )
 
-func QueryContractJob(query *definitions.QueryContract, do *definitions.Packages) (string, []*definitions.Variable, error) {
+func QueryContractJob(query *def.QueryContract, do *def.Packages) (string, []*def.Variable, error) {
 	// Preprocess variables. We don't preprocess data as it is processed by ReadAbiFormulateCall
 	query.Source, _ = util.PreProcess(query.Source, do)
 	query.Destination, _ = util.PreProcess(query.Destination, do)
@@ -23,19 +20,6 @@ func QueryContractJob(query *definitions.QueryContract, do *definitions.Packages
 	var queryDataArray []string
 	var err error
 	query.Function, queryDataArray, err = util.PreProcessInputData(query.Function, query.Data, do, false)
-	if err != nil {
-		return "", nil, err
-	}
-	// Set the from and the to addresses
-	fromAddress := crypto.ZeroAddress
-	// We allow anonymous Calls
-	if query.Source != "" {
-		fromAddress, err = crypto.AddressFromHexString(query.Source)
-		if err != nil {
-			return "", nil, err
-		}
-	}
-	toAddress, err := crypto.AddressFromHexString(query.Destination)
 	if err != nil {
 		return "", nil, err
 	}
@@ -54,26 +38,25 @@ func QueryContractJob(query *definitions.QueryContract, do *definitions.Packages
 		var str, err = util.ABIErrorHandler(do, err, nil, query)
 		return str, nil, err
 	}
-	dataBytes, err := hex.DecodeString(data)
-	if err != nil {
-		return "", nil, err
-	}
 
 	// Call the client
-	nodeClient := client.NewBurrowNodeClient(do.ChainURL, logging.NewNoopLogger())
-	result, _, err := nodeClient.QueryContract(fromAddress, toAddress, dataBytes)
+	txe, err := do.QueryContract(def.QueryArg{
+		Input:   query.Source,
+		Address: query.Destination,
+		Data:    data,
+	})
 	if err != nil {
 		return "", nil, err
 	}
 
 	// Formally process the return
-	log.WithField("res", result).Debug("Decoding Raw Result")
+	log.WithField("res", txe.Result.Return).Debug("Decoding Raw Result")
 	if query.ABI == "" {
 		log.WithField("abi", query.Destination).Debug()
-		query.Variables, err = abi.ReadAndDecodeContractReturn(query.Destination, query.Function, result, do)
+		query.Variables, err = abi.ReadAndDecodeContractReturn(query.Destination, query.Function, txe.Result.Return, do)
 	} else {
 		log.WithField("abi", query.ABI).Debug()
-		query.Variables, err = abi.ReadAndDecodeContractReturn(query.ABI, query.Function, result, do)
+		query.Variables, err = abi.ReadAndDecodeContractReturn(query.ABI, query.Function, txe.Result.Return, do)
 	}
 	if err != nil {
 		return "", nil, err
@@ -89,7 +72,7 @@ func QueryContractJob(query *definitions.QueryContract, do *definitions.Packages
 	return result2, query.Variables, nil
 }
 
-func QueryAccountJob(query *definitions.QueryAccount, do *definitions.Packages) (string, error) {
+func QueryAccountJob(query *def.QueryAccount, do *def.Packages) (string, error) {
 	// Preprocess variables
 	query.Account, _ = util.PreProcess(query.Account, do)
 	query.Field, _ = util.PreProcess(query.Field, do)
@@ -112,7 +95,7 @@ func QueryAccountJob(query *definitions.QueryAccount, do *definitions.Packages) 
 	return result, nil
 }
 
-func QueryNameJob(query *definitions.QueryName, do *definitions.Packages) (string, error) {
+func QueryNameJob(query *def.QueryName, do *def.Packages) (string, error) {
 	// Preprocess variables
 	query.Name, _ = util.PreProcess(query.Name, do)
 	query.Field, _ = util.PreProcess(query.Field, do)
@@ -135,7 +118,7 @@ func QueryNameJob(query *definitions.QueryName, do *definitions.Packages) (strin
 	return result, nil
 }
 
-func QueryValsJob(query *definitions.QueryVals, do *definitions.Packages) (string, error) {
+func QueryValsJob(query *def.QueryVals, do *def.Packages) (string, error) {
 	var result string
 
 	// Preprocess variables
@@ -156,7 +139,7 @@ func QueryValsJob(query *definitions.QueryVals, do *definitions.Packages) (strin
 	return result, nil
 }
 
-func AssertJob(assertion *definitions.Assert, do *definitions.Packages) (string, error) {
+func AssertJob(assertion *def.Assert, do *def.Packages) (string, error) {
 	var result string
 	// Preprocess variables
 	assertion.Key, _ = util.PreProcess(assertion.Key, do)

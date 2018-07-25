@@ -4,12 +4,16 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/monax/bosmarmot/bos/definitions"
+	"github.com/monax/bosmarmot/bos/def"
 	log "github.com/sirupsen/logrus"
 )
 
-func RunJobs(do *definitions.Packages) error {
-	var err error
+func RunJobs(do *def.Packages) error {
+	// Dial the chain
+	err := do.Dial()
+	if err != nil {
+		return err
+	}
 
 	// ADD DefaultAddr and DefaultSet to jobs array....
 	// These work in reverse order and the addendums to the
@@ -48,12 +52,6 @@ func RunJobs(do *definitions.Packages) error {
 		case job.Permission != nil:
 			announce(job.JobName, "Permission")
 			job.JobResult, err = PermissionJob(job.Permission, do)
-		case job.Bond != nil:
-			announce(job.JobName, "Bond")
-			job.JobResult, err = BondJob(job.Bond, do)
-		case job.Unbond != nil:
-			announce(job.JobName, "Unbond")
-			job.JobResult, err = UnbondJob(job.Unbond, do)
 
 		// Contracts jobs
 		case job.Deploy != nil:
@@ -113,30 +111,30 @@ func announce(job, typ string) {
 	log.WithField("=>", typ).Info("Type")
 }
 
-func defaultAddrJob(do *definitions.Packages) {
+func defaultAddrJob(do *def.Packages) {
 	oldJobs := do.Package.Jobs
 
-	newJob := &definitions.Job{
+	newJob := &def.Job{
 		JobName: "defaultAddr",
-		Account: &definitions.Account{
+		Account: &def.Account{
 			Address: do.Address,
 		},
 	}
 
-	do.Package.Jobs = append([]*definitions.Job{newJob}, oldJobs...)
+	do.Package.Jobs = append([]*def.Job{newJob}, oldJobs...)
 }
 
-func defaultSetJobs(do *definitions.Packages) {
+func defaultSetJobs(do *def.Packages) {
 	oldJobs := do.Package.Jobs
 
-	newJobs := []*definitions.Job{}
+	newJobs := []*def.Job{}
 
 	for _, setr := range do.DefaultSets {
 		blowdUp := strings.Split(setr, "=")
 		if blowdUp[0] != "" {
-			newJobs = append(newJobs, &definitions.Job{
+			newJobs = append(newJobs, &def.Job{
 				JobName: blowdUp[0],
-				Set: &definitions.SetJob{
+				Set: &def.SetJob{
 					Value: blowdUp[1],
 				},
 			})
@@ -146,7 +144,7 @@ func defaultSetJobs(do *definitions.Packages) {
 	do.Package.Jobs = append(newJobs, oldJobs...)
 }
 
-func postProcess(do *definitions.Packages) error {
+func postProcess(do *def.Packages) error {
 	// Formulate the results map
 	results := make(map[string]string)
 	for _, job := range do.Package.Jobs {

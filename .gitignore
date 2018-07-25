@@ -12,4 +12,5 @@ bin/
 *.output.json
 .gopath_burrow
 tests/**/abi/
+**/*_vector.json
 node_modules/

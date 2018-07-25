@@ -5,12 +5,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/monax/bosmarmot/bos/definitions"
+	"github.com/monax/bosmarmot/bos/def"
 	"github.com/monax/bosmarmot/bos/loader"
 	log "github.com/sirupsen/logrus"
 )
 
-func MetaJob(meta *definitions.Meta, do *definitions.Packages) (string, error) {
+func MetaJob(meta *def.Meta, do *def.Packages) (string, error) {
 	var err error
 	var pwd string
 
@@ -20,7 +20,7 @@ func MetaJob(meta *definitions.Meta, do *definitions.Packages) (string, error) {
 	}
 
 	// work from a fresh Do object
-	newDo := definitions.NewPackage()
+	newDo := def.NewPackage()
 	newDo.Address = do.Address
 	newDo.ChainURL = do.ChainURL
 	newDo.CurrentOutput = do.CurrentOutput
@@ -28,26 +28,28 @@ func MetaJob(meta *definitions.Meta, do *definitions.Packages) (string, error) {
 	newDo.DefaultFee = do.DefaultFee
 	newDo.DefaultGas = do.DefaultGas
 	newDo.DefaultSets = do.DefaultSets
-	newDo.PublicKey = do.PublicKey
 	newDo.Signer = do.Signer
 
 	// Set subYAMLPath
 	newDo.YAMLPath = meta.File
+	log.WithField("=>", newDo.YAMLPath).Info("Trying base YAMLPath")
 
 	// if subYAMLPath does not exist, try YAMLPath relative to do.Path
 	if _, err := os.Stat(newDo.YAMLPath); os.IsNotExist(err) {
 		newDo.YAMLPath = filepath.Join(do.Path, newDo.YAMLPath)
+		log.WithField("=>", newDo.YAMLPath).Info("Trying YAMLPath relative to do.Path")
 	}
 
 	// if subYAMLPath does not exist, try YAMLPath relative to pwd
 	if _, err := os.Stat(newDo.YAMLPath); os.IsNotExist(err) {
 		newDo.YAMLPath = filepath.Join(pwd, newDo.YAMLPath)
+		log.WithField("=>", newDo.YAMLPath).Info("Trying YAMLPath relative to pwd")
 	}
 
 	// if subYAMLPath cannot be found, abort
 	if _, err := os.Stat(newDo.YAMLPath); os.IsNotExist(err) {
 		return "failed", fmt.Errorf("could not find sub YAML file (%s)",
-			do.YAMLPath)
+			newDo.YAMLPath)
 	}
 
 	// once we have the proper subYAMLPath set the paths accordingly

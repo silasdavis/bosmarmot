@@ -5,13 +5,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/monax/bosmarmot/bos/definitions"
+	"github.com/monax/bosmarmot/bos/def"
 	"github.com/monax/bosmarmot/bos/jobs"
 	"github.com/monax/bosmarmot/bos/loader"
 	log "github.com/sirupsen/logrus"
 )
 
-func RunPackage(do *definitions.Packages) error {
+func RunPackage(do *def.Packages) error {
 	var err error
 	var pwd string
 
@@ -55,6 +55,11 @@ func RunPackage(do *definitions.Packages) error {
 		do.ABIPath = filepath.Join(do.Path, "abi")
 	}
 
+	// ensure keys pathway properly utilized
+	if do.Signer == "" {
+		do.Signer = do.ChainURL
+	}
+
 	// useful for debugging
 	printPathPackage(do)
 
@@ -78,7 +83,7 @@ func RunPackage(do *definitions.Packages) error {
 	return jobs.RunJobs(do)
 }
 
-func printPathPackage(do *definitions.Packages) {
+func printPathPackage(do *def.Packages) {
 	log.WithField("=>", do.ChainURL).Info("With ChainURL")
 	log.WithField("=>", do.Signer).Info("Using Signer at")
 }

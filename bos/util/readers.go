@@ -9,41 +9,37 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hyperledger/burrow/client/rpc"
+	"github.com/hyperledger/burrow/execution/exec"
 	log "github.com/sirupsen/logrus"
+	"github.com/tmthrgd/go-hex"
 )
 
 // This is a closer function which is called by most of the tx_run functions
-func ReadTxSignAndBroadcast(result *rpc.TxResult, err error) error {
+func ReadTxSignAndBroadcast(txe *exec.TxExecution, err error) error {
 	// if there's an error just return.
 	if err != nil {
 		return err
 	}
 
 	// if there is nothing to unpack then just return.
-	if result == nil {
+	if txe == nil {
 		return nil
 	}
 
 	// Unpack and display for the user.
-	addr := fmt.Sprintf("%s", result.Address)
-	hash := fmt.Sprintf("%X", result.Hash)
-	blkHash := fmt.Sprintf("%X", result.BlockHash)
-	ret := fmt.Sprintf("%X", result.Return)
+	hash := fmt.Sprintf("%X", txe.Receipt.TxHash)
+	height := fmt.Sprintf("%d", txe.Height)
 
-	if result.Address != nil {
-		log.WithField("addr", addr).Warn()
+	if txe.Receipt.CreatesContract {
+		log.WithField("addr", txe.Receipt.ContractAddress).Warn()
 		log.WithField("txHash", hash).Info()
 	} else {
 		log.WithField("=>", hash).Warn("Transaction Hash")
-		log.WithField("=>", blkHash).Debug("Block Hash")
-		if len(result.Return) != 0 {
-			if ret != "" {
-				log.WithField("=>", ret).Warn("Return Value")
-			} else {
-				log.Debug("No return.")
-			}
-			log.WithField("=>", result.Exception).Debug("Exception")
+		log.WithField("=>", height).Debug("Block height")
+		ret := txe.GetResult().GetReturn()
+		if len(ret) != 0 {
+			log.WithField("=>", hex.EncodeUpperToString(ret)).Warn("Return Value")
+			log.WithField("=>", txe.Exception).Debug("Exception")
 		}
 	}
 

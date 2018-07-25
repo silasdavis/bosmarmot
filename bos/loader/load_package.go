@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/monax/bosmarmot/bos/definitions"
+	"github.com/monax/bosmarmot/bos/def"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
-func LoadPackage(fileName string) (*definitions.Package, error) {
+func LoadPackage(fileName string) (*def.Package, error) {
 	log.Info("Loading monax Jobs Definition File.")
-	var pkg = definitions.BlankPackage()
+	var pkg = def.BlankPackage()
 	var epmJobs = viper.New()
 
 	// setup file

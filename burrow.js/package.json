@@ -1,0 +1,72 @@
+{
+  "name": "@monax/burrow",
+  "description": "Javascript library that calls a Hyperledger Burrow server over rpc.",
+  "version": "0.20.0",
+  "author": {
+    "name": "Dennis Mckinnon"
+  },
+  "bugs": {
+    "url": "https://github.com/monax/bosmarmot/issues"
+  },
+  "dependencies": {
+    "@nodeguy/generic": "3.0.0",
+    "@nodeguy/type": "0.2.0",
+    "bignumber.js": "github:debris/bignumber.js#94d7146671b9719e00a09c29b01a691bc85048c2",
+    "crypto-js": "3.1.4",
+    "g-functions": "0.3.0",
+    "grpc": "^1.12.2",
+    "protobufjs": "^6.8.6",
+    "ramda": "0.23.0",
+    "utf8": "2.1.2",
+    "web3": "0.18.4"
+  },
+  "devDependencies": {
+    "fs-extra": "^5.0.0",
+    "ink-docstrap": "1.3.0",
+    "istanbul": "0.4.5",
+    "jsdoc": "3.4.3",
+    "mocha": "3.2.0",
+    "mocha-circleci-reporter": "0.0.2",
+    "solc": "0.3.4",
+    "standard": "9.0.2"
+  },
+  "engines": {
+    "node": ">=6"
+  },
+  "homepage": "https://github.com/monax/bosmarmot/burrow.js",
+  "keywords": [
+    "Burrow",
+    "Hyperledger",
+    "Monax"
+  ],
+  "license": "GPL-3.0",
+  "main": "./index.js",
+  "maintainers": [
+    {
+      "name": "Dennis Mckinnon",
+      "email": "Contact@Monax.io"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/monax/bosmarmot"
+  },
+  "scripts": {
+    "doc": "jsdoc --configure JSDoc/conf.json --destination doc index.js lib README.md",
+    "precommit": "standard",
+    "predoc": "rm -rf doc",
+    "pretest": "standard",
+    "test": "../tests/run_burrowjs_tests.sh"
+  },
+  "standard": {
+    "globals": [
+      "after",
+      "afterEach",
+      "before",
+      "beforeEach",
+      "describe",
+      "it",
+      "run"
+    ]
+  }
+}

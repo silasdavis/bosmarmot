@@ -2,30 +2,22 @@
   unused-packages = true
   go-tests = true
   non-go = true
+    [[prune.project]]
+      name = "github.com/hyperledger/burrow"
+      unused-packages = false
+      non-go = false
 
-  [[prune.project]]
-    name = "github.com/ethereum/go-ethereum"
-    # Otherwise secp256k1.h excluded and test compile fails
-    unused-packages = false
-    non-go = false
-
-[[constraint]]
-  name = "github.com/hyperledger/burrow"
-  version = "~0.19.0"
-
-# Geth version we currently depend on for ABI
-[[constraint]]
-  name = "github.com/ethereum/go-ethereum"
-  version = "=1.6.1"
-
-[[constraint]]
-  name = "github.com/sirupsen/logrus"
-  version = "~1.0.5"
-
-# We don't care which version Tendermint wants
 [[override]]
-  name = "github.com/tendermint/tmlibs"
-  version = "~0.8.4"
+  name = "github.com/hyperledger/burrow"
+  version = "=0.20.0"
+
+[[override]]
+  name = "github.com/tendermint/tendermint"
+  version = "=0.22.4"
+
+[[override]]
+  name = "github.com/gogo/protobuf"
+  version = "~1.1.0"
 
 [[override]]
   name = "github.com/golang/protobuf"
@@ -33,4 +25,4 @@
 
 [[override]]
   name = "google.golang.org/grpc"
-  version = "~1.12.2"
+  version = "~1.13.0"

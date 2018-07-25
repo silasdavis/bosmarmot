@@ -4,7 +4,7 @@
 defaults: &defaults
   working_directory: /go/src/github.com/monax/bosmarmot
   docker:
-    - image: quay.io/monax/bosmarmot:ci
+    - image: quay.io/monax/build:burrow-ci
 
 tag_filters: &tags_filters
   tags:
