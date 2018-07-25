@@ -102,6 +102,11 @@ ensure_vendor: reinstall_vendor
 
 ### Builds
 
+.PHONY: protobuf
+protobuf:
+	@rm -rf ${REPO}/burrow.js/protobuf
+	@cp -a ${REPO}/vendor/github.com/hyperledger/burrow/protobuf ${REPO}/burrow.js/protobuf
+
 .PHONY: build_bin
 build_bin:
 	@go build  -a -tags netgo \
