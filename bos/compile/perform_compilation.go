@@ -93,8 +93,9 @@ type Response struct {
 }
 
 type BinaryResponse struct {
-	Binary string `json:"binary"`
-	Error  string `json:"error"`
+	Binary string          `json:"binary"`
+	Abi    json.RawMessage `json:"abi"`
+	Error  string          `json:"error"`
 }
 
 // Compile response object
@@ -123,6 +124,7 @@ func RequestBinaryLinkage(file string, libraries map[string]string) (*BinaryResp
 	if !strings.Contains(bin, "_") {
 		return &BinaryResponse{
 			Binary: bin,
+			Abi:    contract.Abi,
 			Error:  "",
 		}, nil
 	}
@@ -154,6 +156,7 @@ func RequestBinaryLinkage(file string, libraries map[string]string) (*BinaryResp
 
 	return &BinaryResponse{
 		Binary: bin,
+		Abi:    contract.Abi,
 		Error:  "",
 	}, nil
 }

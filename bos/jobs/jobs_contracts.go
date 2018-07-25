@@ -86,6 +86,19 @@ func DeployJob(deploy *def.Deploy, do *def.Packages) (result string, err error) 
 		}
 		contractCode := binaryResponse.Binary
 
+		if deploy.Data != nil {
+			_, callDataArray, err := util.PreProcessInputData("", deploy.Data, do, true)
+			if err != nil {
+				return "", err
+			}
+			packedBytes, err := abi.ReadAbiFormulateCall(binaryResponse.Abi, "", callDataArray, do)
+			if err != nil {
+				return "", err
+			}
+			callData := hex.EncodeToString(packedBytes)
+			contractCode = contractCode + callData
+		}
+
 		tx, err := deployTx(do, deploy, contractName, string(contractCode))
 		if err != nil {
 			return "could not deploy binary contract", err
@@ -213,6 +226,7 @@ func deployContract(deploy *def.Deploy, do *def.Packages, compilersResponse comp
 
 	// saving contract/library abi at abi/address
 	if contractAddress != nil {
+		// saving binary
 		b, err := json.Marshal(compilersResponse.Binary)
 		if err != nil {
 			return "", err
@@ -222,7 +236,6 @@ func deployContract(deploy *def.Deploy, do *def.Packages, compilersResponse comp
 		if err := ioutil.WriteFile(addressBin, b, 0664); err != nil {
 			return "", err
 		}
-		// saving binary
 		contractName := filepath.Join(do.BinPath, fmt.Sprintf("%s.bin", compilersResponse.Objectname))
 		log.WithField("=>", contractName).Warn("Saving Binary")
 		if err := ioutil.WriteFile(contractName, b, 0664); err != nil {
