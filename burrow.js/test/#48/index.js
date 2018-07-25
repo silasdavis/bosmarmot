@@ -13,24 +13,25 @@ describe('#48', function () {
 
   it('#48', Test.it(function (burrow) {
     const source = `
+      pragma solidity ^0.4.21;
       contract Test {
 
-          function getAddress() returns (address) {
+          function getAddress() public view returns (address) {
             return this;
           }
 
-          function getNumber() returns (uint) {
+          function getNumber() public pure returns (uint) {
             return 100;
           }
 
-          function getCombination() returns (uint _number, address _address) {
+          function getCombination() public view returns (uint _number, address _address) {
             _number = 100;
             _address = this;
           }
 
       }
     `
-    const {abi, bytecode} = test.compile(source, 'Test')
+    const {abi, bytecode} = test.compile(source, ':Test')
     return burrow.contracts.deploy(abi, bytecode)
       .then((contract) => contract.getCombination())
       .then(([number, address]) => {

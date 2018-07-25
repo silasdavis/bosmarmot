@@ -36,7 +36,7 @@ type Client struct {
 }
 
 // Connect GRPC clients using ChainURL
-func (c *Client) Dial(chainAddress, keysAddress string) error {
+func (c *Client) Dial(chainAddress, signer string) error {
 	conn, err := grpc.Dial(chainAddress, grpc.WithInsecure())
 	if err != nil {
 		return err
@@ -44,7 +44,11 @@ func (c *Client) Dial(chainAddress, keysAddress string) error {
 	c.transactClient = rpctransact.NewTransactClient(conn)
 	c.queryClient = rpcquery.NewQueryClient(conn)
 	c.executionEventsClient = rpcevents.NewExecutionEventsClient(conn)
-	c.keyClient, err = keys.NewRemoteKeyClient(keysAddress, logging.NewNoopLogger())
+	if signer != "" {
+		// Use mempool signing
+		logrus.Info("Using listen keys at: %s", signer)
+		c.keyClient, err = keys.NewRemoteKeyClient(signer, logging.NewNoopLogger())
+	}
 
 	if err != nil {
 		return err
@@ -89,9 +93,19 @@ func (c *Client) GetValidatorSet() (*validator.Set, error) {
 	return validator.UnpersistSet(vs.Set), nil
 }
 
+func (c *Client) SignAndBroadcast(tx payload.Payload) (*exec.TxExecution, error) {
+	txEnv, err := c.SignTx(tx)
+	if err != nil {
+		return nil, err
+	}
+	return c.BroadcastEnvelope(txEnv)
+}
+
 func (c *Client) SignTx(tx payload.Payload) (*txs.Envelope, error) {
+	txEnv := txs.Enclose(c.chainID, tx)
 	if c.keyClient == nil {
-		return nil, fmt.Errorf("cannot sign because no KeyClient set - do you pass --Signer")
+		logrus.Info("Attempting mempool signing since no keyClient set, pass --Signer to sign locally or elsewhere")
+		return txEnv, nil
 	}
 	var err error
 	inputs := tx.GetInputs()
@@ -102,20 +116,11 @@ func (c *Client) SignTx(tx payload.Payload) (*txs.Envelope, error) {
 			return nil, err
 		}
 	}
-	txEnv := txs.Enclose(c.chainID, tx)
 	err = txEnv.Sign(signers...)
 	if err != nil {
 		return nil, err
 	}
 	return txEnv, nil
-}
-
-func (c *Client) SignAndBroadcast(tx payload.Payload) (*exec.TxExecution, error) {
-	txEnv, err := c.SignTx(tx)
-	if err != nil {
-		return nil, err
-	}
-	return c.BroadcastEnvelope(txEnv)
 }
 
 // Broadcast payload for remote signing
@@ -126,18 +131,6 @@ func (c *Client) Broadcast(tx payload.Payload) (*exec.TxExecution, error) {
 // Broadcast envelope - can be locally signed or remote signing will be attempted
 func (c *Client) BroadcastEnvelope(txEnv *txs.Envelope) (*exec.TxExecution, error) {
 	return c.transactClient.BroadcastTxSync(context.Background(), &rpctransact.TxEnvelopeParam{Envelope: txEnv})
-}
-
-func (c *Client) GetSequence(sequence string, inputAddress crypto.Address) (uint64, error) {
-	if sequence == "" {
-		// Get from chain
-		acc, err := c.queryClient.GetAccount(context.Background(), &rpcquery.GetAccountParam{Address: inputAddress})
-		if err != nil {
-			return 0, err
-		}
-		return acc.Sequence + 1, nil
-	}
-	return c.ParseUint64(sequence)
 }
 
 func (c *Client) ParseUint64(amount string) (uint64, error) {
@@ -355,6 +348,22 @@ func (c *Client) TxInput(inputString, amountString, sequenceString string) (*pay
 		Amount:   amount,
 		Sequence: sequence,
 	}, nil
+}
+
+func (c *Client) GetSequence(sequence string, inputAddress crypto.Address) (uint64, error) {
+	if sequence == "" {
+		if c.keyClient == nil {
+			// Perform mempool signing
+			return 0, nil
+		}
+		// Get from chain
+		acc, err := c.queryClient.GetAccount(context.Background(), &rpcquery.GetAccountParam{Address: inputAddress})
+		if err != nil {
+			return 0, err
+		}
+		return acc.Sequence + 1, nil
+	}
+	return c.ParseUint64(sequence)
 }
 
 func argMap(value interface{}) map[string]interface{} {

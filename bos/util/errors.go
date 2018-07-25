@@ -3,7 +3,6 @@ package util
 import (
 	"fmt"
 	"os"
-	"regexp"
 
 	"github.com/monax/bosmarmot/bos/def"
 	log "github.com/sirupsen/logrus"
@@ -25,56 +24,18 @@ func IfExit(err error) {
 	}
 }
 
-func MintChainErrorHandler(do *def.Packages, err error) error {
+func ChainErrorHandler(do *def.Packages, err error) error {
 	log.WithFields(log.Fields{
 		"defAddr": do.Package.Account,
 		"rawErr":  err,
 	}).Error("")
 
 	return fmt.Errorf(`
-There has been an error talking to your monax chain.
+There has been an error talking to your Burrow chain using account %s.
 
 %v
 
-Debugging this error is tricky, but don't worry the marmot recovery checklist is...
-  * is the %s account right?
-  * is the account you want to use in your keys service: burrow keys list ?
-  * is the account you want to use in your genesis.json: see http://localhost:46657/genesis
-  * do you have permissions to do what you're trying to do on the chain?
-`, err, do.Package.Account)
-}
-
-func KeysErrorHandler(do *def.Packages, err error) (string, error) {
-	log.WithFields(log.Fields{
-		"defAddr": do.Package.Account,
-	}).Error("")
-
-	r := regexp.MustCompile(fmt.Sprintf("open /home/monax/.monax/keys/data/%s/%s: no such file or directory", do.Package.Account, do.Package.Account))
-	if r.MatchString(fmt.Sprintf("%v", err)) {
-		return "", fmt.Errorf(`
-Unfortunately the marmots could not find the key you are trying to use in the keys service.
-
-There is one way to fix this.
-  * Import your keys from your host: monax keys import %s
-
-Now, run  monax keys ls  to check that the keys are available. If they are not there
-then change the account. Once you have verified that the keys for account
-
-%s
-
-are in the keys service, then rerun me.
-`, do.Package.Account, do.Package.Account)
-	}
-
-	return "", fmt.Errorf(`
-There has been an error talking to your burrow keys service.
-
-%v
-
-Debugging this error is tricky, but don't worry the marmot recovery checklist is...
-  * is your %s account right?
-  * is the key for %s in your keys service: burrow keys list ?
-`, err, do.Package.Account, do.Package.Account)
+`, do.Package.Account, err)
 }
 
 func ABIErrorHandler(do *def.Packages, err error, call *def.Call, query *def.QueryContract) (string, error) {

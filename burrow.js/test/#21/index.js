@@ -11,8 +11,9 @@ describe('issue #21', function () {
 
   before(Test.before(function (burrow) {
     const source = `
+      pragma solidity ^0.4.21;
       contract c {
-        function getBytes() constant returns (byte[10]){
+        function getBytes() public pure returns (byte[10]){
             byte[10] memory b;
             string memory s = "hello";
             bytes memory sb = bytes(s);
@@ -23,14 +24,14 @@ describe('issue #21', function () {
             return b;
         }
 
-        function deeper() constant returns (byte[12][100] s, uint count) {
+        function deeper() public pure returns (byte[12][100] s, uint count) {
           count = 42;
           return (s, count);
         }
       }
     `
 
-    const {abi, bytecode} = test.compile(source, 'c')
+    const {abi, bytecode} = test.compile(source, ':c')
     return burrow.contracts.deploy(abi, bytecode).then((c) => {
       contract = c
     })

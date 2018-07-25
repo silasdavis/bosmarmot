@@ -12,15 +12,16 @@ describe('#38', function () {
 
   it('#38', Test.it(function (burrow) {
     const source = `
+      pragma solidity ^0.4.21;
       contract Contract {
           event Event();
 
-          function emit() {
-              Event();
+          function emit() public {
+              emit Event();
           }
       }
     `
-    const {abi, bytecode} = test.compile(source, 'Contract')
+    const {abi, bytecode} = test.compile(source, ':Contract')
     return burrow.contracts.deploy(abi, bytecode).then((contract) => {
       const secondContract = burrow.contracts.new(abi, null, contract.address)
 

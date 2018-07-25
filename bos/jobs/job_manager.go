@@ -94,6 +94,11 @@ func RunJobs(do *def.Packages) error {
 		case job.Assert != nil:
 			announce(job.JobName, "Assert")
 			job.JobResult, err = AssertJob(job.Assert, do)
+
+		default:
+			log.Error("")
+			return fmt.Errorf("the Job specified in epm.yaml and parsed as '%v' is not recognised asa  valid job",
+				job)
 		}
 
 		if err != nil {
@@ -106,9 +111,10 @@ func RunJobs(do *def.Packages) error {
 }
 
 func announce(job, typ string) {
-	log.Warn("\n*****Executing Job*****\n")
+	log.Warn("*****Executing Job*****\n")
 	log.WithField("=>", job).Warn("Job Name")
 	log.WithField("=>", typ).Info("Type")
+	log.Warn("\n")
 }
 
 func defaultAddrJob(do *def.Packages) {

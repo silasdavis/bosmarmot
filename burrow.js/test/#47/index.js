@@ -13,20 +13,21 @@ describe('#47', function () {
 
   it('#47', Test.it(function (burrow) {
     const source = `
+      pragma solidity ^0.4.21;
       contract Test{
         string _withSpace = "  Pieter";
         string _withoutSpace = "Pieter";
 
-        function getWithSpaceConstant() constant returns (string) {
+        function getWithSpaceConstant() public constant returns (string) {
           return _withSpace;
         }
 
-        function getWithoutSpaceConstant () constant returns (string) {
+        function getWithoutSpaceConstant () public constant returns (string) {
           return _withoutSpace;
         }
       }
     `
-    const {abi, bytecode} = test.compile(source, 'Test')
+    const {abi, bytecode} = test.compile(source, ':Test')
     return burrow.contracts.deploy(abi, bytecode)
       .then((contract) => Promise.all([contract.getWithSpaceConstant(), contract.getWithoutSpaceConstant()]))
       .then(([withSpace, withoutSpace]) => {

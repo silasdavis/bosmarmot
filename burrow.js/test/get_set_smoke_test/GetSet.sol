@@ -1,3 +1,5 @@
+pragma solidity ^0.4.21;
+
 contract GetSet {
 
 	uint uintfield;
@@ -5,46 +7,46 @@ contract GetSet {
 	string stringfield;
 	bool boolfield;
 
-	function testExist() constant returns (uint output){
+	function testExist() public pure returns (uint output){
 		return 1;
 	}
 
-	function setUint(uint input){
+	function setUint(uint input) public {
 		uintfield = input;
 		return;
 	}
 
-	function getUint() constant returns (uint output){
+	function getUint() public  constant returns (uint output){
 		output = uintfield;
 		return;
 	}
 
-	function setBytes(bytes32 input){
+	function setBytes(bytes32 input) public {
 		bytesfield = input;
 		return;
 	}
 
-	function getBytes() constant returns (bytes32 output){
+	function getBytes() public  constant returns (bytes32 output){
 		output = bytesfield;
 		return;
 	}
 
-	function setString(string input){
+	function setString(string input) public {
 		stringfield = input;
 		return;
 	}
 
-	function getString() constant returns (string output){
+	function getString() public constant returns (string output){
 		output = stringfield;
 		return;
 	}
 
-	function setBool(bool input){
+	function setBool(bool input) public {
 		boolfield = input;
 		return;
 	}
 
-	function getBool() constant returns (bool output){
+	function getBool() public constant returns (bool output){
 		output = boolfield;
 		return;
 	}

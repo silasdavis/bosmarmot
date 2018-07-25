@@ -35,7 +35,7 @@ func SendJob(send *def.Send, do *def.Packages) (string, error) {
 		Sequence: send.Sequence,
 	})
 	if err != nil {
-		return "", util.MintChainErrorHandler(do, err)
+		return "", util.ChainErrorHandler(do, err)
 	}
 
 	// Sign, broadcast, display
@@ -143,7 +143,7 @@ func registerNameTx(name *def.RegisterName, do *def.Packages) (string, error) {
 		Fee:      name.Fee,
 	})
 	if err != nil {
-		return "", util.MintChainErrorHandler(do, err)
+		return "", util.ChainErrorHandler(do, err)
 	}
 	// Sign, broadcast, display
 	return txFinalize(do, tx)
@@ -179,7 +179,7 @@ func PermissionJob(perm *def.Permission, do *def.Packages) (string, error) {
 		Value:      perm.Value,
 	})
 	if err != nil {
-		return "", util.MintChainErrorHandler(do, err)
+		return "", util.ChainErrorHandler(do, err)
 	}
 
 	log.Debug("What are the args returned in transaction: ", tx.PermArgs)
@@ -191,7 +191,7 @@ func PermissionJob(perm *def.Permission, do *def.Packages) (string, error) {
 func txFinalize(do *def.Packages, tx payload.Payload) (string, error) {
 	txe, err := do.SignAndBroadcast(tx)
 	if err != nil {
-		return "", util.MintChainErrorHandler(do, err)
+		return "", util.ChainErrorHandler(do, err)
 	}
 
 	util.ReadTxSignAndBroadcast(txe, err)

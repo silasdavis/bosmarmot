@@ -13,6 +13,7 @@ describe('#81', function () {
 
   it('listens to an event from a contract', Test.it(function (burrow) {
     const source = `
+      pragma solidity ^0.4.21;
       contract Contract {
         event Pay(
           address originator,
@@ -24,10 +25,10 @@ describe('#81', function () {
           bytes32 randomBytes
         );
 
-        function emit() {
-          Pay(
-            0x88977A37D05A4FE86D09E88C88A49C2FCF7D6D8F,
-            0x721584FA4F1B9F51950018073A8E5ECF47F2D3B8,
+        function emit() public {
+          emit Pay(
+            0x88977a37D05a4FE86d09E88c88a49C2fCF7d6d8F,
+            0x721584fa4f1B9f51950018073A8E5ECF47f2d3b8,
             1,
             "Energy",
             "wasmachine",
@@ -38,7 +39,7 @@ describe('#81', function () {
       }
     `
 
-    const {abi, bytecode} = test.compile(source, 'Contract')
+    const {abi, bytecode} = test.compile(source, ':Contract')
     return burrow.contracts.deploy(abi, bytecode)
       .then((contract) => {
         return new Promise((resolve, reject) => {
