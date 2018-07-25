@@ -20,7 +20,7 @@ func MetaJob(meta *def.Meta, do *def.Packages) (string, error) {
 	}
 
 	// work from a fresh Do object
-	newDo := def.NewPackage()
+	newDo := new(def.Packages)
 	newDo.Address = do.Address
 	newDo.ChainURL = do.ChainURL
 	newDo.CurrentOutput = do.CurrentOutput

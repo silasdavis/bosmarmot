@@ -51,9 +51,9 @@ func PreProcess(toProcess string, do *def.Packages) (string, error) {
 
 			// second we loop through the jobNames to do a result replace
 			for _, job := range do.Package.Jobs {
-				if string(jobName) == job.JobName {
+				if string(jobName) == job.Name {
 					if wantsInnerValues {
-						for _, innerVal := range job.JobVars {
+						for _, innerVal := range job.Variables {
 							if innerVal.Name == innerVarName { //find the value we want from the bunch
 								processedString = strings.Replace(processedString, varName, innerVal.Value, 1)
 								log.WithFields(log.Fields{
@@ -66,9 +66,9 @@ func PreProcess(toProcess string, do *def.Packages) (string, error) {
 					} else {
 						log.WithFields(log.Fields{
 							"var": string(jobName),
-							"res": job.JobResult,
+							"res": job.Result,
 						}).Debug("Fixing Variables =>")
-						processedString = strings.Replace(processedString, varName, job.JobResult, 1)
+						processedString = strings.Replace(processedString, varName, job.Result, 1)
 					}
 				}
 			}

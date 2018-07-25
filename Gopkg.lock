@@ -10,6 +10,14 @@
   version = "v1.2.2"
 
 [[projects]]
+  digest = "1:5a23cd3a5496a0b2da7e3b348d14e77b11a210738c398200d7d6f04ea8cf3bd8"
+  name = "github.com/asaskevich/govalidator"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "ccb8e960c48f04d6935e72476ae4a51028f9e22f"
+  version = "v9"
+
+[[projects]]
   branch = "master"
   digest = "1:707ebe952a8b3d00b343c01536c79c73771d100f63ec6babeaed5c79e2b8a8dd"
   name = "github.com/beorn7/perks"
@@ -71,6 +79,17 @@
   pruneopts = "NUT"
   revision = "390ab7935ee28ec6b286364bba9b4dd6410cb3d5"
   version = "v0.3.0"
+
+[[projects]]
+  digest = "1:a82caecb6d771d89e452ddf2721e3e37cb247d72202ed983cbcbab4152d9324b"
+  name = "github.com/go-ozzo/ozzo-validation"
+  packages = [
+    ".",
+    "is",
+  ]
+  pruneopts = "NUT"
+  revision = "9d6782aa52aad2ec5f3ea5af63b7dc4bc5192c40"
+  version = "v3.4.0"
 
 [[projects]]
   digest = "1:a1efdbc2762667c8a41cbf02b19a0549c846bf2c1d08cad4f445e3344089f1f0"
@@ -627,12 +646,15 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/go-ozzo/ozzo-validation",
+    "github.com/go-ozzo/ozzo-validation/is",
     "github.com/hyperledger/burrow/acm",
     "github.com/hyperledger/burrow/acm/validator",
     "github.com/hyperledger/burrow/crypto",
     "github.com/hyperledger/burrow/execution/evm/sha3",
     "github.com/hyperledger/burrow/execution/exec",
     "github.com/hyperledger/burrow/execution/names",
+    "github.com/hyperledger/burrow/genesis/spec",
     "github.com/hyperledger/burrow/keys",
     "github.com/hyperledger/burrow/logging",
     "github.com/hyperledger/burrow/permission",

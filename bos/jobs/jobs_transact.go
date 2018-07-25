@@ -133,7 +133,6 @@ func registerNameTx(name *def.RegisterName, do *def.Packages) (string, error) {
 		"amount": name.Amount,
 	}).Info("NameReg Transaction")
 
-	//tx, err := rpc.Name(monaxNodeClient, monaxKeyClient, name.Source, name.Amount, name.Nonce, name.Fee, name.Name, name.Data)
 	tx, err := do.Name(def.NameArg{
 		Input:    name.Source,
 		Sequence: name.Sequence,
@@ -167,8 +166,6 @@ func PermissionJob(perm *def.Permission, do *def.Packages) (string, error) {
 	// Populate the transaction appropriately
 
 	// Formulate tx
-	//tx, err := rpc.Permissions(monaxNodeClient, monaxKeyClient, perm.Source, perm.Nonce, perm.Action,
-	//	perm.Target, perm.PermissionFlag, perm.Role, perm.Value)
 	tx, err := do.Permissions(def.PermArg{
 		Input:      perm.Source,
 		Sequence:   perm.Sequence,

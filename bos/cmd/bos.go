@@ -41,7 +41,7 @@ var do *def.Packages
 
 // Controls the execution sequence of the cobra global runner
 func Execute() {
-	do = def.NewPackage()
+	do = new(def.Packages)
 	AddGlobalFlags()
 	AddCommands()
 	util.IfExit(BosCmd.Execute())

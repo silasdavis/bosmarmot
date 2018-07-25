@@ -1,5 +1,7 @@
 package def
 
+import "github.com/go-ozzo/ozzo-validation"
+
 type Packages struct {
 	Address       string   `mapstructure:"," json:"," yaml:"," toml:","`
 	BinPath       string   `mapstructure:"," json:"," yaml:"," toml:","`
@@ -20,10 +22,25 @@ type Packages struct {
 	Client
 }
 
-func NewPackage() *Packages {
-	return &Packages{}
+func (do *Packages) Validate() error {
+	return validation.ValidateStruct(do,
+		validation.Field(&do.Address, Address),
+	)
 }
 
 func (do *Packages) Dial() error {
 	return do.Client.Dial(do.ChainURL, do.Signer)
+}
+
+type Package struct {
+	// from epm
+	Account string
+	Jobs    []*Job
+}
+
+func (pkg *Package) Validate() error {
+	return validation.ValidateStruct(pkg,
+		validation.Field(&pkg.Account, Address),
+		validation.Field(&pkg.Jobs),
+	)
 }

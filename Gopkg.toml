@@ -26,3 +26,7 @@
 [[override]]
   name = "google.golang.org/grpc"
   version = "~1.13.0"
+
+[[constraint]]
+  name = "github.com/go-ozzo/ozzo-validation"
+  version = "3.4.0"

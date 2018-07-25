@@ -26,74 +26,79 @@ func RunJobs(do *def.Packages) error {
 		defaultAddrJob(do)
 	}
 
+	err = do.Validate()
+	if err != nil {
+		return fmt.Errorf("error validating Burrow package file at %s: %v", do.YAMLPath, err)
+	}
+
 	for _, job := range do.Package.Jobs {
 		switch {
 		// Meta Job
 		case job.Meta != nil:
-			announce(job.JobName, "Meta")
-			do.CurrentOutput = fmt.Sprintf("%s.output.json", job.JobName)
-			job.JobResult, err = MetaJob(job.Meta, do)
+			announce(job.Name, "Meta")
+			do.CurrentOutput = fmt.Sprintf("%s.output.json", job.Name)
+			job.Result, err = MetaJob(job.Meta, do)
 
 		// Util jobs
 		case job.Account != nil:
-			announce(job.JobName, "Account")
-			job.JobResult, err = SetAccountJob(job.Account, do)
+			announce(job.Name, "Account")
+			job.Result, err = SetAccountJob(job.Account, do)
 		case job.Set != nil:
-			announce(job.JobName, "Set")
-			job.JobResult, err = SetValJob(job.Set, do)
+			announce(job.Name, "Set")
+			job.Result, err = SetValJob(job.Set, do)
 
 		// Transaction jobs
 		case job.Send != nil:
-			announce(job.JobName, "Sent")
-			job.JobResult, err = SendJob(job.Send, do)
+			announce(job.Name, "Sent")
+			job.Result, err = SendJob(job.Send, do)
 		case job.RegisterName != nil:
-			announce(job.JobName, "RegisterName")
-			job.JobResult, err = RegisterNameJob(job.RegisterName, do)
+			announce(job.Name, "RegisterName")
+			job.Result, err = RegisterNameJob(job.RegisterName, do)
 		case job.Permission != nil:
-			announce(job.JobName, "Permission")
-			job.JobResult, err = PermissionJob(job.Permission, do)
+			announce(job.Name, "Permission")
+			job.Result, err = PermissionJob(job.Permission, do)
 
 		// Contracts jobs
 		case job.Deploy != nil:
-			announce(job.JobName, "Deploy")
-			job.JobResult, err = DeployJob(job.Deploy, do)
+			announce(job.Name, "Deploy")
+			job.Result, err = DeployJob(job.Deploy, do)
 		case job.Call != nil:
-			announce(job.JobName, "Call")
-			job.JobResult, job.JobVars, err = CallJob(job.Call, do)
-			if len(job.JobVars) != 0 {
-				for _, theJob := range job.JobVars {
+			announce(job.Name, "Call")
+			job.Result, job.Variables, err = CallJob(job.Call, do)
+			if len(job.Variables) != 0 {
+				for _, theJob := range job.Variables {
 					log.WithField("=>", fmt.Sprintf("%s,%s", theJob.Name, theJob.Value)).Info("Job Vars")
 				}
 			}
 		// State jobs
 		case job.RestoreState != nil:
-			announce(job.JobName, "RestoreState")
-			job.JobResult, err = RestoreStateJob(job.RestoreState, do)
+			announce(job.Name, "RestoreState")
+			job.Result, err = RestoreStateJob(job.RestoreState, do)
 		case job.DumpState != nil:
-			announce(job.JobName, "DumpState")
-			job.JobResult, err = DumpStateJob(job.DumpState, do)
+			announce(job.Name, "DumpState")
+			job.Result, err = DumpStateJob(job.DumpState, do)
 
 		// Test jobs
 		case job.QueryAccount != nil:
-			announce(job.JobName, "QueryAccount")
-			job.JobResult, err = QueryAccountJob(job.QueryAccount, do)
+			announce(job.Name, "QueryAccount")
+			job.Result, err = QueryAccountJob(job.QueryAccount, do)
 		case job.QueryContract != nil:
-			announce(job.JobName, "QueryContract")
-			job.JobResult, job.JobVars, err = QueryContractJob(job.QueryContract, do)
-			if len(job.JobVars) != 0 {
-				for _, theJob := range job.JobVars {
+			announce(job.Name, "QueryContract")
+			job.Result, job.Variables, err = QueryContractJob(job.QueryContract, do)
+			if len(job.Variables) != 0 {
+				for _, theJob := range job.Variables {
 					log.WithField("=>", fmt.Sprintf("%s,%s", theJob.Name, theJob.Value)).Info("Job Vars")
 				}
 			}
 		case job.QueryName != nil:
-			announce(job.JobName, "QueryName")
-			job.JobResult, err = QueryNameJob(job.QueryName, do)
+			announce(job.Name, "QueryName")
+			job.Result, err = QueryNameJob(job.QueryName, do)
 		case job.QueryVals != nil:
-			announce(job.JobName, "QueryVals")
-			job.JobResult, err = QueryValsJob(job.QueryVals, do)
+			announce(job.Name, "QueryVals")
+			job.Result, err = QueryValsJob(job.QueryVals, do)
 		case job.Assert != nil:
-			announce(job.JobName, "Assert")
-			job.JobResult, err = AssertJob(job.Assert, do)
+			announce(job.Name, "Assert")
+			job.Result, err = AssertJob(job.Assert, do)
 
 		default:
 			log.Error("")
@@ -121,7 +126,7 @@ func defaultAddrJob(do *def.Packages) {
 	oldJobs := do.Package.Jobs
 
 	newJob := &def.Job{
-		JobName: "defaultAddr",
+		Name: "defaultAddr",
 		Account: &def.Account{
 			Address: do.Address,
 		},
@@ -139,7 +144,7 @@ func defaultSetJobs(do *def.Packages) {
 		blowdUp := strings.Split(setr, "=")
 		if blowdUp[0] != "" {
 			newJobs = append(newJobs, &def.Job{
-				JobName: blowdUp[0],
+				Name: blowdUp[0],
 				Set: &def.SetJob{
 					Value: blowdUp[1],
 				},
@@ -154,7 +159,7 @@ func postProcess(do *def.Packages) error {
 	// Formulate the results map
 	results := make(map[string]string)
 	for _, job := range do.Package.Jobs {
-		results[job.JobName] = job.JobResult
+		results[job.Name] = job.Result
 	}
 
 	// check do.YAMLPath and do.DefaultOutput

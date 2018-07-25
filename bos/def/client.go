@@ -163,6 +163,35 @@ func (c *Client) QueryContract(arg QueryArg) (*exec.TxExecution, error) {
 
 // Transaction types
 
+type GovArg struct {
+	Input           string
+	Amount          string
+	Sequence        string
+	TargetAddress   string
+	TargetPublicKey string
+}
+
+//func (c *Client) Govern(arg GovArg) (*payload.GovTx, error) {
+//	logArg("GovTx", arg)
+//	input, err := c.TxInput(arg.Input, arg.Amount, arg.Sequence)
+//	if err != nil {
+//		return nil, err
+//	}
+//	targetPublicKey, err := crypto.PublicKeyFromBytes()
+//	targetAddress, err := crypto.AddressFromHexString(arg.Target)
+//	if err != nil {
+//		return nil, err
+//	}
+//	tx := &payload.GovTx{
+//		Inputs: []*payload.TxInput{input},
+//		AccountUpdates:[]*spec.TemplateAccount{{
+//			Address: &targetAddress,
+//
+//		}},
+//	}
+//	return tx, nil
+//}
+
 type CallArg struct {
 	Input    string
 	Amount   string

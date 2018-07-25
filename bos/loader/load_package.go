@@ -11,7 +11,7 @@ import (
 
 func LoadPackage(fileName string) (*def.Package, error) {
 	log.Info("Loading monax Jobs Definition File.")
-	var pkg = def.BlankPackage()
+	var pkg = new(def.Package)
 	var epmJobs = viper.New()
 
 	// setup file
@@ -48,3 +48,5 @@ func LoadPackage(fileName string) (*def.Package, error) {
 
 	return pkg, nil
 }
+
+
