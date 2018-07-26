@@ -119,7 +119,7 @@ func DeployJob(deploy *def.Deploy, do *def.Packages) (result string, err error) 
 		case len(resp.Objects) == 1:
 			log.WithField("path", contractPath).Info("Deploying the only contract in file")
 			response := resp.Objects[0]
-			log.WithField("=>", response.Binary.Abi).Info("Abi")
+			log.WithField("=>", string(response.Binary.Abi)).Info("Abi")
 			log.WithField("=>", response.Binary.Evm.Bytecode.Object).Info("Bin")
 			if response.Binary.Evm.Bytecode.Object != "" {
 				result, err = deployContract(deploy, do, response)
@@ -148,10 +148,13 @@ func DeployJob(deploy *def.Deploy, do *def.Packages) (result string, err error) 
 		default:
 			log.WithField("contract", deploy.Instance).Info("Deploying a single contract")
 			for _, response := range resp.Objects {
-				if response.Binary.Evm.Bytecode.Object == "" {
+				if response.Binary.Evm.Bytecode.Object == "" ||
+					response.Filename != deploy.Contract {
 					continue
 				}
 				if matchInstanceName(response.Objectname, deploy.Instance) {
+					log.WithField("=>", string(response.Binary.Abi)).Info("Abi")
+					log.WithField("=>", response.Binary.Evm.Bytecode.Object).Info("Bin")
 					result, err = deployContract(deploy, do, response)
 					if err != nil {
 						return "", err
@@ -171,7 +174,8 @@ func matchInstanceName(objectName, deployInstance string) bool {
 	// Ignore the filename component that newer versions of Solidity include in object name
 
 	objectNameParts := strings.Split(objectName, ":")
-	return strings.ToLower(objectNameParts[len(objectNameParts)-1]) == strings.ToLower(deployInstance)
+	deployInstanceParts := strings.Split(deployInstance, "/")
+	return strings.ToLower(objectNameParts[len(objectNameParts)-1]) == strings.ToLower(deployInstanceParts[len(deployInstanceParts)-1])
 }
 
 // TODO [rj] refactor to remove [contractPath] from functions signature => only used in a single error throw.

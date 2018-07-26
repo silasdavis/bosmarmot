@@ -47,6 +47,10 @@ func ReadAndDecodeContractReturn(abiLocation, funcName string, resultRaw []byte,
 func Packer(abiData, funcName string, args ...string) ([]byte, error) {
 	abiSpec, err := ReadAbiSpec([]byte(abiData))
 	if err != nil {
+		log.WithFields(log.Fields{
+			"abi":   abiData,
+			"error": err.Error(),
+		}).Error("Failed to decode abi spec")
 		return nil, err
 	}
 
@@ -56,6 +60,10 @@ func Packer(abiData, funcName string, args ...string) ([]byte, error) {
 	}
 	packedBytes, err := abiSpec.Pack(funcName, iArgs...)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"abi":   abiData,
+			"error": err.Error(),
+		}).Error("Failed to encode abi spec")
 		return nil, err
 	}
 
