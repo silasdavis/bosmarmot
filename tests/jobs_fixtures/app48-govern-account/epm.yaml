@@ -1,0 +1,6 @@
+jobs:
+- name: AddValidator
+  govern-account:
+    target: 5F0577625C94E3237C800DFAD3FB0949A1761C3013B40E53CC5F64F576BFB985
+    power: 232322
+
