@@ -36,7 +36,7 @@ func QueryContractJob(query *def.QueryContract, do *def.Packages) (string, []*de
 	}
 
 	// Call the client
-	txe, err := do.QueryContract(def.QueryArg{
+	txe, err := do.QueryContract(&def.QueryArg{
 		Input:   query.Source,
 		Address: query.Destination,
 		Data:    data,
@@ -107,17 +107,14 @@ func QueryNameJob(query *def.QueryName, do *def.Packages) (string, error) {
 	return result, nil
 }
 
-func QueryValsJob(query *def.QueryVals, do *def.Packages) (string, error) {
-	var result string
-
-	// Peform query
-	log.WithField("=>", query.Field).Info("Querying Vals")
-	result, err := util.ValidatorsInfo(query.Field, do)
+func QueryValsJob(query *def.QueryVals, do *def.Packages) (interface{}, error) {
+	log.WithField("=>", query.Query).Info("Querying Vals")
+	result, err := util.ValidatorsInfo(query.Query, do)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error querying validators with jq-style query %s: %v", query.Query, err)
 	}
 
-	if result != "" {
+	if result != nil {
 		log.WithField("=>", result).Warn("Return Value")
 	} else {
 		log.Debug("No return.")

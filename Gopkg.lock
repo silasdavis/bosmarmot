@@ -49,6 +49,22 @@
   revision = "95f809107225be108efcf10a3509e4ea6ceef3c4"
 
 [[projects]]
+  branch = "master"
+  digest = "1:e418703bf70f5f9bab1edb4a57f735b3f80bee70efcff92a10d1ceba6fd20de6"
+  name = "github.com/elgs/gojq"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "81fa9a608a130323eaf4b4fc00224f7a467ffbd1"
+
+[[projects]]
+  branch = "master"
+  digest = "1:6b5a42a385e80b611e158e0b172c6c6bd50e38a103bc7b28382685ab878b5384"
+  name = "github.com/elgs/gosplitargs"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "a491c5eeb3c841d55913cf4888f5c957be4c598d"
+
+[[projects]]
   digest = "1:1b91ae0dc69a41d4c2ed23ea5cffb721ea63f5037ca4b81e6d6771fbb8f45129"
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
@@ -164,8 +180,8 @@
   revision = "ef8a98b0bbce4a65b5aa4c368430a80ddc533168"
 
 [[projects]]
-  branch = "develop"
-  digest = "1:c5696f78c7923a1ed38f09147611a1ef4cbc54a96f799935a8a3eaf7bc40f67c"
+  branch = "governance"
+  digest = "1:e721f9408bb6b3637746a641f78d7137cdc97305bf0a2807ffd9ecb0adfac546"
   name = "github.com/hyperledger/burrow"
   packages = [
     "acm",
@@ -208,7 +224,7 @@
     "txs/payload",
   ]
   pruneopts = "T"
-  revision = "92dad94b9ff48b6b06f116fd8830ec869921b30d"
+  revision = "ea8aa5bbc62cb242879c65d12d645d99df269294"
 
 [[projects]]
   digest = "1:406338ad39ab2e37b7f4452906442a3dbf0eb3379dd1f06aafb5c07e769a5fbb"
@@ -646,6 +662,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/elgs/gojq",
     "github.com/go-ozzo/ozzo-validation",
     "github.com/go-ozzo/ozzo-validation/is",
     "github.com/hyperledger/burrow/acm",
@@ -654,6 +671,7 @@
     "github.com/hyperledger/burrow/execution/evm/sha3",
     "github.com/hyperledger/burrow/execution/exec",
     "github.com/hyperledger/burrow/execution/names",
+    "github.com/hyperledger/burrow/genesis/spec",
     "github.com/hyperledger/burrow/keys",
     "github.com/hyperledger/burrow/logging",
     "github.com/hyperledger/burrow/permission",

@@ -7,7 +7,12 @@ import (
 
 	"github.com/monax/bosmarmot/bos/def"
 
+	"encoding/json"
+
+	"github.com/elgs/gojq"
+	"github.com/hyperledger/burrow/acm/validator"
 	"github.com/hyperledger/burrow/crypto"
+	log "github.com/sirupsen/logrus"
 )
 
 func GetBlockHeight(do *def.Packages) (latestBlockHeight uint64, err error) {
@@ -29,6 +34,21 @@ func AccountsInfo(account, field string, do *def.Packages) (string, error) {
 	}
 	if acc == nil {
 		return "", fmt.Errorf("Account %s does not exist", account)
+	}
+
+	bs, err := json.Marshal(acc)
+	if err != nil {
+		return "", err
+	}
+	jq, err := gojq.NewStringQuery(string(bs))
+	if err == nil {
+		log.Warn("Attempting jq query")
+		res, err := jq.Query(field)
+		if err == nil {
+			return fmt.Sprintf("%v", res), nil
+		} else {
+			log.Debugf("Got error from jq query: %v trying legacy query (probably fine)...", err)
+		}
 	}
 
 	var s string
@@ -76,17 +96,44 @@ func NamesInfo(name, field string, do *def.Packages) (string, error) {
 	}
 }
 
-func ValidatorsInfo(field string, do *def.Packages) (string, error) {
+func ValidatorsInfo(query string, do *def.Packages) (interface{}, error) {
 	// Currently there is no notion of 'unbonding validators' we can revisit what should go here or whether this deserves
 	// to exist as a job
-	if field == "bonded_validators" {
-		set, err := do.GetValidatorSet()
-		if err != nil {
-			return "", err
-		}
-		return set.String(), nil
+	validatorSet, err := do.GetValidatorSet()
+	if err != nil {
+		return nil, err
 	}
-	return "", nil
+
+	history := make([]interface{}, len(validatorSet.History))
+	for i, vs := range validatorSet.History {
+		history[i] = validatorMap(vs.Validators)
+	}
+	// Yes, this feels a bit silly, but it is the easiest way to get the generic map of slice object that gojq needs
+	// mapstructure is not able to do this it would seem.
+	bs, err := json.Marshal(map[string]interface{}{
+		"Height":  validatorSet.Height,
+		"Set":     validatorMap(validatorSet.Set),
+		"History": history,
+	})
+	if err != nil {
+		return nil, err
+	}
+	jq, err := gojq.NewStringQuery(string(bs))
+	if err != nil {
+		return nil, err
+	}
+	return jq.Query(query)
+}
+
+func validatorMap(vs []*validator.Validator) map[string]interface{} {
+	set := validator.UnpersistSet(vs)
+	vsMap := make(map[string]interface{}, len(vs))
+	vsMap["TotalPower"] = set.TotalPower().String()
+	vsMap["String"] = set.String()
+	for _, v := range vs {
+		vsMap[v.GetPublicKey().Address().String()] = v
+	}
+	return vsMap
 }
 
 func itoaU64(i uint64) string {

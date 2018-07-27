@@ -53,6 +53,11 @@ func RunJobs(do *def.Packages) error {
 			do.CurrentOutput = fmt.Sprintf("%s.output.json", job.Name)
 			job.Result, err = MetaJob(job.Meta, do)
 
+		// Governance
+		case *def.UpdateAccount:
+			announce(job.Name, "UpdateAccount")
+			job.Result, job.Variables, err = UpdateAccountJob(job.UpdateAccount, do)
+
 		// Util jobs
 		case *def.Account:
 			announce(job.Name, "Account")
@@ -79,11 +84,7 @@ func RunJobs(do *def.Packages) error {
 		case *def.Call:
 			announce(job.Name, "Call")
 			job.Result, job.Variables, err = CallJob(job.Call, do)
-			if len(job.Variables) != 0 {
-				for _, theJob := range job.Variables {
-					log.WithField("=>", fmt.Sprintf("%s,%s", theJob.Name, theJob.Value)).Info("Job Vars")
-				}
-			}
+
 		// State jobs
 		case *def.RestoreState:
 			announce(job.Name, "RestoreState")
@@ -99,11 +100,6 @@ func RunJobs(do *def.Packages) error {
 		case *def.QueryContract:
 			announce(job.Name, "QueryContract")
 			job.Result, job.Variables, err = QueryContractJob(job.QueryContract, do)
-			if len(job.Variables) != 0 {
-				for _, theJob := range job.Variables {
-					log.WithField("=>", fmt.Sprintf("%s,%s", theJob.Name, theJob.Value)).Info("Job Vars")
-				}
-			}
 		case *def.QueryName:
 			announce(job.Name, "QueryName")
 			job.Result, err = QueryNameJob(job.QueryName, do)
@@ -118,6 +114,12 @@ func RunJobs(do *def.Packages) error {
 			log.Error("")
 			return fmt.Errorf("the Job specified in epm.yaml and parsed as '%v' is not recognised asa  valid job",
 				job)
+		}
+
+		if len(job.Variables) != 0 {
+			for _, theJob := range job.Variables {
+				log.WithField("=>", fmt.Sprintf("%s,%s", theJob.Name, theJob.Value)).Info("Job Vars")
+			}
 		}
 
 		if err != nil {
@@ -171,7 +173,7 @@ func defaultSetJobs(do *def.Packages) {
 
 func postProcess(do *def.Packages) error {
 	// Formulate the results map
-	results := make(map[string]string)
+	results := make(map[string]interface{})
 	for _, job := range do.Package.Jobs {
 		results[job.Name] = job.Result
 	}

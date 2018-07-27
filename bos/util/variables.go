@@ -7,93 +7,112 @@ import (
 	"strconv"
 	"strings"
 
+	"encoding/json"
+
+	"unicode"
+
 	"github.com/monax/bosmarmot/bos/def"
 	"github.com/monax/bosmarmot/bos/def/rule"
 	log "github.com/sirupsen/logrus"
 )
 
-func PreProcessFields(value interface{}, do *def.Packages) error {
+func Variables(value interface{}) []*def.Variable {
+	rv := reflect.ValueOf(value)
+	if rv.Kind() == reflect.Ptr {
+		rv = rv.Elem()
+	}
+	rt := rv.Type()
+	var variables []*def.Variable
+	for i := 0; i < rv.NumField(); i++ {
+		field := rv.Field(i)
+		if field.Kind() == reflect.String {
+			variables = append(variables, &def.Variable{Name: lowerFirstCharacter(rt.Field(i).Name), Value: field.String()})
+		}
+
+	}
+	return variables
+}
+
+func lowerFirstCharacter(name string) string {
+	if name == "" {
+		return name
+	}
+	bs := []byte(name)
+	bs[0] = byte(unicode.ToLower(rune(bs[0])))
+	return string(bs)
+}
+
+func PreProcessFields(value interface{}, do *def.Packages) (err error) {
 	rv := reflect.ValueOf(value)
 	if rv.Kind() == reflect.Ptr {
 		rv = rv.Elem()
 	}
 	for i := 0; i < rv.NumField(); i++ {
-		if rv.Field(i).Kind() == reflect.String {
-			str, err := PreProcess(rv.Field(i).String(), do)
+		field := rv.Field(i)
+		if field.Kind() == reflect.String {
+			str, err := PreProcess(field.String(), do)
 			if err != nil {
 				return err
 			}
-			rv.Field(i).SetString(str)
+			field.SetString(str)
 		}
 	}
 	return nil
 }
 
 func PreProcess(toProcess string, do *def.Packages) (string, error) {
-	// $block.... $account.... etc. should be caught. hell$$o should not
-	// :$libAddr needs to be caught
-	// If there's a match then run through the replacement process
-	if rule.VariableRegex.MatchString(toProcess) {
+	// Run through the replacement process for any placeholder matches
+	for _, pm := range rule.MatchPlaceholders(toProcess) {
 		log.WithField("match", toProcess).Debug("Replacement Match Found")
 
-		// find what we need to catch.
-		processedString := toProcess
-
-		for _, jobMatch := range rule.VariableRegex.FindAllStringSubmatch(toProcess, -1) {
-			jobName := jobMatch[2]
-			varName := "$" + jobName
-			var innerVarName string
-			var wantsInnerValues bool = false
-
-			// first parse the reserved words.
-			if strings.Contains(jobName, "block") {
-				block, err := replaceBlockVariable(toProcess, do)
-				if err != nil {
-					log.WithField("err", err).Error("Error replacing block variable.")
-					return "", err
-				}
-				/*log.WithFields(log.Fields{
-					"var": toProcess,
-					"res": block,
-				}).Debug("Fixing Variables =>")*/
-				processedString = strings.Replace(processedString, toProcess, block, 1)
+		// first parse the reserved words.
+		if strings.Contains(pm.JobName, "block") {
+			block, err := replaceBlockVariable(pm.Match, do)
+			if err != nil {
+				log.WithField("err", err).Error("Error replacing block variable.")
+				return "", err
 			}
+			/*log.WithFields(log.Fields{
+				"var": toProcess,
+				"res": block,
+			}).Debug("Fixing Variables =>")*/
+			toProcess = strings.Replace(toProcess, pm.Match, block, 1)
+			continue
+		}
 
-			if strings.Contains(jobName, ".") { //for functions with multiple returns
-				wantsInnerValues = true
-				var splitStr = strings.Split(jobName, ".")
-				jobName = splitStr[0]
-				innerVarName = splitStr[1]
-			}
-
-			// second we loop through the jobNames to do a result replace
-			for _, job := range do.Package.Jobs {
-				if string(jobName) == job.Name {
-					if wantsInnerValues {
-						for _, innerVal := range job.Variables {
-							if innerVal.Name == innerVarName { //find the value we want from the bunch
-								processedString = strings.Replace(processedString, varName, innerVal.Value, 1)
-								log.WithFields(log.Fields{
-									"job":     string(jobName),
-									"varName": innerVarName,
-									"result":  innerVal.Value,
-								}).Debug("Fixing Inner Vars =>")
-							}
+		// second we loop through the jobNames to do a result replace
+		for _, job := range do.Package.Jobs {
+			if pm.JobName == job.Name {
+				if pm.VariableName != "" {
+					for _, variable := range job.Variables {
+						if variable.Name == pm.VariableName { //find the value we want from the bunch
+							toProcess = strings.Replace(toProcess, pm.Match, variable.Value, 1)
+							log.WithFields(log.Fields{
+								"job":     pm.JobName,
+								"varName": pm.VariableName,
+								"result":  variable.Value,
+							}).Debug("Fixing Inner Vars =>")
 						}
-					} else {
-						log.WithFields(log.Fields{
-							"var": string(jobName),
-							"res": job.Result,
-						}).Debug("Fixing Variables =>")
-						processedString = strings.Replace(processedString, varName, job.Result, 1)
 					}
+				} else {
+					// If result is returned as string assume that rendering otherwise marshal to JSON
+					result, ok := job.Result.(string)
+					if !ok {
+						bs, err := json.Marshal(job.Result)
+						if err != nil {
+							return "", fmt.Errorf("error marhsalling tx result in post processing: %v", err)
+						}
+						result = string(bs)
+					}
+					log.WithFields(log.Fields{
+						"var": string(pm.JobName),
+						"res": result,
+					}).Debug("Fixing Variables =>")
+					toProcess = strings.Replace(toProcess, pm.Match, result, 1)
 				}
 			}
 		}
-		return processedString, nil
 	}
-
-	// if no matches, return original
 	return toProcess, nil
 }
 

@@ -251,7 +251,7 @@ func deployTx(do *def.Packages, deploy *def.Deploy, contractName, contractCode s
 		"chain-url": do.ChainURL,
 	}).Info()
 
-	return do.Call(def.CallArg{
+	return do.Call(&def.CallArg{
 		Input:    deploy.Source,
 		Amount:   deploy.Amount,
 		Fee:      deploy.Fee,
@@ -301,7 +301,7 @@ func CallJob(call *def.Call, do *def.Packages) (string, []*def.Variable, error) 
 		"data":        callData,
 	}).Info("Calling")
 
-	tx, err := do.Call(def.CallArg{
+	tx, err := do.Call(&def.CallArg{
 		Input:    call.Source,
 		Amount:   call.Amount,
 		Address:  call.Destination,

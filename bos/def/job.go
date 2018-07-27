@@ -17,7 +17,7 @@ type Job struct {
 	// Name of the job
 	Name string `mapstructure:"name,omitempty" json:"name,omitempty" yaml:"name,omitempty" toml:"name"`
 	// Not marshalled
-	Result string `json:"-" yaml:"-" toml:"-"`
+	Result interface{} `json:"-" yaml:"-" toml:"-"`
 	// For multiple values
 	Variables []*Variable `json:"-" yaml:"-" toml:"-"`
 	// Sets/Resets the primary account to use
@@ -27,7 +27,7 @@ type Job struct {
 	// Run a sequence of other epm.yamls
 	Meta *Meta `mapstructure:"meta,omitempty" json:"meta,omitempty" yaml:"meta,omitempty" toml:"meta"`
 	// Issue a governance transaction
-	GovernAccount *GovernAccount `mapstructure:"govern-account,omitempty" json:"govern-account,omitempty" yaml:"govern-account,omitempty" toml:"govern-account"`
+	UpdateAccount *UpdateAccount `mapstructure:"update-account,omitempty" json:"update-account,omitempty" yaml:"update-account,omitempty" toml:"update-account"`
 	// Contract compile and send to the chain functions
 	Deploy *Deploy `mapstructure:"deploy,omitempty" json:"deploy,omitempty" yaml:"deploy,omitempty" toml:"deploy"`
 	// Send tokens from one account to another

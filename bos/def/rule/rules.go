@@ -6,20 +6,94 @@ import (
 	"regexp"
 	"strconv"
 
+	"strings"
+
+	"reflect"
+
 	"github.com/go-ozzo/ozzo-validation"
-	"github.com/go-ozzo/ozzo-validation/is"
 	"github.com/hyperledger/burrow/acm"
 	"github.com/hyperledger/burrow/crypto"
 	"github.com/hyperledger/burrow/permission"
 )
 
-var VariableRegex = regexp.MustCompile(`(^|\s|:)\$([a-zA-Z0-9_.]+)`)
+var PlaceholderRegex = regexp.MustCompile(`\$(?P<bracket>{?)(?P<job>[[:word:]]+)(\.(?P<variable>[[:word:]]+))?}?`)
+
+func MatchPlaceholders(str string) []PlaceholderMatch {
+	matches := PlaceholderRegex.FindAllStringSubmatch(str, -1)
+	pms := make([]PlaceholderMatch, 0, len(matches))
+	for _, match := range matches {
+		pm := NewPlaceholderMatch(match)
+		if pm.IsMatch() {
+			pms = append(pms, pm)
+		}
+	}
+	return pms
+}
+
+type PlaceholderMatch struct {
+	Match        string
+	JobName      string
+	VariableName string
+}
+
+func (pm PlaceholderMatch) String() string {
+	var varStr string
+	if pm.VariableName != "" {
+		varStr = fmt.Sprintf(", Variable: %s", pm.VariableName)
+	}
+	return fmt.Sprintf("PlaceholderMatch{'%s': Job: %s%s}", pm.Match, pm.JobName, varStr)
+}
+
+func (pm PlaceholderMatch) IsMatch() bool {
+	return pm.Match != ""
+}
+
+func NewPlaceholderMatch(match []string) (pm PlaceholderMatch) {
+	pm.Match = match[0]
+	for i, name := range PlaceholderRegex.SubexpNames() {
+		switch name {
+		case "bracket":
+			if match[i] == "{" {
+				stripMatch := PlaceholderRegex.FindStringSubmatch(stripBraces(pm.Match))
+				if len(stripMatch) == 0 {
+					return PlaceholderMatch{}
+				}
+				// Match stripped but keep the outer match with brackets for use as replacement string
+				pmStripped := NewPlaceholderMatch(stripMatch)
+				pm.JobName = pmStripped.JobName
+				pm.VariableName = pmStripped.VariableName
+			}
+		case "job":
+			pm.JobName = match[i]
+		case "variable":
+			pm.VariableName = match[i]
+		}
+	}
+	return
+}
+
+// Strips braces and return simple variable confined between braces
+func stripBraces(str string) string {
+	bs := []byte(str)
+	const lb = byte('{')
+	const rb = byte('}')
+	start := 0
+	for i := 0; i < len(bs); i++ {
+		switch bs[i] {
+		case lb:
+			start = i + 1
+		case rb:
+			return `\$` + str[start:i]
+		}
+	}
+	return str[start:]
+}
 
 var exampleAddress = acm.GeneratePrivateAccountFromSecret("marmot")
 
 // Rules
 var (
-	Placeholder = validation.Match(VariableRegex)
+	Placeholder = validation.Match(PlaceholderRegex).Error("must be a variable placeholder like $marmotVariable")
 
 	Address = validation.NewStringRule(IsAddress,
 		fmt.Sprintf("must be valid 20 byte hex-encoded string like '%v'", exampleAddress))
@@ -28,14 +102,12 @@ var (
 
 	Relation = validation.In("eq", "ne", "ge", "gt", "le", "lt", "==", "!=", ">=", ">", "<=", "<")
 
-	HexOrPlaceholder = Or(Placeholder, is.Hexadecimal)
-
 	PermissionOrPlaceholder = Or(Placeholder, Permission)
 
 	Permission = validation.By(func(value interface{}) error {
 		str, err := validation.EnsureString(value)
 		if err != nil {
-			return fmt.Errorf("should be a permission name")
+			return fmt.Errorf("must be a permission name, but %v is not a string", value)
 		}
 		_, err = permission.PermStringToFlag(str)
 		if err != nil {
@@ -59,25 +131,35 @@ var (
 	})
 )
 
-type orRule struct {
-	rules []validation.Rule
-}
-
-func (orr *orRule) Validate(value interface{}) error {
-	errs := make([]error, len(orr.rules))
-	for i, r := range orr.rules {
-		errs[i] = r.Validate(value)
-		if errs[i] == nil {
-			return nil
+func Exactly(identity interface{}) validation.Rule {
+	return validation.By(func(value interface{}) error {
+		if !reflect.DeepEqual(identity, value) {
+			return fmt.Errorf("value %v does not exactly match %v", value, identity)
 		}
-	}
-	return fmt.Errorf("did not validate any requirements: %v", errs)
+		return nil
+	})
 }
 
 func Or(rules ...validation.Rule) *orRule {
 	return &orRule{
 		rules: rules,
 	}
+}
+
+type orRule struct {
+	rules []validation.Rule
+}
+
+func (orr *orRule) Validate(value interface{}) error {
+	errs := make([]string, len(orr.rules))
+	for i, r := range orr.rules {
+		err := r.Validate(value)
+		if err == nil {
+			return nil
+		}
+		errs[i] = err.Error()
+	}
+	return fmt.Errorf("did not validate any requirements: %s", strings.Join(errs, ", "))
 }
 
 func IsAddress(value string) bool {

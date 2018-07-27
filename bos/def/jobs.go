@@ -1,7 +1,10 @@
 package def
 
 import (
+	"regexp"
+
 	"github.com/go-ozzo/ozzo-validation"
+	"github.com/go-ozzo/ozzo-validation/is"
 	"github.com/monax/bosmarmot/bos/def/rule"
 )
 
@@ -9,29 +12,45 @@ import (
 // Meta Jobs
 // ------------------------------------------------------------------------
 
+// Used in the Target of UpdateAccount to determine whether to create a new account, e.g. new() or new(key1,ed25519)
+var NewKeyRegex = regexp.MustCompile(`new\((?P<keyName>[[:alnum:]]+)?(,(?P<curveType>[[:alnum:]]+))?\)`)
+
+func KeyNameCurveType(newKeyMatch []string) (keyName, curveType string) {
+	for i, name := range NewKeyRegex.SubexpNames() {
+		switch name {
+		case "keyName":
+			keyName = newKeyMatch[i]
+		case "curveType":
+			curveType = newKeyMatch[i]
+		}
+	}
+	return
+}
+
 type Meta struct {
 	// (Required) the file path of the sub yaml to run
 	File string `mapstructure:"file" json:"file" yaml:"file" toml:"file"`
 }
 
 func (job *Meta) Validate() error {
-	// TODO: write validation logic
-	return nil
+	return validation.ValidateStruct(job,
+		validation.Field(&job.File, validation.Required),
+	)
 }
 
 // ------------------------------------------------------------------------
 // Governance Jobs
 // ------------------------------------------------------------------------
 
-type Target struct {
-	Address       string `mapstructure:"address" json:"address" yaml:"address" toml:"address"`
-	PublicKey     string `mapstructure:"public_key" json:"public_key" yaml:"public_key" toml:"public_key"`
-	PublicKeyType string `mapstructure:"key_type" json:"key_type" yaml:"key_type" toml:"key_type"`
+type PermissionString string
+
+func (ps PermissionString) Validate() error {
+	return rule.PermissionOrPlaceholder.Validate(ps)
 }
 
-// GovernAccount updates an account by overwriting the given values, where values are omitted the existing values
+// UpdateAccount updates an account by overwriting the given values, where values are omitted the existing values
 // are preserved. Currently requires Root permission on Source account
-type GovernAccount struct {
+type UpdateAccount struct {
 	// (Optional, if account job or global account set) address of the account from which to send (the
 	// public key for the account must be available to burrow keys)
 	Source string `mapstructure:"source" json:"source" yaml:"source" toml:"source"`
@@ -44,7 +63,7 @@ type GovernAccount struct {
 	// (Optional) The Burrow native token balance to set for this account
 	Native string `mapstructure:"native" json:"native" yaml:"native" toml:"native"`
 	// (Optional) the permissions to set for this account
-	Permissions []string `mapstructure:"permissions" json:"permissions" yaml:"permissions" toml:"permissions"`
+	Permissions []PermissionString `mapstructure:"permissions" json:"permissions" yaml:"permissions" toml:"permissions"`
 	// (Optional) the account permission roles to set for this account
 	Roles []string `mapstructure:"roles" json:"roles" yaml:"roles" toml:"roles"`
 	// (Optional, advanced only) sequence to use when burrow keys signs the transaction (do not use unless you
@@ -52,13 +71,14 @@ type GovernAccount struct {
 	Sequence string `mapstructure:"sequence" json:"sequence" yaml:"sequence" toml:"sequence"`
 }
 
-func (job *GovernAccount) Validate() error {
+func (job *UpdateAccount) Validate() error {
 	return validation.ValidateStruct(job,
 		validation.Field(&job.Source, rule.AddressOrPlaceholder),
-		validation.Field(&job.Target, validation.Required, rule.HexOrPlaceholder),
+		validation.Field(&job.Target, validation.Required, rule.Or(rule.Placeholder, is.Hexadecimal,
+			validation.Match(NewKeyRegex))),
+		validation.Field(&job.Permissions),
 		validation.Field(&job.Power, rule.Uint64OrPlaceholder),
 		validation.Field(&job.Native, rule.Uint64OrPlaceholder),
-		validation.Field(&job.Permissions, rule.PermissionOrPlaceholder),
 		validation.Field(&job.Sequence, rule.Uint64OrPlaceholder),
 	)
 }
@@ -79,7 +99,6 @@ func (job *Account) Validate() error {
 	return validation.ValidateStruct(job,
 		validation.Field(&job.Address, validation.Required, rule.AddressOrPlaceholder),
 	)
-	return nil
 }
 
 type Set struct {
@@ -91,8 +110,9 @@ type Set struct {
 }
 
 func (job *Set) Validate() error {
-	// TODO: write validation logic
-	return nil
+	return validation.ValidateStruct(job,
+		validation.Field(&job.Value, validation.Required),
+	)
 }
 
 // ------------------------------------------------------------------------
@@ -113,15 +133,19 @@ type Send struct {
 }
 
 func (job *Send) Validate() error {
-	// TODO: write validation logic
-	return nil
+	return validation.ValidateStruct(job,
+		validation.Field(&job.Source, rule.AddressOrPlaceholder),
+		validation.Field(&job.Destination, validation.Required, rule.AddressOrPlaceholder),
+		validation.Field(&job.Amount, rule.Uint64OrPlaceholder),
+		validation.Field(&job.Sequence, rule.Uint64OrPlaceholder),
+	)
 }
 
 type RegisterName struct {
 	// (Optional, if account job or global account set) address of the account from which to send (the
 	// public key for the account must be available to burrow keys)
 	Source string `mapstructure:"source" json:"source" yaml:"source" toml:"source"`
-	// (Required) name which will be registered
+	// (Required - unless providing data file) name which will be registered
 	Name string `mapstructure:"name" json:"name" yaml:"name" toml:"name"`
 	// (Optional, if data_file is used; otherwise required) data which will be stored at the `name` key
 	Data string `mapstructure:"data" json:"data" yaml:"data" toml:"data"`
@@ -137,8 +161,12 @@ type RegisterName struct {
 }
 
 func (job *RegisterName) Validate() error {
-	// TODO: write validation logic
-	return nil
+	return validation.ValidateStruct(job,
+		validation.Field(&job.Source, rule.AddressOrPlaceholder),
+		validation.Field(&job.Amount, rule.Uint64OrPlaceholder),
+		validation.Field(&job.Fee, rule.Uint64OrPlaceholder),
+		validation.Field(&job.Sequence, rule.Uint64OrPlaceholder),
+	)
 }
 
 type Permission struct {
@@ -162,8 +190,11 @@ type Permission struct {
 }
 
 func (job *Permission) Validate() error {
-	// TODO: write validation logic
-	return nil
+	return validation.ValidateStruct(job,
+		validation.Field(&job.Source, rule.AddressOrPlaceholder),
+		validation.Field(&job.Value, validation.In("true", "false", "")),
+		validation.Field(&job.Sequence, rule.Uint64OrPlaceholder),
+	)
 }
 
 // ------------------------------------------------------------------------
@@ -216,8 +247,13 @@ type Deploy struct {
 }
 
 func (job *Deploy) Validate() error {
-	// TODO: write validation logic
-	return nil
+	return validation.ValidateStruct(job,
+		validation.Field(&job.Contract, validation.Required),
+		validation.Field(&job.Amount, rule.Uint64OrPlaceholder),
+		validation.Field(&job.Fee, rule.Uint64OrPlaceholder),
+		validation.Field(&job.Gas, rule.Uint64OrPlaceholder),
+		validation.Field(&job.Sequence, rule.Uint64OrPlaceholder),
+	)
 }
 
 type Call struct {
@@ -254,8 +290,13 @@ type Call struct {
 }
 
 func (job *Call) Validate() error {
-	// TODO: write validation logic
-	return nil
+	return validation.ValidateStruct(job,
+		validation.Field(&job.Destination, validation.Required, rule.AddressOrPlaceholder),
+		validation.Field(&job.Amount, rule.Uint64OrPlaceholder),
+		validation.Field(&job.Fee, rule.Uint64OrPlaceholder),
+		validation.Field(&job.Gas, rule.Uint64OrPlaceholder),
+		validation.Field(&job.Sequence, rule.Uint64OrPlaceholder),
+	)
 }
 
 // ------------------------------------------------------------------------
@@ -313,8 +354,9 @@ type QueryContract struct {
 }
 
 func (job *QueryContract) Validate() error {
-	// TODO: write validation logic
-	return nil
+	return validation.ValidateStruct(job,
+		validation.Field(&job.Destination, validation.Required, rule.AddressOrPlaceholder),
+	)
 }
 
 type QueryAccount struct {
@@ -341,19 +383,22 @@ type QueryName struct {
 }
 
 func (job *QueryName) Validate() error {
-	// TODO: write validation logic
-	return nil
+	return validation.ValidateStruct(job,
+		validation.Field(&job.Name, validation.Required),
+		validation.Field(&job.Field, validation.Required),
+	)
 }
 
 type QueryVals struct {
 	// (Required) should be of the set ["bonded_validators" or "unbonding_validators"] and it will
 	// return a comma separated listing of the addresses which fall into one of those categories
-	Field string `mapstructure:"field" json:"field" yaml:"field" toml:"field"`
+	Query string `mapstructure:"field" json:"field" yaml:"field" toml:"field"`
 }
 
 func (job *QueryVals) Validate() error {
-	// TODO: write validation logic
-	return nil
+	return validation.ValidateStruct(job,
+		validation.Field(&job.Query, validation.Required),
+	)
 }
 
 type Assert struct {

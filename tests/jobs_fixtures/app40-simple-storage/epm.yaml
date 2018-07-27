@@ -16,7 +16,7 @@ jobs:
       destination: $deploySimpleStorage
       function: get
 
-- name:
+- name: assertStorage
   assert:
       key: $getStorage
       relation: eq

@@ -27,6 +27,8 @@ export solc_bin=solc
 # If false we will not try to start Burrow and expect them to be running
 export boot=${boot:-true}
 export debug=${debug:-false}
+export clean=${clean:-true}
+
 export failures="not supplied by test"
 
 export test_exit=0

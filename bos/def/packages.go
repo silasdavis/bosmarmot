@@ -28,6 +28,10 @@ type Packages struct {
 func (do *Packages) Validate() error {
 	return validation.ValidateStruct(do,
 		validation.Field(&do.Address, rule.Address),
+		validation.Field(&do.DefaultAmount, rule.Uint64),
+		validation.Field(&do.DefaultFee, rule.Uint64),
+		validation.Field(&do.DefaultGas, rule.Uint64),
+		validation.Field(&do.Package),
 	)
 }
 

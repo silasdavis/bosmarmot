@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 
-	"github.com/hyperledger/burrow/txs/payload"
 	"github.com/monax/bosmarmot/bos/def"
 	"github.com/monax/bosmarmot/bos/util"
 	log "github.com/sirupsen/logrus"
@@ -23,7 +22,7 @@ func SendJob(send *def.Send, do *def.Packages) (string, error) {
 		"amount":      send.Amount,
 	}).Info("Sending Transaction")
 
-	tx, err := do.Send(def.SendArg{
+	tx, err := do.Send(&def.SendArg{
 		Input:    send.Source,
 		Output:   send.Destination,
 		Amount:   send.Amount,
@@ -34,7 +33,17 @@ func SendJob(send *def.Send, do *def.Packages) (string, error) {
 	}
 
 	// Sign, broadcast, display
-	return txFinalize(do, tx)
+	txe, err := do.SignAndBroadcast(tx)
+	if err != nil {
+		return "", util.ChainErrorHandler(do, err)
+	}
+
+	util.ReadTxSignAndBroadcast(txe, err)
+	if err != nil {
+		return "", err
+	}
+
+	return txe.Receipt.TxHash.String(), nil
 }
 
 func RegisterNameJob(name *def.RegisterName, do *def.Packages) (string, error) {
@@ -118,7 +127,7 @@ func registerNameTx(name *def.RegisterName, do *def.Packages) (string, error) {
 		"amount": name.Amount,
 	}).Info("NameReg Transaction")
 
-	tx, err := do.Name(def.NameArg{
+	tx, err := do.Name(&def.NameArg{
 		Input:    name.Source,
 		Sequence: name.Sequence,
 		Name:     name.Name,
@@ -130,7 +139,17 @@ func registerNameTx(name *def.RegisterName, do *def.Packages) (string, error) {
 		return "", util.ChainErrorHandler(do, err)
 	}
 	// Sign, broadcast, display
-	return txFinalize(do, tx)
+	txe, err := do.SignAndBroadcast(tx)
+	if err != nil {
+		return "", util.ChainErrorHandler(do, err)
+	}
+
+	util.ReadTxSignAndBroadcast(txe, err)
+	if err != nil {
+		return "", err
+	}
+
+	return txe.Receipt.TxHash.String(), nil
 }
 
 func PermissionJob(perm *def.Permission, do *def.Packages) (string, error) {
@@ -143,7 +162,7 @@ func PermissionJob(perm *def.Permission, do *def.Packages) (string, error) {
 	// Populate the transaction appropriately
 
 	// Formulate tx
-	tx, err := do.Permissions(def.PermArg{
+	tx, err := do.Permissions(&def.PermArg{
 		Input:      perm.Source,
 		Sequence:   perm.Sequence,
 		Action:     perm.Action,
@@ -159,10 +178,6 @@ func PermissionJob(perm *def.Permission, do *def.Packages) (string, error) {
 	log.Debug("What are the args returned in transaction: ", tx.PermArgs)
 
 	// Sign, broadcast, display
-	return txFinalize(do, tx)
-}
-
-func txFinalize(do *def.Packages, tx payload.Payload) (string, error) {
 	txe, err := do.SignAndBroadcast(tx)
 	if err != nil {
 		return "", util.ChainErrorHandler(do, err)

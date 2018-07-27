@@ -4,20 +4,21 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/require"
 	"github.com/monax/bosmarmot/bos/def"
-		"gopkg.in/yaml.v2"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v2"
 )
 
-const testPackageYAML = `jobs:
+func TestUnmarshal(t *testing.T) {
+	testUnmarshal(t, `jobs:
 
 - name: AddValidators
-  govern-account:
+  update-account:
     source: foo
     target: bar
-    permissions: []
+    permissions: [foo, bar]
     roles: []
 
 - name: nameRegTest1
@@ -26,9 +27,18 @@ const testPackageYAML = `jobs:
     data: $val2
     amount: $to_save
     fee: $MinersFee
-`
+`)
+	testUnmarshal(t, `jobs:
 
-func TestUnmarshal(t *testing.T) {
+  update-account:
+    source: foo
+    target: bar
+    permissions: [foo, bar]
+    roles: []
+`)
+}
+
+func testUnmarshal(t *testing.T, testPackageYAML string) {
 	pkgs := viper.New()
 	pkgs.SetConfigType("yaml")
 	err := pkgs.ReadConfig(bytes.NewBuffer([]byte(testPackageYAML)))

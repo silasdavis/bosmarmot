@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"os"
+
 	"github.com/monax/bosmarmot/bos/def"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"os"
 )
 
 func LoadPackage(fileName string) (*def.Package, error) {
@@ -52,5 +53,3 @@ func LoadPackage(fileName string) (*def.Package, error) {
 
 	return pkg, nil
 }
-
-

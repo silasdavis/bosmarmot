@@ -8,18 +8,19 @@ import (
 )
 
 func TestPackage_Validate(t *testing.T) {
+	address := crypto.Address{3, 4}.String()
 	pkgs := &Package{
 		Jobs: []*Job{{
 			Name: "CallJob",
 			Call: &Call{
-				Sequence: "13",
+				Sequence:    "13",
+				Destination: address,
 			},
 		}},
 	}
 	err := pkgs.Validate()
 	require.NoError(t, err)
 
-	address := crypto.Address{3, 4}.String()
 	pkgs.Jobs = append(pkgs.Jobs, &Job{
 		Name: "Foo",
 		Account: &Account{
@@ -36,4 +37,17 @@ func TestPackage_Validate(t *testing.T) {
 	}
 	err = pkgs.Validate()
 	require.Error(t, err)
+
+	pkgs = &Package{
+		Jobs: []*Job{{
+			Name: "UpdateAccount",
+			UpdateAccount: &UpdateAccount{
+				Target:   address,
+				Sequence: "13",
+				Native:   "333",
+			},
+		}},
+	}
+	err = pkgs.Validate()
+	require.NoError(t, err)
 }

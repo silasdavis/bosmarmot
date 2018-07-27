@@ -30,14 +30,13 @@ func ReadTxSignAndBroadcast(txe *exec.TxExecution, err error) error {
 	}
 
 	// Unpack and display for the user.
-	hash := fmt.Sprintf("%X", txe.Receipt.TxHash)
 	height := fmt.Sprintf("%d", txe.Height)
 
 	if txe.Receipt.CreatesContract {
 		log.WithField("addr", txe.Receipt.ContractAddress).Warn()
-		log.WithField("txHash", hash).Info()
+		log.WithField("txHash", txe.TxHash).Info()
 	} else {
-		log.WithField("=>", hash).Warn("Transaction Hash")
+		log.WithField("=>", txe.TxHash).Warn("Transaction Hash")
 		log.WithField("=>", height).Debug("Block height")
 		ret := txe.GetResult().GetReturn()
 		if len(ret) != 0 {

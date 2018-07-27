@@ -29,6 +29,7 @@ func MetaJob(meta *def.Meta, do *def.Packages) (string, error) {
 	newDo.DefaultGas = do.DefaultGas
 	newDo.DefaultSets = do.DefaultSets
 	newDo.Signer = do.Signer
+	newDo.MempoolSigning = do.MempoolSigning
 
 	// Set subYAMLPath
 	newDo.YAMLPath = meta.File
