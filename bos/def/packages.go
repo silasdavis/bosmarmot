@@ -1,6 +1,9 @@
 package def
 
-import "github.com/go-ozzo/ozzo-validation"
+import (
+	"github.com/go-ozzo/ozzo-validation"
+	"github.com/monax/bosmarmot/bos/def/rule"
+)
 
 type Packages struct {
 	Address       string   `mapstructure:"," json:"," yaml:"," toml:","`
@@ -24,7 +27,7 @@ type Packages struct {
 
 func (do *Packages) Validate() error {
 	return validation.ValidateStruct(do,
-		validation.Field(&do.Address, Address),
+		validation.Field(&do.Address, rule.Address),
 	)
 }
 
@@ -40,7 +43,7 @@ type Package struct {
 
 func (pkg *Package) Validate() error {
 	return validation.ValidateStruct(pkg,
-		validation.Field(&pkg.Account, Address),
+		validation.Field(&pkg.Account, rule.Address),
 		validation.Field(&pkg.Jobs),
 	)
 }

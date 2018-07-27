@@ -6,7 +6,6 @@ jobs:
 
 - name: deployBinaryK
   deploy:
-      save: true
       contract: binary.sol
 
 - name: deployActualBinaryK

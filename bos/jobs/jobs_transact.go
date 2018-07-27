@@ -13,11 +13,6 @@ import (
 )
 
 func SendJob(send *def.Send, do *def.Packages) (string, error) {
-	// Process Variables
-	send.Source, _ = util.PreProcess(send.Source, do)
-	send.Destination, _ = util.PreProcess(send.Destination, do)
-	send.Amount, _ = util.PreProcess(send.Amount, do)
-
 	// Use Default
 	send.Source = useDefault(send.Source, do.Package.Account)
 
@@ -43,9 +38,6 @@ func SendJob(send *def.Send, do *def.Packages) (string, error) {
 }
 
 func RegisterNameJob(name *def.RegisterName, do *def.Packages) (string, error) {
-	// Process Variables
-	name.DataFile, _ = util.PreProcess(name.DataFile, do)
-
 	// If a data file is given it should be in csv format and
 	// it will be read first. Once the file is parsed and sent
 	// to the chain then a single nameRegTx will be sent if that
@@ -114,13 +106,6 @@ func RegisterNameJob(name *def.RegisterName, do *def.Packages) (string, error) {
 
 // Runs an individual nametx.
 func registerNameTx(name *def.RegisterName, do *def.Packages) (string, error) {
-	// Process Variables
-	name.Source, _ = util.PreProcess(name.Source, do)
-	name.Name, _ = util.PreProcess(name.Name, do)
-	name.Data, _ = util.PreProcess(name.Data, do)
-	name.Amount, _ = util.PreProcess(name.Amount, do)
-	name.Fee, _ = util.PreProcess(name.Fee, do)
-
 	// Set Defaults
 	name.Source = useDefault(name.Source, do.Package.Account)
 	name.Fee = useDefault(name.Fee, do.DefaultFee)
@@ -149,14 +134,6 @@ func registerNameTx(name *def.RegisterName, do *def.Packages) (string, error) {
 }
 
 func PermissionJob(perm *def.Permission, do *def.Packages) (string, error) {
-	// Process Variables
-	perm.Source, _ = util.PreProcess(perm.Source, do)
-	perm.Action, _ = util.PreProcess(perm.Action, do)
-	perm.PermissionFlag, _ = util.PreProcess(perm.PermissionFlag, do)
-	perm.Value, _ = util.PreProcess(perm.Value, do)
-	perm.Target, _ = util.PreProcess(perm.Target, do)
-	perm.Role, _ = util.PreProcess(perm.Role, do)
-
 	// Set defaults
 	perm.Source = useDefault(perm.Source, do.Package.Account)
 
@@ -171,7 +148,7 @@ func PermissionJob(perm *def.Permission, do *def.Packages) (string, error) {
 		Sequence:   perm.Sequence,
 		Action:     perm.Action,
 		Target:     perm.Target,
-		Permission: perm.PermissionFlag,
+		Permission: perm.Permission,
 		Role:       perm.Role,
 		Value:      perm.Value,
 	})

@@ -171,7 +171,7 @@ type GovArg struct {
 	TargetPublicKey string
 }
 
-//func (c *Client) Govern(arg GovArg) (*payload.GovTx, error) {
+//func (c *Client) GovernAccount(arg GovArg) (*payload.GovTx, error) {
 //	logArg("GovTx", arg)
 //	input, err := c.TxInput(arg.Input, arg.Amount, arg.Sequence)
 //	if err != nil {

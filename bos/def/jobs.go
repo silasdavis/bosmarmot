@@ -2,6 +2,7 @@ package def
 
 import (
 	"github.com/go-ozzo/ozzo-validation"
+	"github.com/monax/bosmarmot/bos/def/rule"
 )
 
 // ------------------------------------------------------------------------
@@ -23,27 +24,42 @@ func (job *Meta) Validate() error {
 // ------------------------------------------------------------------------
 
 type Target struct {
-	Address       string
-	PublicKey     string
-	PublicKeyType string
+	Address       string `mapstructure:"address" json:"address" yaml:"address" toml:"address"`
+	PublicKey     string `mapstructure:"public_key" json:"public_key" yaml:"public_key" toml:"public_key"`
+	PublicKeyType string `mapstructure:"key_type" json:"key_type" yaml:"key_type" toml:"key_type"`
 }
 
-type Govern struct {
+// GovernAccount updates an account by overwriting the given values, where values are omitted the existing values
+// are preserved. Currently requires Root permission on Source account
+type GovernAccount struct {
 	// (Optional, if account job or global account set) address of the account from which to send (the
 	// public key for the account must be available to burrow keys)
 	Source string `mapstructure:"source" json:"source" yaml:"source" toml:"source"`
-	// (Required) The target account that will be governed
-	Target Target
+	// (Required) The target account that will be governed - either an address or public key (its type will be determined by it's length)
+	// if altering power then either a public key must be provided or the requisite public key associated with the address
+	// must be available in an connected keys Signer
+	Target string `mapstructure:"target" json:"target" yaml:"target" toml:"target"`
+	// (Optional) the Tendermint validator power to set for this account
+	Power string `mapstructure:"power" json:"power" yaml:"power" toml:"power"`
+	// (Optional) The Burrow native token balance to set for this account
+	Native string `mapstructure:"native" json:"native" yaml:"native" toml:"native"`
+	// (Optional) the permissions to set for this account
+	Permissions []string `mapstructure:"permissions" json:"permissions" yaml:"permissions" toml:"permissions"`
+	// (Optional) the account permission roles to set for this account
+	Roles []string `mapstructure:"roles" json:"roles" yaml:"roles" toml:"roles"`
 	// (Optional, advanced only) sequence to use when burrow keys signs the transaction (do not use unless you
 	// know what you're doing)
 	Sequence string `mapstructure:"sequence" json:"sequence" yaml:"sequence" toml:"sequence"`
 }
 
-func (job *Govern) Validate() error {
-
+func (job *GovernAccount) Validate() error {
 	return validation.ValidateStruct(job,
-		validation.Field(job.Source, Address),
-		validation.Field(job.Sequence,  Uint64),
+		validation.Field(&job.Source, rule.AddressOrPlaceholder),
+		validation.Field(&job.Target, validation.Required, rule.HexOrPlaceholder),
+		validation.Field(&job.Power, rule.Uint64OrPlaceholder),
+		validation.Field(&job.Native, rule.Uint64OrPlaceholder),
+		validation.Field(&job.Permissions, rule.PermissionOrPlaceholder),
+		validation.Field(&job.Sequence, rule.Uint64OrPlaceholder),
 	)
 }
 
@@ -61,12 +77,12 @@ type Account struct {
 
 func (job *Account) Validate() error {
 	return validation.ValidateStruct(job,
-		validation.Field(&job.Address, validation.Required, Or(Address, Placeholder)),
+		validation.Field(&job.Address, validation.Required, rule.AddressOrPlaceholder),
 	)
 	return nil
 }
 
-type SetJob struct {
+type Set struct {
 	// (Required) value which should be saved along with the jobName (which will be the key)
 	// this is useful to set variables which can be used throughout the jobs definition file (epm.yaml).
 	// It should be noted that arrays and bools must be defined using strings as such "[1,2,3]"
@@ -74,7 +90,7 @@ type SetJob struct {
 	Value string `mapstructure:"val" json:"val" yaml:"val" toml:"val"`
 }
 
-func (job *SetJob) Validate() error {
+func (job *Set) Validate() error {
 	// TODO: write validation logic
 	return nil
 }
@@ -133,7 +149,7 @@ type Permission struct {
 	Action string `mapstructure:"action" json:"action" yaml:"action" toml:"action"`
 	// (Required, unless add_role or rm_role action selected) the name of the permission flag which is to
 	// be updated
-	PermissionFlag string `mapstructure:"permission" json:"permission" yaml:"permission" toml:"permission"`
+	Permission string `mapstructure:"permission" json:"permission" yaml:"permission" toml:"permission"`
 	// (Required) the value of the permission or role which is to be updated
 	Value string `mapstructure:"value" json:"value" yaml:"value" toml:"value"`
 	// (Required) the target account which is to be updated
@@ -312,7 +328,7 @@ type QueryAccount struct {
 
 func (job *QueryAccount) Validate() error {
 	return validation.ValidateStruct(job,
-		validation.Field(&job.Account, validation.Required, Address),
+		validation.Field(&job.Account, validation.Required, rule.AddressOrPlaceholder),
 		validation.Field(&job.Field, validation.Required),
 	)
 }
@@ -358,15 +374,6 @@ type Assert struct {
 
 func (job *Assert) Validate() error {
 	return validation.ValidateStruct(job,
-		validation.Field(&job.Key,
-			validation.Required,
-		),
-		validation.Field(&job.Relation,
-			validation.Required,
-			validation.In("eq", "ne", "ge", "gt", "le", "lt", "==", "!=", ">=", ">", "<=", "<"),
-		),
-		validation.Field(&job.Value,
-			validation.Required,
-		),
+		validation.Field(&job.Relation, validation.Required, rule.Relation),
 	)
 }

@@ -18,6 +18,8 @@
 export script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # For parallel when default shell is not bash (we need exported functions)
 export SHELL=$(which bash)
+export job_log="$script_dir/bos-test-log.txt"
+export test_output="$script_dir/bos-test-output.txt"
 
 source "$script_dir/test_runner.sh"
 
@@ -38,7 +40,7 @@ run_test(){
   echo
 
 
-  bos_cmd="${bos_bin} --chain-url='$BURROW_HOST:$BURROW_GRPC_PORT' --address '$key1_addr' --set 'addr1=$key1_addr' --set 'addr2=$key2_addr' --set 'addr2_pub=$key2_pub'"
+  bos_cmd="${bos_bin} --chain-url=$BURROW_HOST:$BURROW_GRPC_PORT --address $key1_addr --set addr1=$key1_addr --set addr2=$key2_addr --set addr2_pub=$key2_pub"
   [[ "$debug" == true ]] && bos_cmd="$bos_cmd --debug"
   echo "executing bos with command line:"
   echo "$bos_cmd"

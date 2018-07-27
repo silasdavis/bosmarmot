@@ -8,21 +8,38 @@ import (
 	"strings"
 
 	"github.com/monax/bosmarmot/bos/def"
+	"github.com/monax/bosmarmot/bos/def/rule"
 	log "github.com/sirupsen/logrus"
 )
+
+func PreProcessFields(value interface{}, do *def.Packages) error {
+	rv := reflect.ValueOf(value)
+	if rv.Kind() == reflect.Ptr {
+		rv = rv.Elem()
+	}
+	for i := 0; i < rv.NumField(); i++ {
+		if rv.Field(i).Kind() == reflect.String {
+			str, err := PreProcess(rv.Field(i).String(), do)
+			if err != nil {
+				return err
+			}
+			rv.Field(i).SetString(str)
+		}
+	}
+	return nil
+}
 
 func PreProcess(toProcess string, do *def.Packages) (string, error) {
 	// $block.... $account.... etc. should be caught. hell$$o should not
 	// :$libAddr needs to be caught
-	catchEr := regexp.MustCompile(`(^|\s|:)\$([a-zA-Z0-9_.]+)`)
 	// If there's a match then run through the replacement process
-	if catchEr.MatchString(toProcess) {
+	if rule.VariableRegex.MatchString(toProcess) {
 		log.WithField("match", toProcess).Debug("Replacement Match Found")
 
 		// find what we need to catch.
 		processedString := toProcess
 
-		for _, jobMatch := range catchEr.FindAllStringSubmatch(toProcess, -1) {
+		for _, jobMatch := range rule.VariableRegex.FindAllStringSubmatch(toProcess, -1) {
 			jobName := jobMatch[2]
 			varName := "$" + jobName
 			var innerVarName string

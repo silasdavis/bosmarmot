@@ -19,16 +19,7 @@ import (
 )
 
 func DeployJob(deploy *def.Deploy, do *def.Packages) (result string, err error) {
-	// Preprocess variables
-	deploy.Source, _ = util.PreProcess(deploy.Source, do)
-	deploy.Contract, _ = util.PreProcess(deploy.Contract, do)
-	deploy.Instance, _ = util.PreProcess(deploy.Instance, do)
 	deploy.Libraries, _ = util.PreProcessLibs(deploy.Libraries, do)
-	deploy.Amount, _ = util.PreProcess(deploy.Amount, do)
-	deploy.Sequence, _ = util.PreProcess(deploy.Sequence, do)
-	deploy.Fee, _ = util.PreProcess(deploy.Fee, do)
-	deploy.Gas, _ = util.PreProcess(deploy.Gas, do)
-
 	// trim the extension
 	contractName := strings.TrimSuffix(deploy.Contract, filepath.Ext(deploy.Contract))
 
@@ -274,21 +265,11 @@ func CallJob(call *def.Call, do *def.Packages) (string, []*def.Variable, error) 
 	var err error
 	var callData string
 	var callDataArray []string
-	// Preprocess variables
-	call.Source, _ = util.PreProcess(call.Source, do)
-	call.Destination, _ = util.PreProcess(call.Destination, do)
 	//todo: find a way to call the fallback function here
 	call.Function, callDataArray, err = util.PreProcessInputData(call.Function, call.Data, do, false)
 	if err != nil {
 		return "", nil, err
 	}
-	call.Function, _ = util.PreProcess(call.Function, do)
-	call.Amount, _ = util.PreProcess(call.Amount, do)
-	call.Sequence, _ = util.PreProcess(call.Sequence, do)
-	call.Fee, _ = util.PreProcess(call.Fee, do)
-	call.Gas, _ = util.PreProcess(call.Gas, do)
-	call.Bin, _ = util.PreProcess(call.Bin, do)
-
 	// Use default
 	call.Source = useDefault(call.Source, do.Package.Account)
 	call.Amount = useDefault(call.Amount, do.DefaultAmount)

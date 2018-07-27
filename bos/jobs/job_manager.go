@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/monax/bosmarmot/bos/def"
+	"github.com/monax/bosmarmot/bos/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -32,37 +33,50 @@ func RunJobs(do *def.Packages) error {
 	}
 
 	for _, job := range do.Package.Jobs {
-		switch {
+		payload, err := job.Payload()
+		if err != nil {
+			return fmt.Errorf("could not get Job payload: %v", payload)
+		}
+		err = util.PreProcessFields(payload, do)
+		if err != nil {
+			return err
+		}
+		// Revalidate with possible replacements
+		err = payload.Validate()
+		if err != nil {
+			return fmt.Errorf("error validating job %s after pre-processing variables: %v", job.Name, err)
+		}
+		switch payload.(type) {
 		// Meta Job
-		case job.Meta != nil:
+		case *def.Meta:
 			announce(job.Name, "Meta")
 			do.CurrentOutput = fmt.Sprintf("%s.output.json", job.Name)
 			job.Result, err = MetaJob(job.Meta, do)
 
 		// Util jobs
-		case job.Account != nil:
+		case *def.Account:
 			announce(job.Name, "Account")
 			job.Result, err = SetAccountJob(job.Account, do)
-		case job.Set != nil:
+		case *def.Set:
 			announce(job.Name, "Set")
 			job.Result, err = SetValJob(job.Set, do)
 
 		// Transaction jobs
-		case job.Send != nil:
+		case *def.Send:
 			announce(job.Name, "Sent")
 			job.Result, err = SendJob(job.Send, do)
-		case job.RegisterName != nil:
+		case *def.RegisterName:
 			announce(job.Name, "RegisterName")
 			job.Result, err = RegisterNameJob(job.RegisterName, do)
-		case job.Permission != nil:
+		case *def.Permission:
 			announce(job.Name, "Permission")
 			job.Result, err = PermissionJob(job.Permission, do)
 
 		// Contracts jobs
-		case job.Deploy != nil:
+		case *def.Deploy:
 			announce(job.Name, "Deploy")
 			job.Result, err = DeployJob(job.Deploy, do)
-		case job.Call != nil:
+		case *def.Call:
 			announce(job.Name, "Call")
 			job.Result, job.Variables, err = CallJob(job.Call, do)
 			if len(job.Variables) != 0 {
@@ -71,18 +85,18 @@ func RunJobs(do *def.Packages) error {
 				}
 			}
 		// State jobs
-		case job.RestoreState != nil:
+		case *def.RestoreState:
 			announce(job.Name, "RestoreState")
 			job.Result, err = RestoreStateJob(job.RestoreState, do)
-		case job.DumpState != nil:
+		case *def.DumpState:
 			announce(job.Name, "DumpState")
 			job.Result, err = DumpStateJob(job.DumpState, do)
 
 		// Test jobs
-		case job.QueryAccount != nil:
+		case *def.QueryAccount:
 			announce(job.Name, "QueryAccount")
 			job.Result, err = QueryAccountJob(job.QueryAccount, do)
-		case job.QueryContract != nil:
+		case *def.QueryContract:
 			announce(job.Name, "QueryContract")
 			job.Result, job.Variables, err = QueryContractJob(job.QueryContract, do)
 			if len(job.Variables) != 0 {
@@ -90,13 +104,13 @@ func RunJobs(do *def.Packages) error {
 					log.WithField("=>", fmt.Sprintf("%s,%s", theJob.Name, theJob.Value)).Info("Job Vars")
 				}
 			}
-		case job.QueryName != nil:
+		case *def.QueryName:
 			announce(job.Name, "QueryName")
 			job.Result, err = QueryNameJob(job.QueryName, do)
-		case job.QueryVals != nil:
+		case *def.QueryVals:
 			announce(job.Name, "QueryVals")
 			job.Result, err = QueryValsJob(job.QueryVals, do)
-		case job.Assert != nil:
+		case *def.Assert:
 			announce(job.Name, "Assert")
 			job.Result, err = AssertJob(job.Assert, do)
 
@@ -145,7 +159,7 @@ func defaultSetJobs(do *def.Packages) {
 		if blowdUp[0] != "" {
 			newJobs = append(newJobs, &def.Job{
 				Name: blowdUp[0],
-				Set: &def.SetJob{
+				Set: &def.Set{
 					Value: blowdUp[1],
 				},
 			})
