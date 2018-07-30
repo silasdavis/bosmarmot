@@ -10,6 +10,7 @@ import (
 
 	"github.com/hyperledger/burrow/acm"
 	"github.com/hyperledger/burrow/crypto"
+	"github.com/hyperledger/burrow/execution/errors"
 	"github.com/hyperledger/burrow/execution/exec"
 	"github.com/hyperledger/burrow/execution/names"
 	"github.com/hyperledger/burrow/genesis/spec"
@@ -150,7 +151,15 @@ func (c *Client) Broadcast(tx payload.Payload) (*exec.TxExecution, error) {
 
 // Broadcast envelope - can be locally signed or remote signing will be attempted
 func (c *Client) BroadcastEnvelope(txEnv *txs.Envelope) (*exec.TxExecution, error) {
-	return c.transactClient.BroadcastTxSync(context.Background(), &rpctransact.TxEnvelopeParam{Envelope: txEnv})
+	txe, err := c.transactClient.BroadcastTxSync(context.Background(), &rpctransact.TxEnvelopeParam{Envelope: txEnv})
+	if err != nil {
+		return nil, err
+	}
+	// Special handling for the revert error
+	if txe.Exception != nil && txe.Exception.Code == errors.ErrorCodeExecutionReverted {
+		return txe, txe.Exception
+	}
+	return txe, nil
 }
 
 func (c *Client) ParseUint64(amount string) (uint64, error) {

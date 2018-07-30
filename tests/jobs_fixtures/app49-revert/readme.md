@@ -1,0 +1,1 @@
+* tests error from REVERT opcode results in a error executing job
