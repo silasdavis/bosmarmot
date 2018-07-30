@@ -13,7 +13,7 @@ jobs:
         - 6
         - 7
 
-- name:
+- name: assertExtension
   assert:
       key: $test
       relation: eq

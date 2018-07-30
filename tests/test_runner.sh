@@ -27,6 +27,8 @@ export solc_bin=solc
 # If false we will not try to start Burrow and expect them to be running
 export boot=${boot:-true}
 export debug=${debug:-false}
+export clean=${clean:-true}
+
 export failures="not supplied by test"
 
 export test_exit=0
@@ -44,8 +46,6 @@ fi
 export BURROW_GRPC_PORT=20997
 export BURROW_HOST=127.0.0.1
 
-export job_log="$script_dir/bos-test-log.txt"
-export test_output="$script_dir/bos-test-output.txt"
 
 export chain_dir="$script_dir/chain"
 export burrow_root="$chain_dir/.burrow"

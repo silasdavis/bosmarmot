@@ -1,12 +1,86 @@
 package def
 
+import (
+	"regexp"
+
+	"github.com/go-ozzo/ozzo-validation"
+	"github.com/go-ozzo/ozzo-validation/is"
+	"github.com/monax/bosmarmot/bos/def/rule"
+)
+
 // ------------------------------------------------------------------------
 // Meta Jobs
 // ------------------------------------------------------------------------
 
+// Used in the Target of UpdateAccount to determine whether to create a new account, e.g. new() or new(key1,ed25519)
+var NewKeyRegex = regexp.MustCompile(`new\((?P<keyName>[[:alnum:]]+)?(,(?P<curveType>[[:alnum:]]+))?\)`)
+
+func KeyNameCurveType(newKeyMatch []string) (keyName, curveType string) {
+	for i, name := range NewKeyRegex.SubexpNames() {
+		switch name {
+		case "keyName":
+			keyName = newKeyMatch[i]
+		case "curveType":
+			curveType = newKeyMatch[i]
+		}
+	}
+	return
+}
+
 type Meta struct {
 	// (Required) the file path of the sub yaml to run
 	File string `mapstructure:"file" json:"file" yaml:"file" toml:"file"`
+}
+
+func (job *Meta) Validate() error {
+	return validation.ValidateStruct(job,
+		validation.Field(&job.File, validation.Required),
+	)
+}
+
+// ------------------------------------------------------------------------
+// Governance Jobs
+// ------------------------------------------------------------------------
+
+type PermissionString string
+
+func (ps PermissionString) Validate() error {
+	return rule.PermissionOrPlaceholder.Validate(ps)
+}
+
+// UpdateAccount updates an account by overwriting the given values, where values are omitted the existing values
+// are preserved. Currently requires Root permission on Source account
+type UpdateAccount struct {
+	// (Optional, if account job or global account set) address of the account from which to send (the
+	// public key for the account must be available to burrow keys)
+	Source string `mapstructure:"source" json:"source" yaml:"source" toml:"source"`
+	// (Required) The target account that will be governed - either an address or public key (its type will be determined by it's length)
+	// if altering power then either a public key must be provided or the requisite public key associated with the address
+	// must be available in an connected keys Signer
+	Target string `mapstructure:"target" json:"target" yaml:"target" toml:"target"`
+	// (Optional) the Tendermint validator power to set for this account
+	Power string `mapstructure:"power" json:"power" yaml:"power" toml:"power"`
+	// (Optional) The Burrow native token balance to set for this account
+	Native string `mapstructure:"native" json:"native" yaml:"native" toml:"native"`
+	// (Optional) the permissions to set for this account
+	Permissions []PermissionString `mapstructure:"permissions" json:"permissions" yaml:"permissions" toml:"permissions"`
+	// (Optional) the account permission roles to set for this account
+	Roles []string `mapstructure:"roles" json:"roles" yaml:"roles" toml:"roles"`
+	// (Optional, advanced only) sequence to use when burrow keys signs the transaction (do not use unless you
+	// know what you're doing)
+	Sequence string `mapstructure:"sequence" json:"sequence" yaml:"sequence" toml:"sequence"`
+}
+
+func (job *UpdateAccount) Validate() error {
+	return validation.ValidateStruct(job,
+		validation.Field(&job.Source, rule.AddressOrPlaceholder),
+		validation.Field(&job.Target, validation.Required, rule.Or(rule.Placeholder, is.Hexadecimal,
+			validation.Match(NewKeyRegex))),
+		validation.Field(&job.Permissions),
+		validation.Field(&job.Power, rule.Uint64OrPlaceholder),
+		validation.Field(&job.Native, rule.Uint64OrPlaceholder),
+		validation.Field(&job.Sequence, rule.Uint64OrPlaceholder),
+	)
 }
 
 // ------------------------------------------------------------------------
@@ -21,12 +95,24 @@ type Account struct {
 	Address string `mapstructure:"address" json:"address" yaml:"address" toml:"address"`
 }
 
-type SetJob struct {
+func (job *Account) Validate() error {
+	return validation.ValidateStruct(job,
+		validation.Field(&job.Address, validation.Required, rule.AddressOrPlaceholder),
+	)
+}
+
+type Set struct {
 	// (Required) value which should be saved along with the jobName (which will be the key)
 	// this is useful to set variables which can be used throughout the jobs definition file (epm.yaml).
 	// It should be noted that arrays and bools must be defined using strings as such "[1,2,3]"
 	// if they are intended to be used further in a assert job.
 	Value string `mapstructure:"val" json:"val" yaml:"val" toml:"val"`
+}
+
+func (job *Set) Validate() error {
+	return validation.ValidateStruct(job,
+		validation.Field(&job.Value, validation.Required),
+	)
 }
 
 // ------------------------------------------------------------------------
@@ -41,16 +127,25 @@ type Send struct {
 	Destination string `mapstructure:"destination" json:"destination" yaml:"destination" toml:"destination"`
 	// (Required) amount of tokens to send from the `source` to the `destination`
 	Amount string `mapstructure:"amount" json:"amount" yaml:"amount" toml:"amount"`
-	// (Optional, advanced only) nonce to use when burrow keys signs the transaction (do not use unless you
+	// (Optional, advanced only) sequence to use when burrow keys signs the transaction (do not use unless you
 	// know what you're doing)
-	Sequence string `mapstructure:"nonce" json:"nonce" yaml:"nonce" toml:"nonce"`
+	Sequence string `mapstructure:"sequence" json:"sequence" yaml:"sequence" toml:"sequence"`
+}
+
+func (job *Send) Validate() error {
+	return validation.ValidateStruct(job,
+		validation.Field(&job.Source, rule.AddressOrPlaceholder),
+		validation.Field(&job.Destination, validation.Required, rule.AddressOrPlaceholder),
+		validation.Field(&job.Amount, rule.Uint64OrPlaceholder),
+		validation.Field(&job.Sequence, rule.Uint64OrPlaceholder),
+	)
 }
 
 type RegisterName struct {
 	// (Optional, if account job or global account set) address of the account from which to send (the
 	// public key for the account must be available to burrow keys)
 	Source string `mapstructure:"source" json:"source" yaml:"source" toml:"source"`
-	// (Required) name which will be registered
+	// (Required - unless providing data file) name which will be registered
 	Name string `mapstructure:"name" json:"name" yaml:"name" toml:"name"`
 	// (Optional, if data_file is used; otherwise required) data which will be stored at the `name` key
 	Data string `mapstructure:"data" json:"data" yaml:"data" toml:"data"`
@@ -60,9 +155,18 @@ type RegisterName struct {
 	Amount string `mapstructure:"amount" json:"amount" yaml:"amount" toml:"amount"`
 	// (Optional) validators' fee
 	Fee string `mapstructure:"fee" json:"fee" yaml:"fee" toml:"fee"`
-	// (Optional, advanced only) nonce to use when burrow keys signs the transaction (do not use unless you
+	// (Optional, advanced only) sequence to use when burrow keys signs the transaction (do not use unless you
 	// know what you're doing)
-	Sequence string `mapstructure:"nonce" json:"nonce" yaml:"nonce" toml:"nonce"`
+	Sequence string `mapstructure:"sequence" json:"sequence" yaml:"sequence" toml:"sequence"`
+}
+
+func (job *RegisterName) Validate() error {
+	return validation.ValidateStruct(job,
+		validation.Field(&job.Source, rule.AddressOrPlaceholder),
+		validation.Field(&job.Amount, rule.Uint64OrPlaceholder),
+		validation.Field(&job.Fee, rule.Uint64OrPlaceholder),
+		validation.Field(&job.Sequence, rule.Uint64OrPlaceholder),
+	)
 }
 
 type Permission struct {
@@ -73,42 +177,24 @@ type Permission struct {
 	Action string `mapstructure:"action" json:"action" yaml:"action" toml:"action"`
 	// (Required, unless add_role or rm_role action selected) the name of the permission flag which is to
 	// be updated
-	PermissionFlag string `mapstructure:"permission" json:"permission" yaml:"permission" toml:"permission"`
+	Permission string `mapstructure:"permission" json:"permission" yaml:"permission" toml:"permission"`
 	// (Required) the value of the permission or role which is to be updated
 	Value string `mapstructure:"value" json:"value" yaml:"value" toml:"value"`
 	// (Required) the target account which is to be updated
 	Target string `mapstructure:"target" json:"target" yaml:"target" toml:"target"`
 	// (Required, if add_role or rm_role action selected) the role which should be given to the account
 	Role string `mapstructure:"role" json:"role" yaml:"role" toml:"role"`
-	// (Optional, advanced only) nonce to use when burrow keys signs the transaction (do not use unless you
+	// (Optional, advanced only) sequence to use when burrow keys signs the transaction (do not use unless you
 	// know what you're doing)
-	Sequence string `mapstructure:"nonce" json:"nonce" yaml:"nonce" toml:"nonce"`
+	Sequence string `mapstructure:"sequence" json:"sequence" yaml:"sequence" toml:"sequence"`
 }
 
-type Bond struct {
-	// (Required) address of the account which will be bonded
-	Account string `mapstructure:"account" json:"account" yaml:"account" toml:"account"`
-	// (Required) amount of tokens which will be bonded
-	Amount string `mapstructure:"amount" json:"amount" yaml:"amount" toml:"amount"`
-	// (Optional, advanced only) nonce to use when burrow keys signs the transaction (do not use unless you
-	// know what you're doing)
-	Nonce string `mapstructure:"nonce" json:"nonce" yaml:"nonce" toml:"nonce"`
-}
-
-type Unbond struct {
-	// (Required) address of the account which to unbond
-	Account string `mapstructure:"account" json:"account" yaml:"account" toml:"account"`
-	// (Required) block on which the unbonding will take place (users may unbond at any
-	// time >= currentBlock)
-	Height string `mapstructure:"height" json:"height" yaml:"height" toml:"height"`
-}
-
-type Rebond struct {
-	// (Required) address of the account which to rebond
-	Account string `mapstructure:"account" json:"account" yaml:"account" toml:"account"`
-	// (Required) block on which the rebonding will take place (users may rebond at any
-	// time >= (unbondBlock || currentBlock))
-	Height string `mapstructure:"height" json:"height" yaml:"height" toml:"height"`
+func (job *Permission) Validate() error {
+	return validation.ValidateStruct(job,
+		validation.Field(&job.Source, rule.AddressOrPlaceholder),
+		validation.Field(&job.Value, validation.In("true", "false", "")),
+		validation.Field(&job.Sequence, rule.Uint64OrPlaceholder),
+	)
 }
 
 // ------------------------------------------------------------------------
@@ -153,11 +239,21 @@ type Deploy struct {
 	Fee string `mapstructure:"fee" json:"fee" yaml:"fee" toml:"fee"`
 	// (Optional) amount of gas which should be sent along with the contract deployment transaction
 	Gas string `mapstructure:"gas" json:"gas" yaml:"gas" toml:"gas"`
-	// (Optional, advanced only) nonce to use when burrow keys signs the transaction (do not use unless you
+	// (Optional, advanced only) sequence to use when burrow keys signs the transaction (do not use unless you
 	// know what you're doing)
-	Sequence string `mapstructure:"nonce" json:"nonce" yaml:"nonce" toml:"nonce"`
+	Sequence string `mapstructure:"sequence" json:"sequence" yaml:"sequence" toml:"sequence"`
 	// (Optional) todo
 	Variables []*Variable
+}
+
+func (job *Deploy) Validate() error {
+	return validation.ValidateStruct(job,
+		validation.Field(&job.Contract, validation.Required),
+		validation.Field(&job.Amount, rule.Uint64OrPlaceholder),
+		validation.Field(&job.Fee, rule.Uint64OrPlaceholder),
+		validation.Field(&job.Gas, rule.Uint64OrPlaceholder),
+		validation.Field(&job.Sequence, rule.Uint64OrPlaceholder),
+	)
 }
 
 type Call struct {
@@ -177,9 +273,9 @@ type Call struct {
 	Fee string `mapstructure:"fee" json:"fee" yaml:"fee" toml:"fee"`
 	// (Optional) amount of gas which should be sent along with the call transaction
 	Gas string `mapstructure:"gas" json:"gas" yaml:"gas" toml:"gas"`
-	// (Optional, advanced only) nonce to use when burrow keys signs the transaction (do not use unless you
+	// (Optional, advanced only) sequence to use when burrow keys signs the transaction (do not use unless you
 	// know what you're doing)
-	Sequence string `mapstructure:"nonce" json:"nonce" yaml:"nonce" toml:"nonce"`
+	Sequence string `mapstructure:"sequence" json:"sequence" yaml:"sequence" toml:"sequence"`
 	// (Optional) location of the bin file to use (can be relative path or in bin path)
 	// deployed contracts save ABI artifacts in the bin folder as *both* the name of the contract
 	// and the address where the contract was deployed to
@@ -191,6 +287,16 @@ type Call struct {
 	Save string `mapstructure:"save" json:"save" yaml:"save" toml:"save"`
 	// (Optional) the call job's returned variables
 	Variables []*Variable
+}
+
+func (job *Call) Validate() error {
+	return validation.ValidateStruct(job,
+		validation.Field(&job.Destination, validation.Required, rule.AddressOrPlaceholder),
+		validation.Field(&job.Amount, rule.Uint64OrPlaceholder),
+		validation.Field(&job.Fee, rule.Uint64OrPlaceholder),
+		validation.Field(&job.Gas, rule.Uint64OrPlaceholder),
+		validation.Field(&job.Sequence, rule.Uint64OrPlaceholder),
+	)
 }
 
 // ------------------------------------------------------------------------
@@ -205,11 +311,21 @@ type DumpState struct {
 	FilePath       string `mapstructure:"file" json:"file" yaml:"file" toml:"file"`
 }
 
+func (job *DumpState) Validate() error {
+	// TODO: write validation logic
+	return nil
+}
+
 type RestoreState struct {
 	FromIPFS bool   `mapstructure:"from-ipfs" json:"from-ipfs" yaml:"from-ipfs" toml:"from-ipfs"`
 	FromFile bool   `mapstructure:"from-file" json:"from-file" yaml:"from-file" toml:"from-file"`
 	IPFSHost string `mapstructure:"ipfs-host" json:"ipfs-host" yaml:"ipfs-host" toml:"ipfs-host"`
 	FilePath string `mapstructure:"file" json:"file" yaml:"file" toml:"file"`
+}
+
+func (job *RestoreState) Validate() error {
+	// TODO: write validation logic
+	return nil
 }
 
 // ------------------------------------------------------------------------
@@ -237,6 +353,12 @@ type QueryContract struct {
 	Variables []*Variable
 }
 
+func (job *QueryContract) Validate() error {
+	return validation.ValidateStruct(job,
+		validation.Field(&job.Destination, validation.Required, rule.AddressOrPlaceholder),
+	)
+}
+
 type QueryAccount struct {
 	// (Required) address of the account which should be queried
 	Account string `mapstructure:"account" json:"account" yaml:"account" toml:"account"`
@@ -246,6 +368,13 @@ type QueryAccount struct {
 	Field string `mapstructure:"field" json:"field" yaml:"field" toml:"field"`
 }
 
+func (job *QueryAccount) Validate() error {
+	return validation.ValidateStruct(job,
+		validation.Field(&job.Account, validation.Required, rule.AddressOrPlaceholder),
+		validation.Field(&job.Field, validation.Required),
+	)
+}
+
 type QueryName struct {
 	// (Required) name which should be queried
 	Name string `mapstructure:"name" json:"name" yaml:"name" toml:"name"`
@@ -253,10 +382,23 @@ type QueryName struct {
 	Field string `mapstructure:"field" json:"field" yaml:"field" toml:"field"`
 }
 
+func (job *QueryName) Validate() error {
+	return validation.ValidateStruct(job,
+		validation.Field(&job.Name, validation.Required),
+		validation.Field(&job.Field, validation.Required),
+	)
+}
+
 type QueryVals struct {
 	// (Required) should be of the set ["bonded_validators" or "unbonding_validators"] and it will
 	// return a comma separated listing of the addresses which fall into one of those categories
-	Field string `mapstructure:"field" json:"field" yaml:"field" toml:"field"`
+	Query string `mapstructure:"field" json:"field" yaml:"field" toml:"field"`
+}
+
+func (job *QueryVals) Validate() error {
+	return validation.ValidateStruct(job,
+		validation.Field(&job.Query, validation.Required),
+	)
 }
 
 type Assert struct {
@@ -273,4 +415,10 @@ type Assert struct {
 	// value in most testing suites. Generally it will be a variable expansion from one of the query
 	// jobs.
 	Value string `mapstructure:"val" json:"val" yaml:"val" toml:"val"`
+}
+
+func (job *Assert) Validate() error {
+	return validation.ValidateStruct(job,
+		validation.Field(&job.Relation, validation.Required, rule.Relation),
+	)
 }

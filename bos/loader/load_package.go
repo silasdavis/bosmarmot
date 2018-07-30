@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"os"
+
 	"github.com/monax/bosmarmot/bos/def"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -11,7 +13,7 @@ import (
 
 func LoadPackage(fileName string) (*def.Package, error) {
 	log.Info("Loading monax Jobs Definition File.")
-	var pkg = def.BlankPackage()
+	var pkg = new(def.Package)
 	var epmJobs = viper.New()
 
 	// setup file
@@ -20,26 +22,29 @@ func LoadPackage(fileName string) (*def.Package, error) {
 		return nil, fmt.Errorf("Sorry, the marmots were unable to find the absolute path to the monax jobs file.")
 	}
 
-	path := filepath.Dir(abs)
-	file := filepath.Base(abs)
-	extName := filepath.Ext(file)
-	bName := file[:len(file)-len(extName)]
+	dir := filepath.Dir(abs)
+	base := filepath.Base(abs)
+	extName := filepath.Ext(base)
+	bName := base[:len(base)-len(extName)]
 	log.WithFields(log.Fields{
-		"path": path,
+		"path": dir,
 		"name": bName,
-	}).Debug("Loading monax jobs file")
+	}).Debug("Loading jobs file")
 
 	epmJobs.SetConfigType("yaml")
-	epmJobs.AddConfigPath(path)
 	epmJobs.SetConfigName(bName)
 
+	r, err := os.Open(fileName)
+	if err != nil {
+		return nil, err
+	}
 	// load file
-	if err := epmJobs.ReadInConfig(); err != nil {
+	if err := epmJobs.ReadConfig(r); err != nil {
 		return nil, fmt.Errorf("Sorry, the marmots were unable to load the monax jobs file. Please check your path: %v", err)
 	}
 
 	// marshall file
-	if err := epmJobs.Unmarshal(pkg); err != nil {
+	if err := epmJobs.UnmarshalExact(pkg); err != nil {
 		return nil, fmt.Errorf(`Sorry, the marmots could not figure that monax jobs file out.
 			Please check that your epm.yaml is properly formatted: %v`, err)
 	}

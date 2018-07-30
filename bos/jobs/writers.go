@@ -42,7 +42,7 @@ func WriteJobResultCSV(name, result string) error {
 	return err
 }
 
-func WriteJobResultJSON(results map[string]string, logFile string) error {
+func WriteJobResultJSON(results map[string]interface{}, logFile string) error {
 
 	file, err := os.Create(logFile)
 	if err != nil {

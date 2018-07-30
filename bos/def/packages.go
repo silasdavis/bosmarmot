@@ -1,5 +1,10 @@
 package def
 
+import (
+	"github.com/go-ozzo/ozzo-validation"
+	"github.com/monax/bosmarmot/bos/def/rule"
+)
+
 type Packages struct {
 	Address       string   `mapstructure:"," json:"," yaml:"," toml:","`
 	BinPath       string   `mapstructure:"," json:"," yaml:"," toml:","`
@@ -20,10 +25,29 @@ type Packages struct {
 	Client
 }
 
-func NewPackage() *Packages {
-	return &Packages{}
+func (do *Packages) Validate() error {
+	return validation.ValidateStruct(do,
+		validation.Field(&do.Address, rule.Address),
+		validation.Field(&do.DefaultAmount, rule.Uint64),
+		validation.Field(&do.DefaultFee, rule.Uint64),
+		validation.Field(&do.DefaultGas, rule.Uint64),
+		validation.Field(&do.Package),
+	)
 }
 
 func (do *Packages) Dial() error {
 	return do.Client.Dial(do.ChainURL, do.Signer)
+}
+
+type Package struct {
+	// from epm
+	Account string
+	Jobs    []*Job
+}
+
+func (pkg *Package) Validate() error {
+	return validation.ValidateStruct(pkg,
+		validation.Field(&pkg.Account, rule.Address),
+		validation.Field(&pkg.Jobs),
+	)
 }

@@ -12,11 +12,6 @@ import (
 )
 
 func QueryContractJob(query *def.QueryContract, do *def.Packages) (string, []*def.Variable, error) {
-	// Preprocess variables. We don't preprocess data as it is processed by ReadAbiFormulateCall
-	query.Source, _ = util.PreProcess(query.Source, do)
-	query.Destination, _ = util.PreProcess(query.Destination, do)
-	query.Bin, _ = util.PreProcess(query.Bin, do)
-
 	var queryDataArray []string
 	var err error
 	query.Function, queryDataArray, err = util.PreProcessInputData(query.Function, query.Data, do, false)
@@ -41,7 +36,7 @@ func QueryContractJob(query *def.QueryContract, do *def.Packages) (string, []*de
 	}
 
 	// Call the client
-	txe, err := do.QueryContract(def.QueryArg{
+	txe, err := do.QueryContract(&def.QueryArg{
 		Input:   query.Source,
 		Address: query.Destination,
 		Data:    data,
@@ -75,10 +70,6 @@ func QueryContractJob(query *def.QueryContract, do *def.Packages) (string, []*de
 }
 
 func QueryAccountJob(query *def.QueryAccount, do *def.Packages) (string, error) {
-	// Preprocess variables
-	query.Account, _ = util.PreProcess(query.Account, do)
-	query.Field, _ = util.PreProcess(query.Field, do)
-
 	// Perform Query
 	arg := fmt.Sprintf("%s:%s", query.Account, query.Field)
 	log.WithField("=>", arg).Info("Querying Account")
@@ -98,10 +89,6 @@ func QueryAccountJob(query *def.QueryAccount, do *def.Packages) (string, error) 
 }
 
 func QueryNameJob(query *def.QueryName, do *def.Packages) (string, error) {
-	// Preprocess variables
-	query.Name, _ = util.PreProcess(query.Name, do)
-	query.Field, _ = util.PreProcess(query.Field, do)
-
 	// Peform query
 	log.WithFields(log.Fields{
 		"name":  query.Name,
@@ -120,20 +107,14 @@ func QueryNameJob(query *def.QueryName, do *def.Packages) (string, error) {
 	return result, nil
 }
 
-func QueryValsJob(query *def.QueryVals, do *def.Packages) (string, error) {
-	var result string
-
-	// Preprocess variables
-	query.Field, _ = util.PreProcess(query.Field, do)
-
-	// Peform query
-	log.WithField("=>", query.Field).Info("Querying Vals")
-	result, err := util.ValidatorsInfo(query.Field, do)
+func QueryValsJob(query *def.QueryVals, do *def.Packages) (interface{}, error) {
+	log.WithField("=>", query.Query).Info("Querying Vals")
+	result, err := util.ValidatorsInfo(query.Query, do)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error querying validators with jq-style query %s: %v", query.Query, err)
 	}
 
-	if result != "" {
+	if result != nil {
 		log.WithField("=>", result).Warn("Return Value")
 	} else {
 		log.Debug("No return.")
@@ -143,10 +124,6 @@ func QueryValsJob(query *def.QueryVals, do *def.Packages) (string, error) {
 
 func AssertJob(assertion *def.Assert, do *def.Packages) (string, error) {
 	var result string
-	// Preprocess variables
-	assertion.Key, _ = util.PreProcess(assertion.Key, do)
-	assertion.Relation, _ = util.PreProcess(assertion.Relation, do)
-	assertion.Value, _ = util.PreProcess(assertion.Value, do)
 
 	// Switch on relation
 	log.WithFields(log.Fields{
