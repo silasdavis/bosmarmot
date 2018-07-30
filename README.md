@@ -59,18 +59,31 @@ and writing the output to an `genesis-spec.json`. This file should look like:
 
 ```
 {
-	Accounts": [
+	"Accounts": [
 		{
-			"Amount": 99999999999999,
-			"AmountBonded": 9999999999,
 			"Name": "Full_0",
+			"Amounts": [
+				{
+					"Type": "Native",
+					"Amount": 99999999999999
+				},
+				{
+					"Type": "Power",
+					"Amount": 9999999999
+				}
+			],
 			"Permissions": [
 				"all"
 			]
 		},
 		{
-			"Amount": 9999999999,
 			"Name": "Participant_0",
+			"Amounts": [
+				{
+					"Type": "Native",
+					"Amount": 9999999999
+				}
+			],
 			"Permissions": [
 				"send",
 				"call",
@@ -93,8 +106,8 @@ which creates `burrow.toml` that looks like:
 
 ```
 [GenesisDoc]
-  GenesisTime = 2018-05-24T16:12:34Z
-  ChainName = "BurrowChain_2BE507"
+  GenesisTime = 2018-07-26T16:33:57Z
+  ChainName = "BurrowChain_016017"
   [GenesisDoc.GlobalPermissions]
     Roles = []
     [GenesisDoc.GlobalPermissions.Base]
@@ -102,8 +115,8 @@ which creates `burrow.toml` that looks like:
       SetBit = 16383
 
   [[GenesisDoc.Accounts]]
-    Address = "84276E34B8F3C4166F61878473AEC831A5CF5444"
-    PublicKey = "{\"type\":\"ed25519\",\"data\":\"8C245576A2A0299DF0B760C55EF366D281B914FADBE03571FC1901FCAADA067F\"}"
+    Address = "F71831847564B7008AD30DD56336D9C42787CF63"
+    PublicKey = "{\"CurveType\":\"ed25519\",\"PublicKey\":\"1341FFAD471E0AF4CD190293ED0D8D41713439129A0C9C8009A1DD66608B8BF1\"}"
     Amount = 99999999999999
     Name = "Full_0"
     [GenesisDoc.Accounts.Permissions]
@@ -112,8 +125,8 @@ which creates `burrow.toml` that looks like:
         SetBit = 16383
 
   [[GenesisDoc.Accounts]]
-    Address = "8F573B59FE9D0886CB525069E7E16C1997E8A126"
-    PublicKey = "{\"type\":\"ed25519\",\"data\":\"15989611C2670C248F81070F7E94E824B527E6CA80C4F4EE05414C82F9DA18E3\"}"
+    Address = "8EC3BA4BFE8DDEE76D5C8FF34ED72A83A99DEE98"
+    PublicKey = "{\"CurveType\":\"ed25519\",\"PublicKey\":\"E3ACC06A3687E2ECD26818C905B3B73EB54755BF2411C6671AFE522B73FB81C2\"}"
     Amount = 9999999999
     Name = "Participant_0"
     [GenesisDoc.Accounts.Permissions]
@@ -122,54 +135,47 @@ which creates `burrow.toml` that looks like:
         SetBit = 2118
 
   [[GenesisDoc.Validators]]
-    Address = "84276E34B8F3C4166F61878473AEC831A5CF5444"
-    PublicKey = "{\"type\":\"ed25519\",\"data\":\"8C245576A2A0299DF0B760C55EF366D281B914FADBE03571FC1901FCAADA067F\"}"
+    Address = "F71831847564B7008AD30DD56336D9C42787CF63"
+    PublicKey = "{\"CurveType\":\"ed25519\",\"PublicKey\":\"1341FFAD471E0AF4CD190293ED0D8D41713439129A0C9C8009A1DD66608B8BF1\"}"
     Amount = 9999999999
     Name = "Full_0"
 
     [[GenesisDoc.Validators.UnbondTo]]
-      Address = "84276E34B8F3C4166F61878473AEC831A5CF5444"
-      PublicKey = "{\"type\":\"ed25519\",\"data\":\"8C245576A2A0299DF0B760C55EF366D281B914FADBE03571FC1901FCAADA067F\"}"
+      Address = "F71831847564B7008AD30DD56336D9C42787CF63"
+      PublicKey = "{\"CurveType\":\"ed25519\",\"PublicKey\":\"1341FFAD471E0AF4CD190293ED0D8D41713439129A0C9C8009A1DD66608B8BF1\"}"
       Amount = 9999999999
 
 [Tendermint]
   Seeds = ""
   PersistentPeers = ""
-  ListenAddress = "tcp://0.0.0.0:46656"
+  ListenAddress = "tcp://0.0.0.0:26656"
+  ExternalAddress = ""
   Moniker = ""
   TendermintRoot = ".burrow"
 
+[Execution]
+
 [Keys]
-  URL = "http://localhost:4767"
+  GRPCServiceEnabled = true
+  AllowBadFilePermissions = false
+  RemoteAddress = ""
+  KeysDirectory = ".keys"
 
 [RPC]
-  [RPC.V0]
-    Disabled = false
-    [RPC.V0.Server]
-      [RPC.V0.Server.bind]
-        address = "localhost"
-        port = 1337
-      [RPC.V0.Server.TLS]
-        tls = false
-        cert_path = ""
-        key_path = ""
-      [RPC.V0.Server.CORS]
-        enable = false
-        allow_credentials = false
-        max_age = 0
-      [RPC.V0.Server.HTTP]
-        json_rpc_endpoint = "/rpc"
-      [RPC.V0.Server.web_socket]
-        websocket_endpoint = "/socketrpc"
-        max_websocket_sessions = 50
-        read_buffer_size = 4096
-        write_buffer_size = 4096
   [RPC.TM]
-    Disabled = false
-    ListenAddress = "tcp://localhost:46657"
+    Enabled = true
+    ListenAddress = "tcp://127.0.0.1:26658"
   [RPC.Profiler]
-    Disabled = true
-    ListenAddress = "tcp://localhost:6060"
+    Enabled = false
+    ListenAddress = "tcp://127.0.0.1:6060"
+  [RPC.GRPC]
+    Enabled = true
+    ListenAddress = "127.0.0.1:10997"
+  [RPC.Metrics]
+    Enabled = false
+    ListenAddress = "tcp://127.0.0.1:9102"
+    MetricsPath = "/metrics"
+    BlockSampleSize = 100
 
 [Logging]
   ExcludeTrace = false
@@ -216,158 +222,151 @@ jobs:
 
 - name: deployStorageK
   deploy:
-      contract: storage.sol
+    contract: storage.sol
 
 - name: setStorageBaseBool
   set:
-      val: "true"
+    val: "true"
 
 - name: setStorageBool
   call:
-      destination: $deployStorageK
-      function: setBool
-      data:
-        - $setStorageBaseBool
+    destination: $deployStorageK
+    function: setBool
+    data: [$setStorageBaseBool]
 
 - name: queryStorageBool
   query-contract:
-      destination: $deployStorageK
-      function: getBool
+    destination: $deployStorageK
+    function: getBool
 
 - name: assertStorageBool
   assert:
-      key: $queryStorageBool
-      relation: eq
-      val: $setStorageBaseBool
+    key: $queryStorageBool
+    relation: eq
+    val: $setStorageBaseBool
 
 # tests string bools: #71
 - name: setStorageBool2
   call:
-      destination: $deployStorageK
-      function: setBool2
-      data:
-        - true
+    destination: $deployStorageK
+    function: setBool2
+    data: [true]
 
 - name: queryStorageBool2
   query-contract:
-      destination: $deployStorageK
-      function: getBool2
+    destination: $deployStorageK
+    function: getBool2
 
 - name: assertStorageBool2
   assert:
-      key: $queryStorageBool2
-      relation: eq
-      val: "true"
+    key: $queryStorageBool2
+    relation: eq
+    val: "true"
 
 - name: setStorageBaseInt
   set:
-      val: 50000
+    val: 50000
 
 - name: setStorageInt
   call:
-      destination: $deployStorageK
-      function: setInt
-      data:
-        - $setStorageBaseInt
+    destination: $deployStorageK
+    function: setInt
+    data: [$setStorageBaseInt]
 
 - name: queryStorageInt
   query-contract:
-      destination: $deployStorageK
-      function: getInt
+    destination: $deployStorageK
+    function: getInt
 
 - name: assertStorageInt
   assert:
-      key: $queryStorageInt
-      relation: eq
-      val: $setStorageBaseInt
+    key: $queryStorageInt
+    relation: eq
+    val: $setStorageBaseInt
 
 - name: setStorageBaseUint
   set:
-      val: 9999999
+    val: 9999999
 
 - name: setStorageUint
   call:
-      destination: $deployStorageK
-      function: setUint
-      data:
-        - $setStorageBaseUint
+    destination: $deployStorageK
+    function: setUint
+    data: [$setStorageBaseUint]
 
 - name: queryStorageUint
   query-contract:
-      destination: $deployStorageK
-      function: getUint
+    destination: $deployStorageK
+    function: getUint
 
 - name: assertStorageUint
   assert:
-      key: $queryStorageUint
-      relation: eq
-      val: $setStorageBaseUint
+    key: $queryStorageUint
+    relation: eq
+    val: $setStorageBaseUint
 
 - name: setStorageBaseAddress
   set:
-      val: "1040E6521541DAB4E7EE57F21226DD17CE9F0FB7"
+    val: "1040E6521541DAB4E7EE57F21226DD17CE9F0FB7"
 
 - name: setStorageAddress
   call:
-      destination: $deployStorageK
-      function: setAddress
-      data:
-        - $setStorageBaseAddress
+    destination: $deployStorageK
+    function: setAddress
+    data: [$setStorageBaseAddress]
 
 - name: queryStorageAddress
   query-contract:
-      destination: $deployStorageK
-      function: getAddress
+    destination: $deployStorageK
+    function: getAddress
 
 - name: assertStorageAddress
   assert:
-      key: $queryStorageAddress
-      relation: eq
-      val: $setStorageBaseAddress
+    key: $queryStorageAddress
+    relation: eq
+    val: $setStorageBaseAddress
 
 - name: setStorageBaseBytes
   set:
-      val: marmatoshi
+    val: marmatoshi
 
 - name: setStorageBytes
   call:
-      destination: $deployStorageK
-      function: setBytes
-      data:
-        - $setStorageBaseBytes
+    destination: $deployStorageK
+    function: setBytes
+    data: [$setStorageBaseBytes]
 
 - name: queryStorageBytes
   query-contract:
-      destination: $deployStorageK
-      function: getBytes
+    destination: $deployStorageK
+    function: getBytes
 
 - name: assertStorageBytes
   assert:
-      key: $queryStorageBytes
-      relation: eq
-      val: $setStorageBaseBytes
+    key: $queryStorageBytes
+    relation: eq
+    val: $setStorageBaseBytes
 
 - name: setStorageBaseString
   set:
-      val: nakaburrow
+    val: nakaburrow
 
 - name: setStorageString
   call:
-      destination: $deployStorageK
-      function: setString
-      data:
-        - $setStorageBaseString
+    destination: $deployStorageK
+    function: setString
+    data: [$setStorageBaseString]
 
 - name: queryStorageString
   query-contract:
-      destination: $deployStorageK
-      function: getString
+    destination: $deployStorageK
+    function: getString
 
 - name: assertStorageString
   assert:
-      key: $queryStorageString
-      relation: eq
-      val: $setStorageBaseString
+    key: $queryStorageString
+    relation: eq
+    val: $setStorageBaseString
 ```
 
 while our Solidity contract (`storage.sol`) looks like:
@@ -442,19 +441,19 @@ contract SimpleStorage {
 }
 ```
 
-Both files (`epm.yaml` & `storage.sol`) should be in the same directory with nothing else in it.
+Both files (`epm.yaml` & `storage.sol`) should be in the same directory with no other yaml or sol files.
 
 From inside that directory, we are ready to deploy.
 
 ```
-bos --keys="localhost:10997" \
-	--chain-url="tcp://localhost:46657" \
-	--address=0A40DC874BC932B78AC390EAD1C1BF33469597AB
+bos --address=F71831847564B7008AD30DD56336D9C42787CF63
 ```
 
-where the field in `--address` is the `ValidatorAddress` at the top of your `burrow.toml`.
+where you should replace the `--address` field with the `ValidatorAddress` at the top of your `burrow.toml`.
 
 That's it! You've succesfully deployed (and tested) a Soldity contract to a Burrow node.
+
+Note - that to redeploy the burrow chain later, you will need the same genesis-spec.json and burrow.toml files - so keep hold of them!
 
 ## Working with Javascript
 
