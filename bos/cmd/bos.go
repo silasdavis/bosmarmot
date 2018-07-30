@@ -56,7 +56,7 @@ func AddGlobalFlags() {
 		"IP:PORT of Burrow GRPC service which jobs should or otherwise transaction submitted unsigned for mempool signing in Burrow")
 
 	BosCmd.Flags().BoolVarP(&do.MempoolSigning, "mempool-signing", "p", false,
-		"Use Burrows own keys connection to sign transactions - means that Burrow instance must have access to input account keys. "+
+		"Use Burrow's own keys connection to sign transactions - means that Burrow instance must have access to input account keys. "+
 			"Sequence numbers are set as transactions enter the mempool so concurrent transactions can be sent from same inputs.")
 
 	BosCmd.Flags().StringVarP(&do.Path, "dir", "i", "",
