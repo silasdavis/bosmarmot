@@ -16,7 +16,7 @@ jobs:
 # Begin with single constructor contract
 - name: deployGSABIFactorySingle
   deploy:
-      contract: contracts/GSFactory.sol
+      contract: contracts/GSSingle.sol
       instance: GSSingle
 
 - name: createGSContractSingle
@@ -77,7 +77,7 @@ jobs:
 # Now Multi constructor Contract
 - name: deployGSABIFactoryMulti
   deploy:
-      contract: contracts/GSFactory.sol
+      contract: contracts/GSMulti.sol
       instance: GSMulti
 
 - name: createGSContractMulti

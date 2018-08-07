@@ -3,7 +3,7 @@ jobs:
   #deploy contract One
 - name: deployOne 
   deploy:
-       contract: three.sol
+       contract: one.sol
        instance: one
  
 - name: get1i 
@@ -21,7 +21,7 @@ jobs:
 #deploy contract two
 - name: deployTwo 
   deploy:
-       contract: three.sol
+       contract: two.sol
        instance: two
  
 - name:  get2i 

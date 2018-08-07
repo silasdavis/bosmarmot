@@ -11,7 +11,7 @@ jobs:
 
 - name: deployGSABIFactory
   deploy:
-      contract: GSFactory.sol
+      contract: GSContract.sol
       instance: GSContract
 
 - name: createGSContract

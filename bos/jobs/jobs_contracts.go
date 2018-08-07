@@ -215,23 +215,15 @@ func matchInstanceName(objectName, deployInstance string) bool {
 }
 
 func findContractFile(contract, binPath string) (string, error) {
-	var contractPath string
-	if _, err := os.Stat(contract); err != nil {
-		if _, secErr := os.Stat(filepath.Join(binPath, contract)); secErr != nil {
-			if _, thirdErr := os.Stat(filepath.Join(binPath, filepath.Base(contract))); thirdErr != nil {
-				return "", fmt.Errorf("Could not find contract in\n* primary path: %v\n* binary path: %v\n* tertiary path: %v",
-					contract, filepath.Join(binPath, contract), filepath.Join(binPath, filepath.Base(contract)))
-			} else {
-				contractPath = filepath.Join(binPath, filepath.Base(contract))
-			}
-		} else {
-			contractPath = filepath.Join(binPath, contract)
+	contractPaths := []string{contract, filepath.Join(binPath, contract), filepath.Join(binPath, filepath.Base(contract))}
+
+	for _, p := range contractPaths {
+		if _, err := os.Stat(p); err == nil {
+			return p, nil
 		}
-	} else {
-		contractPath = contract
 	}
 
-	return contractPath, nil
+	return "", fmt.Errorf("Could not find contract in any of %v", contractPaths)
 }
 
 // TODO [rj] refactor to remove [contractPath] from functions signature => only used in a single error throw.
