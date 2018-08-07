@@ -18,6 +18,52 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func BuildJob(build *def.Build, do *def.Packages) (result string, err error) {
+	// assemble contract
+	contractPath, err := findContractFile(build.Contract, do.BinPath)
+	if err != nil {
+		return
+	}
+
+	log.WithField("=>", contractPath).Info("Contract path")
+
+	// normal compilation/deploy sequence
+	resp, err := compilers.RequestCompile(contractPath, false, make(map[string]string))
+	if err != nil {
+		log.Errorln("Error compiling contracts: Compilers error:")
+		return "", err
+	} else if resp.Error != "" {
+		log.Errorln("Error compiling contracts: Language error:")
+		return "", fmt.Errorf("%v", resp.Error)
+	} else if resp.Warning != "" {
+		log.WithField("=>", resp.Warning).Warn("Warning during contract compilation")
+	}
+
+	// Save
+	if _, err := os.Stat(do.BinPath); os.IsNotExist(err) {
+		if err := os.Mkdir(do.BinPath, 0775); err != nil {
+			return "", err
+		}
+	}
+
+	for _, res := range resp.Objects {
+		if res.Filename == contractPath {
+			// saving binary
+			b, err := json.Marshal(res.Binary)
+			if err != nil {
+				return "", err
+			}
+			contractName := filepath.Join(do.BinPath, fmt.Sprintf("%s.bin", res.Objectname))
+			log.WithField("=>", contractName).Warn("Saving Binary")
+			if err := ioutil.WriteFile(contractName, b, 0664); err != nil {
+				return "", err
+			}
+		}
+	}
+
+	return "", nil
+}
+
 func DeployJob(deploy *def.Deploy, do *def.Packages) (result string, err error) {
 	deploy.Libraries, _ = util.PreProcessLibs(deploy.Libraries, do)
 	// trim the extension
@@ -31,19 +77,9 @@ func DeployJob(deploy *def.Deploy, do *def.Packages) (result string, err error) 
 	deploy.Gas = useDefault(deploy.Gas, do.DefaultGas)
 
 	// assemble contract
-	var contractPath string
-	if _, err := os.Stat(deploy.Contract); err != nil {
-		if _, secErr := os.Stat(filepath.Join(do.BinPath, deploy.Contract)); secErr != nil {
-			if _, thirdErr := os.Stat(filepath.Join(do.BinPath, filepath.Base(deploy.Contract))); thirdErr != nil {
-				return "", fmt.Errorf("Could not find contract in\n* primary path: %v\n* binary path: %v\n* tertiary path: %v", deploy.Contract, filepath.Join(do.BinPath, deploy.Contract), filepath.Join(do.BinPath, filepath.Base(deploy.Contract)))
-			} else {
-				contractPath = filepath.Join(do.BinPath, filepath.Base(deploy.Contract))
-			}
-		} else {
-			contractPath = filepath.Join(do.BinPath, deploy.Contract)
-		}
-	} else {
-		contractPath = deploy.Contract
+	contractPath, err := findContractFile(deploy.Contract, do.BinPath)
+	if err != nil {
+		return
 	}
 
 	libs := make(map[string]string)
@@ -176,6 +212,26 @@ func matchInstanceName(objectName, deployInstance string) bool {
 	objectNameParts := strings.Split(objectName, ":")
 	deployInstanceParts := strings.Split(deployInstance, "/")
 	return strings.ToLower(objectNameParts[len(objectNameParts)-1]) == strings.ToLower(deployInstanceParts[len(deployInstanceParts)-1])
+}
+
+func findContractFile(contract, binPath string) (string, error) {
+	var contractPath string
+	if _, err := os.Stat(contract); err != nil {
+		if _, secErr := os.Stat(filepath.Join(binPath, contract)); secErr != nil {
+			if _, thirdErr := os.Stat(filepath.Join(binPath, filepath.Base(contract))); thirdErr != nil {
+				return "", fmt.Errorf("Could not find contract in\n* primary path: %v\n* binary path: %v\n* tertiary path: %v",
+					contract, filepath.Join(binPath, contract), filepath.Join(binPath, filepath.Base(contract)))
+			} else {
+				contractPath = filepath.Join(binPath, filepath.Base(contract))
+			}
+		} else {
+			contractPath = filepath.Join(binPath, contract)
+		}
+	} else {
+		contractPath = contract
+	}
+
+	return contractPath, nil
 }
 
 // TODO [rj] refactor to remove [contractPath] from functions signature => only used in a single error throw.

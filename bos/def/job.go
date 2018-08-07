@@ -30,6 +30,8 @@ type Job struct {
 	UpdateAccount *UpdateAccount `mapstructure:"update-account,omitempty" json:"update-account,omitempty" yaml:"update-account,omitempty" toml:"update-account"`
 	// Contract compile and send to the chain functions
 	Deploy *Deploy `mapstructure:"deploy,omitempty" json:"deploy,omitempty" yaml:"deploy,omitempty" toml:"deploy"`
+	// Contract compile/build
+	Build *Build `mapstructure:"build,omitempty" json:"build,omitempty" yaml:"build,omitempty" toml:"build"`
 	// Send tokens from one account to another
 	Send *Send `mapstructure:"send,omitempty" json:"send,omitempty" yaml:"send,omitempty" toml:"send"`
 	// Utilize monax:db's native name registry to register a name

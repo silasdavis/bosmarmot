@@ -135,7 +135,6 @@ func RequestBinaryLinkage(file string, libraries map[string]string) (*BinaryResp
 	}, nil
 }
 
-//todo: Might also need to add in a map of library names to addrs
 func RequestCompile(file string, optimize bool, libraries map[string]string) (*Response, error) {
 	input := SolidityInput{Language: "Solidity", Sources: make(map[string]SolidityInputSource)}
 
