@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"context"
 	"os"
 	"strings"
 	"testing"
@@ -11,52 +12,63 @@ import (
 	"github.com/hiturria/bosmarmot/vent/service"
 	"github.com/hiturria/bosmarmot/vent/test"
 	"github.com/hyperledger/burrow/core"
+	"github.com/hyperledger/burrow/execution/exec"
 	"github.com/hyperledger/burrow/integration"
-	"github.com/hyperledger/burrow/rpc/rpcevents"
-	"github.com/hyperledger/burrow/rpc/rpctransact"
 	"github.com/stretchr/testify/require"
 )
 
 var privateAccounts = integration.MakePrivateAccounts(5) // make keys
 var genesisDoc = integration.TestGenesisDoc(privateAccounts)
-var inputAccount = &rpctransact.InputAccount{Address: privateAccounts[0].Address().Bytes()}
+var inputAccount = privateAccounts[0]
+var testConfig = integration.NewTestConfig(genesisDoc)
 var kern *core.Kernel
 
-func testEventLogDecoder(log *rpcevents.EventDataLog, data map[string]string) {
-	data["name"] = strings.Trim(string(log.Topics[2]), "\x00")
-	data["description"] = strings.Trim(string(log.Topics[3]), "\x00")
+func testEventLogDecoder(log *exec.LogEvent, data map[string]string) {
+	data["name"] = strings.Trim(log.Topics[2].String(), "\x00")
+	data["description"] = strings.Trim(log.Topics[3].String(), "\x00")
 }
 
 func TestMain(m *testing.M) {
-	returnValue := integration.TestWrapper(privateAccounts, genesisDoc, func(k *core.Kernel) int {
-		kern = k
-		return m.Run()
-	})
+	cleanup := integration.EnterTestDirectory()
+	defer cleanup()
+
+	kern = integration.TestKernel(inputAccount, privateAccounts, testConfig, nil)
+
+	err := kern.Boot()
+	if err != nil {
+		panic(err)
+	}
+	// Sometimes better to not shutdown as logging errors on shutdown may obscure real issue
+	defer func() {
+		kern.Shutdown(context.Background())
+	}()
+
+	returnValue := m.Run()
 
 	time.Sleep(3 * time.Second)
 	os.Exit(returnValue)
 }
 
 func TestRun(t *testing.T) {
-	tCli := test.NewTransactClient(t)
-	create := test.CreateContract(t, tCli, inputAccount)
+	tCli := test.NewTransactClient(t, testConfig.RPC.GRPC.ListenAddress)
+	create := test.CreateContract(t, tCli, inputAccount.Address())
 
 	// Here is how we can generate events
 	name := "TestEvent1"
 	description := "Description of TestEvent1"
-	test.CallAddEvent(t, tCli, inputAccount, create.CallData.Callee, name, description)
+	test.CallAddEvent(t, tCli, inputAccount.Address(), create.Receipt.ContractAddress, name, description)
 
 	name = "TestEvent2"
 	description = "Description of TestEvent2"
-	test.CallAddEvent(t, tCli, inputAccount, create.CallData.Callee, name, description)
+	test.CallAddEvent(t, tCli, inputAccount.Address(), create.Receipt.ContractAddress, name, description)
 
 	name = "TestEvent3"
 	description = "Description of TestEvent3"
-	test.CallAddEvent(t, tCli, inputAccount, create.CallData.Callee, name, description)
+	test.CallAddEvent(t, tCli, inputAccount.Address(), create.Receipt.ContractAddress, name, description)
 
 	name = "TestEvent4"
 	description = "Description of TestEvent4"
-	test.CallAddEvent(t, tCli, inputAccount, create.CallData.Callee, name, description)
+	test.CallAddEvent(t, tCli, inputAccount.Address(), create.Receipt.ContractAddress, name, description)
 
 	// This is a workaround for off-by-one on latest bound fixed in burrow
 	time.Sleep(time.Second * 2)
@@ -69,6 +81,7 @@ func TestRun(t *testing.T) {
 	cfg := config.DefaultFlags()
 	cfg.DBSchema = db.Schema
 	cfg.CfgFile = os.Getenv("GOPATH") + "/src/github.com/hiturria/bosmarmot/vent/test/sqlsol_example.json"
+	cfg.GRPCAddr = testConfig.RPC.GRPC.ListenAddress
 
 	log := logger.NewLogger(cfg.LogLevel)
 
@@ -90,7 +103,6 @@ func TestRun(t *testing.T) {
 	require.Equal(t, 1, len(tblData))
 	require.Equal(t, "0", tblData[0]["index"])
 	require.Equal(t, "2", tblData[0]["height"])
-	require.Equal(t, "\263+\307\246\336\224C\335\205i\011<\220\217\006\312\272\342\311\347", tblData[0]["txhash"])
 	require.Equal(t, "LogEvent", tblData[0]["eventtype"])
 	require.Equal(t, "TEST_EVENTS", tblData[0]["eventname"])
 	require.Equal(t, "TestEvent1", tblData[0]["testname"])
@@ -108,7 +120,6 @@ func TestRun(t *testing.T) {
 	require.Equal(t, "0", tblData[0]["index"])
 	require.Equal(t, "5", tblData[0]["height"])
 	require.Equal(t, "5", tblData[0]["height"])
-	require.Equal(t, "\213\366n\264)'\264\332ybb\3704\015\177\031\214\372\340\004", tblData[0]["txhash"])
 	require.Equal(t, "LogEvent", tblData[0]["eventtype"])
 	require.Equal(t, "TEST_EVENTS", tblData[0]["eventname"])
 	require.Equal(t, "TestEvent4", tblData[0]["testname"])

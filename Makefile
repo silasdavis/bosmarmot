@@ -64,7 +64,7 @@ test_integration_bos: build_bin bin/solc bin/burrow
 
 .PHONY:	test_integration_vent
 test_integration_vent:
-	@GOCACHE=off go test -v -tags integration `go list ./vent/...`
+	@GOCACHE=off go test -tags integration `go list ./vent/...`
 
 .PHONY:	test_burrow_js
 test_burrow_js: build_bin bin/solc bin/burrow

@@ -105,7 +105,7 @@ func (c *Consumer) Run() error {
 
 	cli := rpcevents.NewExecutionEventsClient(conn)
 
-	request := &rpcevents.GetEventsRequest{
+	request := &rpcevents.BlocksRequest{
 		Query:      query.NewBuilder().AndEquals(event.EventTypeKey, exec.TypeLog.String()).String(),
 		BlockRange: rpcevents.NewBlockRange(rpcevents.AbsoluteBound(startingBlock), rpcevents.LatestBound()),
 	}
@@ -146,7 +146,7 @@ func (c *Consumer) Run() error {
 			// GetEventDataLog gets log event data for the given event
 			// it seems that this will change to LogEvent() in new bosmarmot version
 			eventHeader := event.GetHeader()
-			eventLog := event.GetEventDataLog()
+			eventLog := event.GetLog()
 
 			// decode event data using the provided evento log decoders
 			eventData := DecodeEvent(eventHeader, eventLog, c.EventLogDecoders)
