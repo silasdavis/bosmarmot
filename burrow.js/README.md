@@ -59,11 +59,10 @@ The structure of the library is such that there are lower-level access to the GR
 ### Burrow
 
 | Component Name | Accessor |
-| :------ LOW LEVEL ------- |
+| :----------- | :--------------- |
 | Transactions | [Burrow.transact](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpctransact.proto) |
 | Queries | [Burrow.query](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpcquery.proto) |
 | EventStream | [Burrow.eventStream](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpcevents.proto) |
-| ------- HIGH LEVEL ------ |
 | Events | [Burrow.events](https://github.com/monax/bosmarmot/blob/develop/burrow.js/lib/events.js) |
 | NameReg | [Burrow.namereg](https://github.com/monax/bosmarmot/blob/develop/burrow.js/lib/namereg.js) |
 | Contracts | [Burrow.contracts](https://github.com/monax/bosmarmot/blob/develop/burrow.js/lib/contractManager.js) |
