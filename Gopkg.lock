@@ -2,6 +2,14 @@
 
 
 [[projects]]
+  digest = "1:167b6f65a6656de568092189ae791253939f076df60231fdd64588ac703892a1"
+  name = "github.com/BurntSushi/toml"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "b26d9c308763d68093482582cea63d69be07a0f0"
+  version = "v0.3.0"
+
+[[projects]]
   digest = "1:40948327b6631b9b5c7bb55acb55bd1cad78ffbfa9d81642e90ffdcb1d487443"
   name = "github.com/OneOfOne/xxhash"
   packages = ["."]
@@ -34,11 +42,35 @@
   revision = "9a2f9524024889e129a5422aca2cff73cb3eabf6"
 
 [[projects]]
+  branch = "master"
+  digest = "1:96f90d432e58964e281f5e4d4683699a472b39517d5b38b39df422523ebb5bd2"
+  name = "github.com/cep21/xdgbasedir"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "21470bfc93b9903bce0beaebb037b1d04d0be523"
+
+[[projects]]
   digest = "1:a2c1d0e43bd3baaa071d1b9ed72c27d78169b2b269f71c105ac4ba34b1be4a39"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   pruneopts = "NUT"
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
+  version = "v1.1.0"
+
+[[projects]]
+  digest = "1:4f0ac2a7cc350b14c72a9de0de046b908482d6f16183c8570ee4d6e17adc6a94"
+  name = "github.com/eapache/channels"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "47238d5aae8c0fefd518ef2bee46290909cf8263"
+  version = "v1.1.0"
+
+[[projects]]
+  digest = "1:0d36a2b325b9e75f8057f7f9fbe778d348d70ba652cb9335485b69d1a5c4e038"
+  name = "github.com/eapache/queue"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "44cc805cf13205b55f69e14bcb69867d1ae92f98"
   version = "v1.1.0"
 
 [[projects]]
@@ -190,9 +222,12 @@
     "acm/validator",
     "bcm",
     "binary",
+    "config",
+    "config/source",
     "consensus/tendermint",
     "consensus/tendermint/abci",
     "consensus/tendermint/codes",
+    "core",
     "crypto",
     "event",
     "event/pubsub",
@@ -209,22 +244,41 @@
     "execution/names",
     "genesis",
     "genesis/spec",
+    "integration",
     "keys",
+    "keys/mock",
     "logging",
+    "logging/adapters/stdlib",
+    "logging/errors",
+    "logging/lifecycle",
+    "logging/logconfig",
+    "logging/loggers",
     "logging/structure",
     "permission",
     "process",
     "project",
     "rpc",
+    "rpc/lib/server",
+    "rpc/lib/types",
+    "rpc/metrics",
     "rpc/rpcevents",
     "rpc/rpcquery",
     "rpc/rpctransact",
+    "rpc/tm",
     "sync",
     "txs",
     "txs/payload",
   ]
   pruneopts = "T"
   revision = "9f008bcb6b0521dc3356ac5bbfc48da2768305ab"
+
+[[projects]]
+  digest = "1:9a52adf44086cead3b384e5d0dbf7a1c1cce65e67552ee3383a8561c42a18cd3"
+  name = "github.com/imdario/mergo"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "9f23e2d6bd2a77f959b2bf6acdbefd708a83a4a4"
+  version = "v0.3.6"
 
 [[projects]]
   digest = "1:406338ad39ab2e37b7f4452906442a3dbf0eb3379dd1f06aafb5c07e769a5fbb"
@@ -251,6 +305,17 @@
   revision = "b84e30acd515aadc4b783ad4ff83aff3299bdfe0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:6415011db6d5f89961c38446f3552c74749462bef94904534c55e3dda1affeb9"
+  name = "github.com/lib/pq"
+  packages = [
+    ".",
+    "oid",
+  ]
+  pruneopts = "NUT"
+  revision = "90697d60dd844d5ef6ff15135d0203f65d2f53b8"
+
+[[projects]]
   digest = "1:d244f8666a838fe6ad70ec8fe77f50ebc29fdc3331a2729ba5886bef8435d10d"
   name = "github.com/magiconair/properties"
   packages = ["."]
@@ -273,6 +338,25 @@
   packages = ["."]
   pruneopts = "NUT"
   revision = "f15292f7a699fcc1a38a80977f80a046874ba8ac"
+
+[[projects]]
+  branch = "develop"
+  digest = "1:da30f10328debb6b0c76845598b2bc8c47ea48b722a2cbd1585b7962d6069eec"
+  name = "github.com/monax/bosmarmot"
+  packages = [
+    "bos",
+    "bos/abi",
+    "bos/cmd",
+    "bos/compile",
+    "bos/def",
+    "bos/def/rule",
+    "bos/jobs",
+    "bos/loader",
+    "bos/util",
+    "project",
+  ]
+  pruneopts = "NUT"
+  revision = "2a4311ed0bde7595ccf7da3536540e342a77e7b4"
 
 [[projects]]
   digest = "1:0392287f4fcbbd32a8352f82044dd0b644284d8a979897810abfa246a080adec"
@@ -407,6 +491,14 @@
   pruneopts = "NUT"
   revision = "b5e8006cbee93ec955a89ab31e0e3ce3204f3736"
   version = "v1.0.2"
+
+[[projects]]
+  branch = "master"
+  digest = "1:47201ae9986674849b91deb7eb8c5625d84b387ff1ae161a4ae3eb62779217cb"
+  name = "github.com/streadway/simpleuuid"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "6617b501e485b77e61b98cd533aefff9e258b5a7"
 
 [[projects]]
   digest = "1:0331452965d8695c0a5633e0f509012987681a654f388f2ad0c3b2d7f7004b1c"
@@ -663,15 +755,23 @@
   analyzer-version = 1
   input-imports = [
     "github.com/elgs/gojq",
+    "github.com/go-kit/kit/log",
+    "github.com/go-kit/kit/log/level",
     "github.com/go-ozzo/ozzo-validation",
     "github.com/go-ozzo/ozzo-validation/is",
     "github.com/hyperledger/burrow/acm",
     "github.com/hyperledger/burrow/acm/validator",
+    "github.com/hyperledger/burrow/binary",
+    "github.com/hyperledger/burrow/core",
     "github.com/hyperledger/burrow/crypto",
+    "github.com/hyperledger/burrow/event",
+    "github.com/hyperledger/burrow/event/query",
+    "github.com/hyperledger/burrow/execution/evm/abi",
     "github.com/hyperledger/burrow/execution/evm/sha3",
     "github.com/hyperledger/burrow/execution/exec",
     "github.com/hyperledger/burrow/execution/names",
     "github.com/hyperledger/burrow/genesis/spec",
+    "github.com/hyperledger/burrow/integration",
     "github.com/hyperledger/burrow/keys",
     "github.com/hyperledger/burrow/logging",
     "github.com/hyperledger/burrow/permission",
@@ -681,7 +781,19 @@
     "github.com/hyperledger/burrow/rpc/rpctransact",
     "github.com/hyperledger/burrow/txs",
     "github.com/hyperledger/burrow/txs/payload",
+    "github.com/lib/pq",
+    "github.com/monax/bosmarmot/bos",
+    "github.com/monax/bosmarmot/bos/abi",
+    "github.com/monax/bosmarmot/bos/cmd",
+    "github.com/monax/bosmarmot/bos/compile",
+    "github.com/monax/bosmarmot/bos/def",
+    "github.com/monax/bosmarmot/bos/def/rule",
+    "github.com/monax/bosmarmot/bos/jobs",
+    "github.com/monax/bosmarmot/bos/loader",
+    "github.com/monax/bosmarmot/bos/util",
+    "github.com/monax/bosmarmot/project",
     "github.com/monax/relic",
+    "github.com/pkg/errors",
     "github.com/sirupsen/logrus",
     "github.com/spf13/cobra",
     "github.com/spf13/viper",
