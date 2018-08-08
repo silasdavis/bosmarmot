@@ -1,32 +1,21 @@
-# @monax/legacy-db.js (Alpha)
+# @monax/burrow (Alpha)
 
 This is a JavaScript API for communicating with a [Hyperledger Burrow](https://github.com/hyperledger/burrow) server.
 
-## New Name
+## New Library
 
-This library used to be named `eris-db.js`.  It is now `@monax/legacy-db.js` as part of the company-wide renaming to Monax and also to distinguish it from the upcoming new client API.  Although it is a legacy API it will continue to be supported.
+Previously our client libs were broken into two components `@monax/legacy-db.js` and `@monax/legacy-contract.js`. These have both been replaced by this library `@monax/burrow`. This upgrade was part of a major re-write on the back-end and as such ONLY `@monax/burrow` SHOULD BE USED WITH BURROW VERSIONS GREATER THAN 0.20.0. There is NO BACKWARDS COMPATIBILITY of this lib with versions of burrow less than 0.20.0. There will be a short guide below for upgrading existing applications to new burrow versions.
 
-To use new versions of the library in existing code, change the line in your `package.json` which looks like this:
+## Version compatibility
 
-```
-"eris-db": "0.15.12",
-```
-
-to make it look like this:
-
-```
-"@monax/legacy-db": "0.16.0",
-```
-
-and run `npm install`.
+This lib's version is pegged to burrow's version on the minor. So @monax/burrow at version X.Y.^ will work with burrow version X.Y.^ where ^ means latest patch version. The patch version numbering will not always correspond. If you are having difficulties getting this lib to work with a burrow release please first make sure you have the latest patch version of each.
 
 ## Installation
 
 ### Prerequisites
 
-* [Git](https://git-scm.com/)
-* [Monax](https://monax.io/) version 0.16
-* [Node.js](https://nodejs.org/) version 6 or higher
+* [Burrow](https://github.com/hyperledger/burrow)
+* [Node.js](https://nodejs.org/) version 7 or higher
 
 You can check the installed version of Node.js with the command:
 
@@ -40,172 +29,306 @@ update it using [NodeSource's distribution](https://github.com/nodesource/distri
 ### To Install
 
 ```shell
-$ npm install @monax/legacy-db
+$ npm install @monax/burrow
 ```
 
 ## Usage
 
-If you created a Burrow server using the [Monax CLI](https://github.com/monax/cli) tool, you can find out its IP address using the following command:
-
-```
-$ monax chains ip <name of Burrow server>
-```
+You will need to know the <IP Address>:<PORT> of the burrow instance you wish to connect to. If running locally this will be 'localhost' and the default port is '20997'. DO NOT INCLUDE A PROTOCOL.
 
 The main class is `Burrow`. A standard `Burrow` instance is created like this:
 
 ```JavaScript
-var burrowFactory = require('@monax/legacy-db');
-
-var burrow = burrowFactory.createInstance("http://<IP address>:1337/rpc");
+var monax = require('@monax/burrow');
+var account = 'ABCDEF01234567890123'; // hex string representation of the address to use for signing
+var options = {objectReturn: True};
+var burrow = monax.createInstance("<IP address>:<PORT>", account, options);
 ```
 
-The parameters for `createInstance` is the server URL as a string. The client-type is chosen based on the URL scheme. As of now, the supported schemes are: `http` and `ws` (websockets). No additional configuration is needed.
+The parameters for `createInstance` is the server URL as a string or as an object `{host:<IP Address>, port:<PORT>}`. An account in the for of a hex-encoded address must be provided. NOTE: the instanc eof burrow you are connecting to must have the associated key (if you want local signing you should be running a local node of burrow. Other local signing options might be made available at a later point). And finally an optional options object. Allowed options are:
+
+* objectReturn: If True, communicating with contracts an object returns an object of the form: `{values:{...}, raw:[]}` where the values objects attempts to name the returns based on the abi and the raw is the decoded array of return values. If False just the array of decoded return values is returned.
+
 
 ## API Reference
 
-There are bindings for all the RPC methods. All functions are on the form `function(param1, param2, ... , callback)`, where the callback is a function on the form `function(error,data)` (it is documented under the name `methodCallback`). The `data` object is the same as you would get by calling the corresponding RPC method directly.
+There are bindings for all the GRPC methods. All functions are on the form `function(param1, param2, ... [, callback])`, where the callback is a function on the form `function(error, data)`. The `data` object is the same as you would get by calling the corresponding RPC method directly. If no callback is provided, a promise will be returned instead. If calling a response streaming GRPC call, the callback is not optional and will be called with `data` anytime it is recieved.
 
-This is the over-all structure of the library. The `unsafe` flag means a private key is either sent or received, so should be used with care (dev only).
-
-NOTE: There will be links to the proper jsdoc and integration with Monax.io. For now, the components point to the actual code files and methods points to the web-API method in question.
+The structure of the library is such that there are lower-level access to the GRPC services and higher level wrappers of these services. The structure of the library is outlined below
 
 ### Burrow
 
 | Component Name | Accessor |
-| :------------- | :------- |
-| Accounts | [Burrow.accounts()](https://github.com/monax/legacy-db.js/blob/master/lib/accounts.js) |
-| Blockchain | [Burrow.blockchain()](https://github.com/monax/legacy-db.js/blob/master/lib/blockchain.js) |
-| Consensus | [Burrow.consensus()](https://github.com/monax/legacy-db.js/blob/master/lib/consensus.js) |
-| Events | [Burrow.events()](https://github.com/monax/legacy-db.js/blob/master/lib/events.js) |
-| NameReg | [Burrow.namereg()](https://github.com/monax/legacy-db.js/blob/master/lib/namereg.js) |
-| Network | [Burrow.network()](https://github.com/monax/legacy-db.js/blob/master/lib/network.js) |
-| Transactions | [Burrow.txs()](https://github.com/monax/legacy-db.js/blob/master/lib/transactions.js) |
+| :------ LOW LEVEL ------- |
+| Transactions | [Burrow.transact](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpctransact.proto) |
+| Queries | [Burrow.query](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpcquery.proto) |
+| EventStream | [Burrow.eventStream](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpcevents.proto) |
+| ------- HIGH LEVEL ------ |
+| Events | [Burrow.events](https://github.com/monax/bosmarmot/blob/develop/burrow.js/lib/events.js) |
+| NameReg | [Burrow.namereg](https://github.com/monax/bosmarmot/blob/develop/burrow.js/lib/namereg.js) |
+| Contracts | [Burrow.contracts](https://github.com/monax/bosmarmot/blob/develop/burrow.js/lib/contractManager.js) |
 
-### Components
+### GRPC Access Components
 
-#### Accounts
+Burrow provides access to the three grpc services in the form of automatically generated code endpoints. Below details how to access these methods and links to the request and return objects defined in the protobuf specs. The format for all calls is `function(object[, callback])` The callback is optional for non-streaming endpoints in which case a promise will be returned. 
 
-The accounts object has methods for getting account and account-storage data.
+Here is an example of usage in setting and getting a name:
 
-| Method | RPC method | Notes |
-| :----- | :--------- | :---- |
-| Accounts.getAccounts | [Burrow.getAccounts](https://monax.io/docs/documentation/db/latest/specifications/api/#getaccounts) | |
-| Accounts.getAccount | [Burrow.getAccount](https://monax.io/docs/documentation/db/latest/specifications/api/#getaccount) | |
-| Accounts.getStorage | [Burrow.getStorage](https://monax.io/docs/documentation/db/latest/specifications/api/#getstorage) | |
-| Accounts.getStorageAt | [Burrow.getStorageAt](https://monax.io/docs/documentation/db/latest/specifications/api/#getstorageat) | |
-| Accounts.genPrivAccount | [Burrow.genPrivAccount](https://monax.io/docs/documentation/db/latest/specifications/api/#genprivaccount) | unsafe |
+```javascript
+var setPayload = {
+	Input: Buffer.from(account, 'hex'),
+	Name: "DOUG",
+	Data: "Marmot",
+	Fee: 5000
+}
 
-#### BlockChain
+var getPayload = {Name: "DOUG"}
 
-The accounts object has methods for getting blockchain-related data, such as a list of blocks, or individual blocks, or the hash of the genesis block.
+// Using a callback
+burrow.transact.NameTxSync(setPayload, function(error, data){
+	if (error) throw error; // or something more sensible
+	// data object contains detailed information of the transaction execution.
 
-| Method | RPC method | Notes |
-| :----- | :--------- | :---- |
-| BlockChain.getInfo |  [Burrow.getBlockchainInfo](https://monax.io/docs/documentation/db/latest/specifications/api/#getblockchaininfo) | |
-| BlockChain.getChainId | [Burrow.getChainId](https://monax.io/docs/documentation/db/latest/specifications/api/#getchainid) | |
-| BlockChain.getGenesisHash | [Burrow.getGenesisHash](https://monax.io/docs/documentation/db/latest/specifications/api/#getgenesishash) | |
-| BlockChain.getLatestBlockHeight | [Burrow.getLatestBlockHeight](https://monax.io/docs/documentation/db/latest/specifications/api/#getlatestblockheight) | |
-| BlockChain.getLatestBlock | [Burrow.getLatestBlock](https://monax.io/docs/documentation/db/latest/specifications/api/#getlatestblock) | |
-| BlockChain.getBlocks | [Burrow.getBlocks](https://monax.io/docs/documentation/db/latest/specifications/api/#getblocks) | |
-| BlockChain.getBlock | [Burrow.getBlock](https://monax.io/docs/documentation/db/latest/specifications/api/#getblock) | |
+	// Get a name this time using a promise
+	burrow.query.GetName(getPayload)
+		.then((data) => {console.log(data);}) // should print "Marmot"
+		.catch((error)=> {throw error;})
+})
 
-#### Consensus
-
-The consensus object has methods for getting consensus-related data.
-
-| Method | RPC method | Notes |
-| :----- | :--------- | :---- |
-| Consensus.getState |   [Burrow.getConsensusState](https://monax.io/docs/documentation/db/latest/specifications/api/#getconsensusstate) | |
-| Consensus.getValidators | [Burrow.getValidators](https://monax.io/docs/documentation/db/latest/specifications/api/#getvalidators) | |
-
-#### Events
-
-The tendermint client will generate and fire off events when important things happen, like when a new block has been committed, or someone is transacting to an account. It is possible to subscribe to these events. These are the methods for subscribing, un-subscribing and polling.
-
-| Method | RPC method | Notes |
-| :----- | :--------- | :---- |
-| Events.subscribe | [Burrow.eventSubscribe](https://monax.io/docs/documentation/db/latest/specifications/api/#eventsubscribe) | |
-| Events.unsubscribe | [Burrow.eventUnsubscribe](https://monax.io/docs/documentation/db/latest/specifications/api/#eventunubscribe) | |
-| Events.poll | [Burrow.eventPoll](https://monax.io/docs/documentation/db/latest/specifications/api/#eventpoll) | |
-
-##### Helpers
-
-The helper functions makes it easier to manage subscriptions. Normally you'd be using these functions rather then managing the subscriptions yourself.
-
-Helper functions always contain two callback functions - a `createCallback(error, data)` and an `eventCallback(error, data)`.
-
-The `createCallback` data is an [EventSub]() object, that can be used to do things like getting the event ID, the subscriber ID, and to stop the subscription.
-
-The `eventCallback` data is the event object. This object is different depending on the event type. In the case of `NewBlock` it will be a block, the consensus events is a transaction object, etc. More info can be found in the [api doc]().
-
-| Method | Arguments |
-| :----- | :-------- |
-| Events.subAccountInput | `account address <string>` |
-| Events.subAccountOutput | `account address <string>` |
-| Events.subAccountReceive | `account address <string>` |
-| Events.subLogEvent | `account address <string>` |
-| Events.subSolidityEvent | `account address <string>` |
-| Events.subNewBlocks | `-` |
-| Events.subForks | `-` |
-| Events.subBonds | `-` |
-| Events.subUnbonds | `-` |
-| Events.subRebonds | `-` |
-| Events.subDupeouts | `-` |
-
-`subSolidityEvent` and `subLogEvent` are two different names for the same type of subscription (log events).
-
-#### NameReg
-
-The NameReg object has methods for accessing the name registry.
-
-| Method | RPC method | Notes |
-| :----- | :--------- | :---- |
-| NameReg.getEntry | [Burrow.getNameRegEntry](https://monax.io/docs/documentation/db/latest/specifications/api/#get-namereg-entry) | |
-| NameReg.getEntries | [Burrow.getNameRegEntries](https://monax.io/docs/documentation/db/latest/specifications/api/#get-namereg-entries) | |
-
-#### Network
-
-The accounts object has methods for getting network-related data, such as a list of all peers. It could also have been named "node".
-
-Client Version may be a bit misplaced
-
-| Method | RPC method | Notes |
-| :----- | :--------- | :---- |
-| Network.getInfo | [Burrow.getNetworkInfo](https://monax.io/docs/documentation/db/latest/specifications/api/#getnetworkinfo) |  |
-| Network.getClientVersion | [Burrow.getClientVersion](https://monax.io/docs/documentation/db/latest/specifications/api/#getclientversion) | |
-| Network.getMoniker | [Burrow.getMoniker](https://monax.io/docs/documentation/db/latest/specifications/api/#getmoniker) | |
-| Network.isListening | [Burrow.isListening](https://monax.io/docs/documentation/db/latest/specifications/api/#islistening) | |
-| Network.getListeners | [Burrow.getListeners](https://monax.io/docs/documentation/db/latest/specifications/api/#getlisteners) | |
-| Network.getPeers | [Burrow.getPeers](https://monax.io/docs/documentation/db/latest/specifications/api/#getpeers) | |
-| Network.getPeer | [Burrow.getPeer](https://monax.io/docs/documentation/db/latest/specifications/api/#getpeer) | |
+```
 
 #### Transactions
 
-A transaction is the equivalence of a database `write` operation. They can be done in two ways. There's the "dev" way, which is to call `transact` and pass along the target address (if any), data, gas, and a private key used for signing. It is very similar to the old Ethereum way of transacting, except Tendermint does not keep accounts in the client, so a private key needs to be sent along. This means the server **should either run on the same machine as the tendermint client, or in the same, private network**.
+`burrow.transact` provides access to the burrow GRPC service `rpctransact`. As a GRPC wrapper all the endpoints take a data argument and an optional callback. The format of the data object is specified in the [protobuf files](https://github.com/monax/bosmarmot/tree/develop/burrow.js/protobuf).  A note on RPC naming, any method which ends in `Sync` will wait until the transaction generated is included in a block. Any `Async` method will return a receipt of the transaction immediately but does not guarantee it has been included. `Sim` methods request that the transaction be simulated and the result returned as if it had been executed. SIMULATED CALLS DO NOT GET COMMITTED AND DO NOT CHANGE STATE.
 
-Transacting via `broadcastTx` will be the standard way of doing things if you want the key to remain on the users machine. This requires a browser plugin for doing the actual signing, which we will add later. For now, you should stick to the `transact` method.
-
-To get a private key for testing/developing, you can run `tendermint gen_account` if you have it installed. You can also run `tools/pa_generator.js` if you have a local node running. It will take the url as command line argument at some point...
-
-##### Calls
-
-Calls provide read-only access to the smart contracts. It is used mostly to get data out of a contract-accounts storage by using the contracts accessor methods, but can be used to call any method that does not change any data in any account. A trivial example would be a contract function that takes two numbers as input, adds them, and then simply returns the sum.
-
-There are two types of calls. `Call` takes a data string and an account address and calls the code in that account (if any) using the provided data as input. This is the standard method for read-only operations.
-
-`CallCode` works the same except you don't provide an account address but the actual compiled code instead. It's a dev tool for accessing the VM directly. "Code-execution as a service".
-
-| Method | RPC method | Notes |
+| Method | Passed | Returns |
 | :----- | :--------- | :---- |
-| Transactions.broadcastTx | [Burrow.broadcastTx](https://monax.io/docs/documentation/db/latest/specifications/api/#broadcasttx) | see below |
-| Transactions.getUnconfirmedTxs | [Burrow.getUnconfirmedTxs](https://monax.io/docs/documentation/db/latest/specifications/api/#getunconfirmedtxs) | |
-| Transactions.call | [Burrow.call](https://monax.io/docs/documentation/db/latest/specifications/api/#call) | |
-| Transactions.callCode | [Burrow.callCode](https://monax.io/docs/documentation/db/latest/specifications/api/#callcode) | |
-| Transactions.transact | [Burrow.transact](https://monax.io/docs/documentation/db/latest/specifications/api/#transact) | unsafe |
-| Transactions.transactAndHold | [Burrow.transactAndHold](https://monax.io/docs/documentation/db/latest/specifications/api/#transact-and-hold) | unsafe |
-| Transactions.transactNameReg | [Burrow.transactNameReg](https://monax.io/docs/documentation/db/latest/specifications/api/#transactnamereg) | unsafe |
+| burrow.transact.BroadcastTxSync | [TxEnvelopeParam](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpctransact.proto#L74-L79) | [TxExecution](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/exec.proto#L34-L56) |
+| burrow.transact.BroadcastTxASync | [TxEnvelopeParam](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpctransact.proto#L74-L79) | [Receipt](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/txs.proto#L38-L47) |
+| burrow.transact.SignTx | [TxEnvelopeParam](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpctransact.proto#L74-L79) | [TxEnvelope](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpctransact.proto#L70-L72) |
+| burrow.transact.FormulateTx | [PayloadParam](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpctransact.proto#L64-L68) | [TxEnvelope](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpctransact.proto#L70-L72) |
+| burrow.transact.CallTxSync | [CallTx](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/payload.proto#L53-L66) | [TxExecution](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/exec.proto#L34-L56) |
+| burrow.transact.CallTxAsync | [CallTx](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/payload.proto#L53-L66) | [Receipt](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/txs.proto#L38-L47) |
+| burrow.transact.CallTxSim | [CallTx](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/payload.proto#L53-L66) | [TxExecution](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/exec.proto#L34-L56) |
+| burrow.transact.SendTxSync | [SendTx](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/payload.proto#L69-L76) | [TxExecution](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/exec.proto#L34-L56) |
+| burrow.transact.SendTxAsync | [SendTx](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/payload.proto#L69-L76) | [Receipt](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/txs.proto#L38-L47) |
+| burrow.transact.NameTxSync | [NameTx](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/payload.proto#L88-L98) | [TxExecution](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/exec.proto#L34-L56) |
+| burrow.transact.NameTxAsync | [NameTx](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/payload.proto#L88-L98) | [Receipt](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/txs.proto#L38-L47) |
 
-`broadcastTx` is useless until we add a client-side signing solution.
+
+#### Queries
+
+`Burrow.query` provides access to the burrow GRPC service `rpcquery`. As a GRPC wrapper all the endpoints take a data argument and an optional callback. The format of the data object is specified in the [protobuf files](https://github.com/monax/bosmarmot/tree/develop/burrow.js/protobuf). Note that "STREAM" functions take a callback `function(error, data)` which is mandatory and is called any time data is returned.
+
+| Method | Passed | Returns | Notes |
+| :----- | :--------- | :---- | :------- |
+| burrow.query.GetAccount | [GetAccountParam](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpcquery.proto#L25-L27) | [ConcreteAccount](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/acm.proto#L23-L31) | |
+| burrow.query.ListAccounts | [ListAccountsParam](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpcquery.proto#L29-L31) | [ConcreteAccount](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/acm.proto#L23-L31) | STREAMING |
+| burrow.query.GetNameParam | [GetNameParam](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpcquery.proto#L33-L35) | [Entry](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/names.proto#L22-L32) | |
+| burrow.query.ListNames | [ListNamesParam](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpcquery.proto#L37-L39) | [Entry](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/names.proto#L22-L32) | STREAM|
+
+#### EventStream
+
+`Burrow.executionEvents` provides access to the burrow GRPC service `ExecutionEvents`. As a GRPC wrapper all the endpoints take a data argument and an optional callback. The format of the data object is specified in the [protobuf files](https://github.com/monax/bosmarmot/tree/develop/burrow.js/protobuf). Note that "STREAM" functions take a callback `function(error, data)` which is mandatory and is called any time data is returned.
+
+| Method | Passed | Returns | Notes |
+| :----- | :--------- | :---- | :------- |
+| burrow.executionEvents.GetBlock | [GetBlockRequest](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpcevents.proto#L37-L42) | [BlockExecution](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/exec.proto#L20-L27) | |
+| burrow.executionEvents.GetBlocks | [BlocksRequest](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpcevents.proto#L51-L89) | [BlockExecution](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/exec.proto#L20-L27) | STREAM |
+| burrow.executionEvents.GetTx | [GetTxRequest](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpcevents.proto#L44-L49) | [TxExecution](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/exec.proto#L34-L56) | |
+| burrow.executionEvents.GetTxs | [BlocksRequest](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpcevents.proto#L51-L89) | [GetTxsResponse](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpcevents.proto#L96-L99) | STREAM |
+| burrow.executionEvents.GetEvents | [BlocksRequest](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpcevents.proto#L51-L89) | [GetEventsResponse](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpcevents.proto#L91-L94) | STREAM |
+
+
+
+### High-Level Components
+
+In addition to direct access to the grpc services, the burrow object also provides access to three higher level components which wrap the low level access for convenience. These are .namereg, .events, and .contracts. All high level components use the account provided during creation of the burrow instance for constructing transactions. Of the three contracts is the most important as events and namereg are really just helpful wrappers.
+
+An example of using the .namereg component
+
+```javascript
+// Using a callback
+burrow.namereg.set("DOUG", "Marmot", 5000, function(error, data){
+	if (error) throw error; // or something more sensible
+	// data object contains detailed information of the transaction execution.
+
+	// Get a name this time using a promise
+	burrow.namereg.get("DOUG")
+		.then((data) => {console.log(data);}) // Should print "Marmot"
+		.catch((error)=> {throw error;})
+})
+
+```
+
+Notice this example is nearly identical to the example above except that the objects are not explicitly constructed by you.
+
+
+#### Namereg
+
+`burrow.namereg` is a convenience wrapper for setting and getting entries from the name registry
+
+burrow.namereg.set(name, data, lease[, callback])
+Sets an entry in the namereg
+
+name - string - The name you wish to register
+data - string - The string you wish to store at the registered name (longer string = larger fee)
+lease - int -  The number of blocks to register the name for (more blocks = larger fee)
+callback - function - (optional) Function to call upon completion of form `function(error, data)`.
+
+returns promise if callback not provided. The return data object is a [TxExecution](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/exec.proto#L34-L56)
+
+
+burrow.namereg.get(name[,callback])
+Gets an entry stored at the name.
+
+name - string - Name you wish to retrieve from the namereg
+callback - function - (optional) Function to call upon completion of form `function(error, data)`.
+
+returns promise if callback not provided. The return data object is of the form:
+
+```javascript
+{
+    Name: (registered name) (string)
+    Owner: (address of name owner) (buffer)
+    Data: (stored data) (string)
+    Expires: (block at which entry expires) (int)
+} 
+```
+
+
+#### Events
+
+`burrow.events` contains convenience wrappers for streaming executionEvents.
+
+burrow.events.listen(query, options, callback)
+Listens for execution events which satisfy the filter query
+
+query - string - a pegjs querystring for filtering the returned events see [here]() for grammar specification
+options - object - Currently unused. pass `{}`
+callback - function - Signature of `function(error, data)` mandatory. data returned is [GetEventsResponse](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpcevents.proto#L91-L94)
+
+
+burrow.events.subContractEvents(address, signature, options, callback)
+Listens for evm event executions from specific contract
+
+address - hex string - address of contract of interest
+signature - string - event abi signature
+options - object - Currently unused. pass `{}`
+callback - function - Signature of `function(error, data)` mandatory. data returned is [GetEventsResponse](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpcevents.proto#L91-L94)
+
+
+
+#### Contracts
+
+`burrow.contracts` is arguably the most important component of the burrow it exposes two functions, `.deploy` and `.new` both of which return a Contract interface object (sometimes refered to as contract object). The difference is deploy will first deploy a copy of the contract to the blockchain and new simply creates an interface to a contract.
+
+burrow.contracts.deploy(abi, bytecode, params... [, callback])
+Deploys a contract and returns a contract interface either to the callback or a promise once deploy is successful. NOTE: This functionality use to be called "new".
+
+abi - object - The object corresponding to the json ABI of the contract you wish to interface with.
+bytecode - string - Hex encoded string of bytecode of the contract to deploy
+params - arguments - arguments to the constructor function (if there are any)
+callback - function - (optional) Format of `function(error, contract)` where contract is the contract interface object. If not provided a promise is returned.
+
+Additional notes:
+When the contract interface object is created via deploy, the default address is set to the address of the deployed contract (which can be accessed as contract.address). This interface object can still be used as a generic interface but care must be taken to use the .at() and .atSim() versions of functions.
+
+
+burrow.contracts.new(abi, [bytecode[, address]])
+Returns a new contract interface object
+
+abi - object - The object corresponding to the json ABI of the contract you wish to interface with.
+bytecode - string - (optional - can be null) Hex encoded string of bytecode of the contract.
+address - string - (optional) Hex encoded address of the default contract you want the interface to access
+
+Additional notes:
+All you really need to create an interface is the abi, however you can also include the bytecode of the contract. If you do so you can create new contracts of this type by calling `contract._constructor(...)` which will deploy a new contract and return its address. If you provide an address, then this will be the default contract address used however you can also omit this at be sure to use the .at() and .atSim() versions of functions. Also note you must provide bytecode is you wish to provide address, though bytecode argument can be null.
+
+
+
+#### Contract interface object
+
+The contract interface object allows for easy access of solidity contract function calls and subscription to events. When created, js functions for all functions specified in the abi are generated. All of these functions have the same form `Contract.functionname(params...[, callback])`. here params are the arguments to the contract, note that arguements of the "bytes" type should be properly hex encoded before passing to avoid improper encoding. NOTE: if the burrow object was created with {objectReturn: True} the return from these function calls is formatted as `{values:{...}, raw:[]}` otherwise an arrary of decoded values is provided. the values object names the decoded values according to the abi spec, if a return value has no name it won't be included in the values object and must be retrieved from its position on the raw array.
+
+If a callback is not provided a promise is returned.
+
+In addition to the standard function call, there are three other forms
+`Contract.functionname.sim(params... [, callback])`
+`Contract.functionname.at(address, params... [, callback])`
+`Contract.functionname.atSim(address, params... [, callback])`
+
+The "Sim" forms will force a simulated call i.e one that does not change state, though the data returned is identical to what would have been returned IF the call had been submitted, this is useful for querying data or checking if a transaction passes some tests.
+
+The "at" forms allow you to specify which contract you wish to submit the transaction to. This allows you to use a single contract interface instance to access any contract with the same abi. This can be useful if for example there is a factory contract on the chain and you wish to connect to any of its children. The at forms MUST be used if a default address was not provided or created.
+
+In addition to the normal function calls there is also `contract._constructor(params... [, callback])` when called, this deploys a new contract from the same interface (no need to create a new interface object via .deploy). Once completed it will return the created contract's address.
+
+Events:
+
+The contract interface object also exposes subscription to solidity events under eventname as `Contract.eventname(callback)` where the provided callback with be passed an error and data of the form:
+
+```
+{
+	event: fulleventname,
+	address: address of contract emitting event,
+	args: {argname: argvalue}
+}
+```
+
+Similarly to functions there is also a `Contract.eventname.at(address, callback)` call which allows you to start listening to a non-default contract address. In this I assume a solidity contract which takes a "name" to the constructor and then has a function getName which returns the name.
+
+
+Example:
+
+Here I provide an example of communicating to a contract from start to finish.
+
+```javascript
+var monax = require('@monax/burrow');
+var account = 'ABCDEF01234567890123'; // hex string representation of the address to use for signing
+var options = {objectReturn: True};
+var burrow = monax.createInstance("<IP address>:<PORT>", account, options);
+
+var abi = json.parse(contractABIJSON) // Get the contractABIJSON from somewhere such as solc
+var bytecode = contractBytecode // Get this from somewhere such as solc
+
+// I'm going to use deploy to create a first function followed by a direct call to the constructor to deploy a second contract
+
+const contract;
+let A2
+
+burrow.contracts.deploy(abi, bytecode, 'contract1').then((ContractObject) => {
+	contract = ContractObject;
+	console.log(contract.address) // address of the first deployed contract
+	return contract._constructor('contract2') // deploy a second contract
+}).then((address)=>{
+	A2 = address;
+	console.log(A2)
+	return Promise.all(
+      [contract.getName(), 			// Note using the default address from the deploy
+        contract.getName.at(A2)])   // Using the .at() to specify the second deployed contract
+}).then(([result1, result2])=>{
+	assert.equal(result1.values.name, "contract1")
+	assert.equal(result2.values.name, "contract2")
+})
+
+```
+
+## Upgrading from pre-0.20.0 to 0.20.0 and above
+
+There are a few breaking changes to the interface you should keep an eye out for.
+
+* There is no legacy-db make sure you use @monax/burrow's grpc interfaces or wrappers for access you might have previously gotten from that lib
+* `burrow.contracts` takes the place of the old contractManager/contractFactory framework. you should use `burrow.contracts` doe deploying and creating contract interfaces.
+* `burrow.contracts.deploy()` does what the contractFactory.new() use to. `burrow.contracts.new()` creates a contract interface without first deploying.
+* The contract object use to have `contract.functionname.call()` which is now `contract.functionname.sim()` in order to align with naming of backend
+* `contract.functionname.sendtransaction()` no longer exists. You can't force a transaction to be non-simulated if the function is constant... but why would you want to?
+* All contract function functions have optional callbacks and can return promises instead.
+
+I think that is everything but if i missed something please report it in an issue or make a PR updating this document
+
+
+<!-- 
 
 ## Documentation
 
@@ -233,7 +356,7 @@ TEST=server npm test
 
 ## Debugging
 
-Debugging information will display on `stderr` if the library is run with `NODE_DEBUG=monax` in the environment.
+Debugging information will display on `stderr` if the library is run with `NODE_DEBUG=monax` in the environment. -->
 
 ## Copyright
 

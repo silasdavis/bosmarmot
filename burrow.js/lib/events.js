@@ -1,11 +1,11 @@
 'use strict'
 
-function Events (events) {
-  this.client = events
+function Events (burrow) {
+  this.client = burrow
 }
 
-module.exports = function (events) {
-  return new Events(events)
+module.exports = function (burrow) {
+  return new Events(burrow)
 }
 
 Events.prototype.listen = function (Query, options, callback) {
@@ -21,7 +21,7 @@ Events.prototype.listen = function (Query, options, callback) {
     }
   }
 
-  return this.client.GetEvents({BlockRange, Query}, function (err, data) {
+  return this.burrow.executionEvents.GetEvents({BlockRange, Query}, function (err, data) {
     if (err) {
       return callback(err)
     }
