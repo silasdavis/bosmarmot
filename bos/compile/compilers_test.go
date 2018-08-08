@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -35,41 +34,9 @@ func BlankSolcResponse() *SolcResponse {
 	}
 }
 
-func TestRequestCreation(t *testing.T) {
-	os.Chdir(testContractPath()) // important to maintain relative paths
-	var err error
-	contractCode := `pragma solidity ^0.4.0;
-
-contract c {
-    function f() {
-        uint8[5] memory foo3 = [1, 1, 1, 1, 1];
-    }
-}`
-
-	var testMap = map[string]*IncludedFiles{
-		"simpleContract.sol": {
-			Script: []byte(contractCode),
-		},
-	}
-
-	req, err := CreateRequest("simpleContract.sol", make(map[string]string), false)
-
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(req.Libraries) > 0 {
-		t.Errorf("Expected empty libraries, got %s", req.Libraries)
-	}
-	if req.Optimize != false {
-		t.Errorf("Expected false optimize, got true")
-	}
-	if !reflect.DeepEqual(req.Includes, testMap) {
-		t.Errorf("Got incorrect Includes map, expected %v, got %v", testMap, req.Includes)
-	}
-
-}
-
 func TestLocalMulti(t *testing.T) {
+	os.Chdir(testContractPath()) // important to maintain relative paths
+
 	expectedSolcResponse := BlankSolcResponse()
 	actualOutput, err := exec.Command("solc", "--combined-json", "bin,abi", "contractImport1.sol").CombinedOutput()
 	if err != nil {
@@ -110,6 +77,8 @@ func TestLocalMulti(t *testing.T) {
 }
 
 func TestLocalSingle(t *testing.T) {
+	os.Chdir(testContractPath()) // important to maintain relative paths
+
 	expectedSolcResponse := BlankSolcResponse()
 
 	shellCmd := exec.Command("solc", "--combined-json", "bin,abi", "simpleContract.sol")
@@ -126,6 +95,7 @@ func TestLocalSingle(t *testing.T) {
 	for contract, item := range expectedSolcResponse.Contracts {
 		respItem := ResponseItem{
 			Objectname: objectName(strings.TrimSpace(contract)),
+			Filename:   "simpleContract.sol",
 		}
 		respItem.Binary.Abi = json.RawMessage(item.Abi)
 		respItem.Binary.Evm.Bytecode.Object = item.Bin

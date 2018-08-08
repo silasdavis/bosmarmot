@@ -84,6 +84,9 @@ func RunJobs(do *def.Packages) error {
 		case *def.Call:
 			announce(job.Name, "Call")
 			job.Result, job.Variables, err = CallJob(job.Call, do)
+		case *def.Build:
+			announce(job.Name, "Build")
+			job.Result, err = BuildJob(job.Build, do)
 
 		// State jobs
 		case *def.RestoreState:
