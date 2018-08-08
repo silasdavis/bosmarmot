@@ -1,7 +1,7 @@
 'use strict'
 
 function Events (burrow) {
-  this.client = burrow
+  this.burrow = burrow
 }
 
 module.exports = function (burrow) {
