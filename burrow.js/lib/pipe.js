@@ -55,7 +55,7 @@ Pipe.prototype.call = function (txPayload, callback) {
  * @param {function} eventCallback - error-first callback. The data object is a solidity event object.
  */
 Pipe.prototype.eventSub = function (accountAddress, signature, callback) {
-  return this.burrow.stream.subContractEvents(accountAddress, signature, {}, callback)
+  return this.burrow.events.subContractEvents(accountAddress, signature, {}, callback)
 }
 
 Pipe.prototype.burrow = function () {

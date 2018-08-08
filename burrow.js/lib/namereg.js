@@ -9,7 +9,7 @@ Namereg.prototype.set = function (name, data, lease, callback) {
   payload.Input = {Address: Buffer.from(this.burrow.account, 'hex'), Amount: 50000}
   payload.Name = name
   payload.Data = data
-  payload.Fee = 5000// 1 * lease * data.length;
+  payload.Fee = 5000// 1 * lease * (data.length + 32);
   return this.burrow.transact.NameTxSync(payload, callback)
 }
 
