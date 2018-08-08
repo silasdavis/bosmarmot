@@ -9,6 +9,8 @@ import (
 
 type EventLogDecoder func(*exec.LogEvent, map[string]string)
 
+// DecodeEvent decodes standard & non standard event data
+// using provided logDecoders
 func DecodeEvent(header *exec.Header, log *exec.LogEvent, logDecoders map[string]EventLogDecoder) map[string]string {
 	data := make(map[string]string)
 

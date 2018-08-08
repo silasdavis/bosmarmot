@@ -340,25 +340,6 @@
   revision = "f15292f7a699fcc1a38a80977f80a046874ba8ac"
 
 [[projects]]
-  branch = "develop"
-  digest = "1:da30f10328debb6b0c76845598b2bc8c47ea48b722a2cbd1585b7962d6069eec"
-  name = "github.com/monax/bosmarmot"
-  packages = [
-    "bos",
-    "bos/abi",
-    "bos/cmd",
-    "bos/compile",
-    "bos/def",
-    "bos/def/rule",
-    "bos/jobs",
-    "bos/loader",
-    "bos/util",
-    "project",
-  ]
-  pruneopts = "NUT"
-  revision = "2a4311ed0bde7595ccf7da3536540e342a77e7b4"
-
-[[projects]]
   digest = "1:0392287f4fcbbd32a8352f82044dd0b644284d8a979897810abfa246a080adec"
   name = "github.com/monax/relic"
   packages = ["."]
@@ -782,16 +763,6 @@
     "github.com/hyperledger/burrow/txs",
     "github.com/hyperledger/burrow/txs/payload",
     "github.com/lib/pq",
-    "github.com/monax/bosmarmot/bos",
-    "github.com/monax/bosmarmot/bos/abi",
-    "github.com/monax/bosmarmot/bos/cmd",
-    "github.com/monax/bosmarmot/bos/compile",
-    "github.com/monax/bosmarmot/bos/def",
-    "github.com/monax/bosmarmot/bos/def/rule",
-    "github.com/monax/bosmarmot/bos/jobs",
-    "github.com/monax/bosmarmot/bos/loader",
-    "github.com/monax/bosmarmot/bos/util",
-    "github.com/monax/bosmarmot/project",
     "github.com/monax/relic",
     "github.com/pkg/errors",
     "github.com/sirupsen/logrus",

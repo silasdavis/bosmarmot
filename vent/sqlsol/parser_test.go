@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hiturria/bosmarmot/vent/sqlsol"
-	"github.com/hiturria/bosmarmot/vent/test"
+	"github.com/monax/bosmarmot/vent/sqlsol"
+	"github.com/monax/bosmarmot/vent/test"
 	"github.com/stretchr/testify/require"
 )
 

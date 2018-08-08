@@ -3,8 +3,8 @@ package sqlsol_test
 import (
 	"testing"
 
-	"github.com/hiturria/bosmarmot/vent/sqlsol"
-	"github.com/hiturria/bosmarmot/vent/types"
+	"github.com/monax/bosmarmot/vent/sqlsol"
+	"github.com/monax/bosmarmot/vent/types"
 	"github.com/stretchr/testify/require"
 )
 

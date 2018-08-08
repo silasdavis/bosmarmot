@@ -6,9 +6,9 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/hiturria/bosmarmot/vent/config"
-	"github.com/hiturria/bosmarmot/vent/logger"
-	"github.com/hiturria/bosmarmot/vent/service"
+	"github.com/monax/bosmarmot/vent/config"
+	"github.com/monax/bosmarmot/vent/logger"
+	"github.com/monax/bosmarmot/vent/service"
 	"github.com/spf13/cobra"
 )
 

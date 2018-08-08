@@ -9,15 +9,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hiturria/bosmarmot/vent/config"
-	"github.com/hiturria/bosmarmot/vent/logger"
-	"github.com/hiturria/bosmarmot/vent/sqldb"
-	"github.com/hiturria/bosmarmot/vent/sqlsol"
-	"github.com/hiturria/bosmarmot/vent/types"
 	"github.com/hyperledger/burrow/event"
 	"github.com/hyperledger/burrow/event/query"
 	"github.com/hyperledger/burrow/execution/exec"
 	"github.com/hyperledger/burrow/rpc/rpcevents"
+	"github.com/monax/bosmarmot/vent/config"
+	"github.com/monax/bosmarmot/vent/logger"
+	"github.com/monax/bosmarmot/vent/sqldb"
+	"github.com/monax/bosmarmot/vent/sqlsol"
+	"github.com/monax/bosmarmot/vent/types"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 )
@@ -143,12 +143,11 @@ func (c *Consumer) Run() error {
 			row := make(types.EventDataRow)
 
 			// GetHeader gets Header data for the given event
-			// GetEventDataLog gets log event data for the given event
-			// it seems that this will change to LogEvent() in new bosmarmot version
+			// GetLog gets log event data for the given event
 			eventHeader := event.GetHeader()
 			eventLog := event.GetLog()
 
-			// decode event data using the provided evento log decoders
+			// decode event data using the provided event log decoders
 			eventData := DecodeEvent(eventHeader, eventLog, c.EventLogDecoders)
 
 			// ------------------------------------------------

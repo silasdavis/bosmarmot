@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hiturria/bosmarmot/vent/types"
+	"github.com/monax/bosmarmot/vent/types"
 )
 
 // BlockData contains EventData definition

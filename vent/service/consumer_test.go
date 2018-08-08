@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hiturria/bosmarmot/vent/config"
-	"github.com/hiturria/bosmarmot/vent/logger"
-	"github.com/hiturria/bosmarmot/vent/service"
-	"github.com/hiturria/bosmarmot/vent/test"
+	"github.com/monax/bosmarmot/vent/config"
+	"github.com/monax/bosmarmot/vent/logger"
+	"github.com/monax/bosmarmot/vent/service"
+	"github.com/monax/bosmarmot/vent/test"
 	"github.com/hyperledger/burrow/core"
 	"github.com/hyperledger/burrow/execution/exec"
 	"github.com/hyperledger/burrow/integration"
@@ -80,7 +80,7 @@ func TestRun(t *testing.T) {
 	// Run consumer to listen to events
 	cfg := config.DefaultFlags()
 	cfg.DBSchema = db.Schema
-	cfg.CfgFile = os.Getenv("GOPATH") + "/src/github.com/hiturria/bosmarmot/vent/test/sqlsol_example.json"
+	cfg.CfgFile = os.Getenv("GOPATH") + "/src/github.com/monax/bosmarmot/vent/test/sqlsol_example.json"
 	cfg.GRPCAddr = testConfig.RPC.GRPC.ListenAddress
 
 	log := logger.NewLogger(cfg.LogLevel)

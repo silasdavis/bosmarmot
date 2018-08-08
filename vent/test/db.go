@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hiturria/bosmarmot/vent/config"
-	"github.com/hiturria/bosmarmot/vent/logger"
-	"github.com/hiturria/bosmarmot/vent/sqldb"
+	"github.com/monax/bosmarmot/vent/config"
+	"github.com/monax/bosmarmot/vent/logger"
+	"github.com/monax/bosmarmot/vent/sqldb"
 )
 
 func init() {

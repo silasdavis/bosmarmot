@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hiturria/bosmarmot/vent/logger"
-	"github.com/hiturria/bosmarmot/vent/types"
+	"github.com/monax/bosmarmot/vent/logger"
+	"github.com/monax/bosmarmot/vent/types"
 	"github.com/lib/pq"
 )
 
