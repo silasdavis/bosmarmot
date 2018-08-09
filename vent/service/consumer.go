@@ -22,6 +22,7 @@ import (
 	"google.golang.org/grpc"
 )
 
+// Consumer contains basic configuration for consumer to run
 type Consumer struct {
 	Config           *config.Flags
 	Log              *logger.Logger
@@ -29,6 +30,7 @@ type Consumer struct {
 	Closing          bool
 }
 
+// NewConsumer constructs a new consumer configuration
 func NewConsumer(cfg *config.Flags, log *logger.Logger) *Consumer {
 	return &Consumer{
 		Config:           cfg,

@@ -14,7 +14,7 @@ type Parser struct {
 	Tables types.EventTables
 }
 
-// NewParser receives a json event configuration stream
+// NewParser receives a sqlsol event configuration stream
 // and returns a pointer to a filled parser structure
 func NewParser(byteValue []byte) (*Parser, error) {
 	tables, err := mapToTable(byteValue)
@@ -78,7 +78,7 @@ func (p *Parser) SetTableName(eventName, tableName string) error {
 	return fmt.Errorf("SetTableName: eventName does not exists as a table in SQL table structure: %s ", eventName)
 }
 
-// mapToTable gets a json event configuration stream,
+// mapToTable gets a sqlsol event configuration stream,
 // parses contents, maps event types to SQL column types
 // and fills Event table structure with table and columns info
 func mapToTable(byteValue []byte) (map[string]types.SQLTable, error) {
@@ -138,7 +138,7 @@ func mapToTable(byteValue []byte) (map[string]types.SQLTable, error) {
 }
 
 // getSQLType maps event input types with corresponding
-// PostgreSQL column types
+// SQL column types
 func getSQLType(eventInputType string) (string, error) {
 	switch strings.ToLower(eventInputType) {
 	case types.EventInputTypeInt, types.EventInputTypeUInt:

@@ -14,9 +14,7 @@ type Logger struct {
 
 // NewLogger creates a new logger based on the given level
 func NewLogger(level string) *Logger {
-	//log := kitlog.NewJSONLogger(kitlog.NewSyncWriter(os.Stdout))
-	log := kitlog.NewLogfmtLogger(kitlog.NewSyncWriter(os.Stdout))
-
+	log := kitlog.NewJSONLogger(kitlog.NewSyncWriter(os.Stdout))
 	switch level {
 	case "error":
 		log = kitlevel.NewFilter(log, kitlevel.AllowError()) // only error logs

@@ -7,11 +7,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/lib/pq"
 	"github.com/monax/bosmarmot/vent/logger"
 	"github.com/monax/bosmarmot/vent/types"
-	"github.com/lib/pq"
 )
 
+// some PostgreSQL specific error codes
 const (
 	errDupTable        = "42P07"
 	errDupColumn       = "42701"
@@ -59,7 +60,7 @@ func newDB(dbURL string, schema string, l *logger.Logger) (*SQLDB, error) {
 	}, nil
 }
 
-// findDefaultSchema checks if the default schema exists in PGSQL
+// findDefaultSchema checks if the default schema exists in SQL database
 func (db *SQLDB) findDefaultSchema() (bool, error) {
 	var found bool
 
@@ -88,7 +89,7 @@ func (db *SQLDB) findDefaultSchema() (bool, error) {
 	return found, err
 }
 
-// createDefaultSchema creates the default schema in PGSQL
+// createDefaultSchema creates the default schema in SQL database
 func (db *SQLDB) createDefaultSchema() error {
 	db.Log.Info("msg", "Creating schema", "value", db.Schema)
 
@@ -218,7 +219,7 @@ func (db *SQLDB) createTable(table types.SQLTable) error {
 	return nil
 }
 
-// getTableDef returns the structure of one table
+// getTableDef returns the structure of a given SQL table
 func (db *SQLDB) getTableDef(tableName string) (types.SQLTable, error) {
 	var table types.SQLTable
 
@@ -313,7 +314,8 @@ func (db *SQLDB) getTableDef(tableName string) (types.SQLTable, error) {
 	return table, nil
 }
 
-// getBlockTables return all tables inserted in a block
+// getBlockTables return all SQL tables that had been involved
+// in a given batch transaction for a specific block id
 func (db *SQLDB) getBlockTables(block string) (types.EventTables, error) {
 	tables := make(types.EventTables)
 
@@ -363,6 +365,7 @@ func (db *SQLDB) getBlockTables(block string) (types.EventTables, error) {
 	return tables, nil
 }
 
+// getTableQuery builds a select query for a specific SQL table
 func getTableQuery(schema string, table types.SQLTable, height string) (string, error) {
 	fields := ""
 
@@ -383,7 +386,7 @@ func getTableQuery(schema string, table types.SQLTable, height string) (string, 
 	return query, nil
 }
 
-// alterTable alters the structure of a table
+// alterTable alters the structure of a SQL table
 func (db *SQLDB) alterTable(newTable types.SQLTable) error {
 	db.Log.Info("msg", "Altering table", "value", newTable.Name)
 
@@ -581,6 +584,7 @@ func getUpsertQuery(schema string, table types.SQLTable) upsertQuery {
 	return uQuery
 }
 
+// getUpsertParams builds parameters in preparation for an upsert query
 func getUpsertParams(uQuery upsertQuery, row types.EventDataRow) ([]interface{}, string, error) {
 	pointers := make([]interface{}, uQuery.length)
 	containers := make([]sql.NullString, uQuery.length)
@@ -628,7 +632,7 @@ func clean(parameter string) string {
 	return replacer.Replace(parameter)
 }
 
-// isNumeric detemines if a datatype is numeric
+// isNumeric determines if a datatype is numeric
 func isNumeric(dataType string) bool {
 	cType := strings.ToUpper(dataType)
 	return cType == types.SQLColumnTypeInt || cType == types.SQLColumnTypeSerial

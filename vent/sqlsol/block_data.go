@@ -39,7 +39,7 @@ func (b *BlockData) SetBlockID(blockID string) {
 	b.Data.Block = blockID
 }
 
-// AddRow appends a row to a table
+// AddRow appends a row to a specific table name in structure
 func (b *BlockData) AddRow(tableName string, row types.EventDataRow) {
 	if _, ok := b.Data.Tables[tableName]; !ok {
 		b.Data.Tables[tableName] = types.EventDataTable{}
@@ -47,12 +47,12 @@ func (b *BlockData) AddRow(tableName string, row types.EventDataRow) {
 	b.Data.Tables[tableName] = append(b.Data.Tables[tableName], row)
 }
 
-// GetRows gets data rows for a given table name
+// GetRows gets data rows for a given table name from structure
 func (b *BlockData) GetRows(tableName string) (types.EventDataTable, error) {
 	if table, ok := b.Data.Tables[tableName]; ok {
 		return table, nil
 	}
-	return nil, fmt.Errorf("GetRows: tableName does not exists as a table in SQL data structure: %s ", tableName)
+	return nil, fmt.Errorf("GetRows: tableName does not exists as a table in data structure: %s ", tableName)
 }
 
 // PendingRows returns true if the given block has at least one pending row to upsert

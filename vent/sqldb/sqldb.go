@@ -4,9 +4,9 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/lib/pq"
 	"github.com/monax/bosmarmot/vent/logger"
 	"github.com/monax/bosmarmot/vent/types"
-	"github.com/lib/pq"
 )
 
 // SQLDB implements the access to a sql database
@@ -16,7 +16,7 @@ type SQLDB struct {
 	Schema string
 }
 
-// NewSQLDB connects to a PGSQL database and creates default schema and _bosmarmot_log if missing
+// NewSQLDB connects to a SQL database and creates default schema and _bosmarmot_log if missing
 func NewSQLDB(dbURL string, schema string, l *logger.Logger) (*SQLDB, error) {
 	var found bool
 
@@ -61,7 +61,7 @@ func (db *SQLDB) Ping() error {
 	return err
 }
 
-// GetLastBlockID return last inserted blockId from log table
+// GetLastBlockID returns last inserted blockId from log table
 func (db *SQLDB) GetLastBlockID() (string, error) {
 	query := `
 		WITH ll AS (
@@ -91,7 +91,7 @@ func (db *SQLDB) GetLastBlockID() (string, error) {
 	return id, nil
 }
 
-// SynchronizeDB against PGSQL
+// SynchronizeDB synchronize config structures with SQL database table structures
 func (db *SQLDB) SynchronizeDB(eventTables types.EventTables) error {
 	db.Log.Info("msg", "Synchronizing DB")
 
@@ -114,7 +114,7 @@ func (db *SQLDB) SynchronizeDB(eventTables types.EventTables) error {
 	return nil
 }
 
-// SetBlock inserts or updates multiple rows in PGSQL and writes into log tables
+// SetBlock inserts or updates multiple rows and stores log info in SQL tables
 func (db *SQLDB) SetBlock(eventTables types.EventTables, eventData types.EventData) error {
 	var pointers []interface{}
 	var value string
@@ -241,7 +241,7 @@ loop:
 	return nil
 }
 
-// GetBlock returns a table's structure and one row of data
+// GetBlock returns a table's structure and row data
 func (db *SQLDB) GetBlock(block string) (types.EventData, error) {
 	var data types.EventData
 	data.Block = block

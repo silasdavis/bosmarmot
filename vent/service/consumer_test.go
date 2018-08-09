@@ -7,13 +7,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hyperledger/burrow/core"
+	"github.com/hyperledger/burrow/execution/exec"
+	"github.com/hyperledger/burrow/integration"
 	"github.com/monax/bosmarmot/vent/config"
 	"github.com/monax/bosmarmot/vent/logger"
 	"github.com/monax/bosmarmot/vent/service"
 	"github.com/monax/bosmarmot/vent/test"
-	"github.com/hyperledger/burrow/core"
-	"github.com/hyperledger/burrow/execution/exec"
-	"github.com/hyperledger/burrow/integration"
 	"github.com/stretchr/testify/require"
 )
 
@@ -85,13 +85,15 @@ func TestRun(t *testing.T) {
 
 	log := logger.NewLogger(cfg.LogLevel)
 
+	// add event decoder for specific event name
+	// this will be no longer needed once event name can be standardize
 	consumer := service.NewConsumer(cfg, log)
 	consumer.AddEventLogDecoder("TEST_EVENTS", testEventLogDecoder)
 
 	err := consumer.Run()
 	require.NoError(t, err)
 
-	// test data from two different block ids
+	// test data stored in database for two different block ids
 	blockID := "2"
 	eventName := "EventTest"
 	eventData, err := db.GetBlock(blockID)
