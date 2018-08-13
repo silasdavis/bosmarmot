@@ -1,3 +1,5 @@
+// +build integration
+
 package sqldb_test
 
 import (
