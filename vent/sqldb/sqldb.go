@@ -140,7 +140,7 @@ func (db *SQLDB) SetBlock(eventTables types.EventTables, eventData types.EventDa
 		return err
 	}
 
-	// prepare log detail stmt
+	// prepare log detail statement
 	logQuery := fmt.Sprintf("INSERT INTO %s._bosmarmot_logdet (id,tblname,tblmap,registers) VALUES ($1,$2,$3,$4)", db.Schema)
 	logStmt, err = tx.Prepare(logQuery)
 	if err != nil {
@@ -186,7 +186,7 @@ loop:
 		}
 	}
 
-	// close log stmt
+	// close log statement
 	if err == nil {
 		err = logStmt.Close()
 		if err != nil {
@@ -196,7 +196,7 @@ loop:
 
 	//------------------------error handling----------------------
 	if err != nil {
-		// rollback
+		// rollback error
 		errRb := tx.Rollback()
 		if errRb != nil {
 			db.Log.Debug("msg", "Error on rollback", "err", errRb)
