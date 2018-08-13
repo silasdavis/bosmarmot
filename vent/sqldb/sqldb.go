@@ -127,6 +127,7 @@ func (db *SQLDB) SetBlock(eventTables types.EventTables, eventData types.EventDa
 		db.Log.Debug("msg", "Error beginning transaction", "err", err)
 		return err
 	}
+	defer tx.Rollback()
 
 	// insert into log tables
 	id := 0
@@ -135,7 +136,6 @@ func (db *SQLDB) SetBlock(eventTables types.EventTables, eventData types.EventDa
 	db.Log.Debug("msg", "INSERT LOG", "query", clean(query), "value", fmt.Sprintf("%d %s", length, eventData.Block))
 	err = tx.QueryRow(query, length, eventData.Block).Scan(&id)
 	if err != nil {
-		tx.Rollback()
 		db.Log.Debug("msg", "Error inserting into _bosmarmot_log", "err", err)
 		return err
 	}
@@ -145,7 +145,6 @@ func (db *SQLDB) SetBlock(eventTables types.EventTables, eventData types.EventDa
 	logStmt, err = tx.Prepare(logQuery)
 	if err != nil {
 		db.Log.Debug("msg", "Error preparing log stmt", "err", err)
-		tx.Rollback()
 		return err
 	}
 
@@ -161,7 +160,6 @@ loop:
 		_, err = logStmt.Exec(id, safeTable, tblMap, length)
 		if err != nil {
 			db.Log.Debug("msg", "Error inserting into logdet", "err", err)
-			tx.Rollback()
 			return err
 		}
 
@@ -174,7 +172,6 @@ loop:
 			pointers, value, err = getUpsertParams(uQuery, row)
 			if err != nil {
 				db.Log.Debug("msg", "Error building parameters", "err", err, "value", fmt.Sprintf("%v", row))
-				tx.Rollback()
 				return err
 			}
 
@@ -234,7 +231,6 @@ loop:
 	err = tx.Commit()
 	if err != nil {
 		db.Log.Debug("msg", "Error on commit", "err", err)
-		tx.Rollback()
 		return err
 	}
 
