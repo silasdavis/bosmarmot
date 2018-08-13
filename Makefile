@@ -13,7 +13,7 @@ GO_FILES := $(shell go list -f "{{.Dir}}" ./...)
 GOPACKAGES_NOVENDOR := $(shell go list ./...)
 COMMIT := $(shell git rev-parse --short HEAD)
 BURROW_PACKAGE := github.com/hyperledger/burrow
-CI_IMAGE := quay.io/monax/build:bosmarmot-ci
+CI_IMAGE := quay.io/monax/bosmarmot:ci
 
 ### Integration test binaries
 # We make the relevant targets for building/fetching these depend on the Makefile itself - if unnecessary rebuilds
@@ -64,7 +64,7 @@ test_integration_bos: build_bin bin/solc bin/burrow
 
 .PHONY:	test_integration_vent
 test_integration_vent:
-	@GOCACHE=off go test -tags integration `go list ./vent/...`
+	@GOCACHE=off go test -tags integration ./vent/...
 
 .PHONY:	test_burrow_js
 test_burrow_js: build_bin bin/solc bin/burrow
@@ -195,6 +195,10 @@ release: NOTES.md
 
 .PHONY: build_ci_image
 build_ci_image:
+	docker build -t ${CI_IMAGE} -f ./.circleci/Dockerfile .
+
+.PHONY: build_ci_image_no_cache
+build_ci_image_no_cache:
 	docker build --no-cache -t ${CI_IMAGE} -f ./.circleci/Dockerfile .
 
 .PHONY: push_ci_image
