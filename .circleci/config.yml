@@ -4,7 +4,7 @@
 defaults: &defaults
   working_directory: /go/src/github.com/monax/bosmarmot
   docker:
-    - image: quay.io/monax/build:bosmarmot-ci
+    - image: quay.io/monax/bosmarmot:ci
 
 tag_filters: &tags_filters
   tags:
@@ -21,10 +21,28 @@ jobs:
       - run: make test
 
   test_integration:
-    <<: *defaults
+    working_directory: /go/src/github.com/monax/bosmarmot
+    docker:
+    - image: quay.io/monax/bosmarmot:ci
+    - image: circleci/postgres:11-alpine-ram
+      environment:
+        POSTGRES_USER: user
+        POSTGRES_PASSWORD: pass
+        POSTGRES_DB: bosmarmot
+
     steps:
       - checkout
       - run: make npm_install
+      - run:
+          name: Waiting for Postgres to be ready
+          command: |
+            for i in `seq 1 10`;
+            do
+              nc -z localhost 5432 && echo Success && exit 0
+              echo -n .
+              sleep 1
+            done
+            echo Failed waiting for Postgres && exit 1
       - run: make test_integration
 
   ensure_vendor:
