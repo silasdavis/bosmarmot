@@ -114,10 +114,11 @@ var SolidityFunction = function (abi) {
         if (result.Exception && result.Exception.Code === 16) {
           // Execution was reverted
           // Strip first 4 bytes(function signature) the decode as a string
-          var errorString = coder.decodeParams(['string'], result.Result.Return.slice(4).toString('hex').toUpperCase())[0]
-          return reject(errorString)
+          error = new Error(coder.decodeParams(['string'], result.Result.Return.slice(4).toString('hex').toUpperCase())[0])
+          error.code = 'ERR_EXECUTION_REVERT'
+          return reject(error)
         }
-        
+
         if (isCon) return resolve(result.Receipt.ContractAddress.toString('hex').toUpperCase())
 
         var unpacked = null

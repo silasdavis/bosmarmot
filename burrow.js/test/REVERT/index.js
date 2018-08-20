@@ -44,8 +44,9 @@ describe('REVERT constant', function () {
       return contract.getString(1)
         .then((str) => {
           throw new Error('Did not catch revert error')
-        }).catch((errString) => {
-          assert.equal(errString, 'Did not pass correct key')
+        }).catch((err) => {
+          assert.equal(err.code, 'ERR_EXECUTION_REVERT')
+          assert.equal(err.message, 'Did not pass correct key')
         })
     })
   )

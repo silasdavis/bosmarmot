@@ -252,6 +252,8 @@ The contract interface object allows for easy access of solidity contract functi
 
 If a callback is not provided a promise is returned.
 
+In the case of a REVERT op-code being called in the contract function call, an error will be passed with the revert string as the .message field. These errors can be distinguished from other errors as the .code field will be `ERR_EXECUTION_REVERT`.
+
 In addition to the standard function call, there are three other forms
 `Contract.functionname.sim(params... [, callback])`
 `Contract.functionname.at(address, params... [, callback])`
