@@ -10,7 +10,22 @@ type SQLTable struct {
 // the Order is given to be able to sort the columns to be created
 type SQLTableColumn struct {
 	Name    string
-	Type    string
+	Type    SQLColumnType
+	Length  int
 	Primary bool
 	Order   int
+}
+
+// UpsertQuery contains generic query to upsert row data
+type UpsertQuery struct {
+	Query   string
+	Length  int
+	Columns map[string]UpsertColumn
+}
+
+// UpsertColumn contains info about a specific column to be upserted
+type UpsertColumn struct {
+	IsNumeric   bool
+	InsPosition int
+	UpdPosition int
 }

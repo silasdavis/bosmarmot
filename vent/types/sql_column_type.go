@@ -1,12 +1,20 @@
 package types
 
-// defined SQL column types
+// SQLColumnType to store generic SQL column types
+type SQLColumnType int
+
+// generic SQL column types
 const (
-	SQLColumnTypeInt        = "INTEGER"
-	SQLColumnTypeText       = "TEXT"
-	SQLColumnTypeVarchar100 = "VARCHAR(100)"
-	SQLColumnTypeBool       = "BOOLEAN"
-	SQLColumnTypeByteA      = "BYTEA"
-	SQLColumnTypeTimeStamp  = "TIMESTAMP"
-	SQLColumnTypeSerial     = "SERIAL"
+	SQLColumnTypeBool SQLColumnType = iota
+	SQLColumnTypeByteA
+	SQLColumnTypeInt
+	SQLColumnTypeSerial
+	SQLColumnTypeText
+	SQLColumnTypeVarchar
+	SQLColumnTypeTimeStamp
 )
+
+// IsNumeric determines if an sqlColumnType is numeric
+func (sqlColumnType SQLColumnType) IsNumeric() bool {
+	return sqlColumnType == SQLColumnTypeInt || sqlColumnType == SQLColumnTypeSerial
+}
