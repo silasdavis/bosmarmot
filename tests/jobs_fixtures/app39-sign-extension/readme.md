@@ -1,1 +1,0 @@
-* Test case for issue [#696](https://github.com/hyperledger/burrow/issues/696) with SIGNEXTEND causing improper return types for positive integers narrower than 32 bytes

@@ -1,1 +1,0 @@
-* Test case for issue [#696](https://github.com/hyperledger/burrow/issues/526)
