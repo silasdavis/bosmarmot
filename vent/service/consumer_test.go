@@ -81,6 +81,7 @@ func TestRun(t *testing.T) {
 
 	// Run consumer to listen to events
 	cfg := config.DefaultFlags()
+
 	cfg.DBSchema = db.Schema
 	cfg.CfgFile = os.Getenv("GOPATH") + "/src/github.com/monax/bosmarmot/vent/test/sqlsol_example.json"
 	cfg.GRPCAddr = testConfig.RPC.GRPC.ListenAddress

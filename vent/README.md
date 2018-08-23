@@ -1,4 +1,5 @@
-## Vent component
+# Vent component
+
 Vent reads an event configuration file, parses its contents and maps column types to corresponding PostgreSQL types to synchronize database structures.
 Database structures are created or modified (just adding new columns is supported).
 Then listens to burrow gRPC events, parses data and builds rows to be upserted in corresponding event tables.
@@ -37,5 +38,5 @@ go install ./vent
 vent --help
 
 # How to run vent command:
-vent --db-url="postgres://user:pass@localhost:5432/bosmarmot?sslmode=disable" --db-schema="bosmarmot" --grpc-addr="localhost:10997" --log-level="debug" --cfg-file="<sqlsol conf file path>"
+vent --db-adapter="postgres" --db-url="postgres://user:pass@localhost:5432/bosmarmot?sslmode=disable" --db-schema="bosmarmot" --grpc-addr="localhost:10997" --log-level="debug" --cfg-file="<sqlsol conf file path>"
 ```

@@ -35,7 +35,7 @@ func NewTestDB(t *testing.T) (*sqldb.SQLDB, func()) {
 	dbSchema := fmt.Sprintf("test_%s", randString(10))
 	log := logger.NewLogger("debug")
 
-	db, err := sqldb.NewSQLDB(cfg.DBURL, dbSchema, log)
+	db, err := sqldb.NewSQLDB(cfg.DBAdapter, cfg.DBURL, dbSchema, log)
 	if err != nil {
 		t.Fatal()
 	}
