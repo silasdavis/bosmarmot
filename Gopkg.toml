@@ -30,7 +30,3 @@
 [[constraint]]
   name = "github.com/go-ozzo/ozzo-validation"
   version = "3.4.0"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/elgs/gojq"
