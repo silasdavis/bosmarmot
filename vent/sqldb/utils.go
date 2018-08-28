@@ -84,19 +84,43 @@ func (db *SQLDB) getLogTableDef() types.EventTables {
 		Order:   2,
 	}
 
+	logCol["tableName"] = types.SQLTableColumn{
+		Name:    "tblName",
+		Type:    types.SQLColumnTypeVarchar,
+		Length:  100,
+		Primary: true,
+		Order:   3,
+	}
+
+	logCol["tableMap"] = types.SQLTableColumn{
+		Name:    "tblMap",
+		Type:    types.SQLColumnTypeVarchar,
+		Length:  100,
+		Primary: true,
+		Order:   4,
+	}
+
 	logCol["registers"] = types.SQLTableColumn{
 		Name:    "registers",
 		Type:    types.SQLColumnTypeInt,
 		Primary: false,
-		Order:   3,
+		Order:   5,
 	}
 
-	logCol["height"] = types.SQLTableColumn{
-		Name:    "height",
+	logCol["eventFilter"] = types.SQLTableColumn{
+		Name:    "_eventFilter",
 		Type:    types.SQLColumnTypeVarchar,
 		Length:  100,
 		Primary: false,
-		Order:   4,
+		Order:   6,
+	}
+
+	logCol["height"] = types.SQLTableColumn{
+		Name:    "_height",
+		Type:    types.SQLColumnTypeVarchar,
+		Length:  100,
+		Primary: false,
+		Order:   7,
 	}
 
 	tables["log"] = types.SQLTable{
@@ -104,43 +128,47 @@ func (db *SQLDB) getLogTableDef() types.EventTables {
 		Columns: logCol,
 	}
 
-	detCol := make(map[string]types.SQLTableColumn)
+	//TODO: COMMENTS
+	/*
+		//log detail
+		detCol := make(map[string]types.SQLTableColumn)
 
-	detCol["id"] = types.SQLTableColumn{
-		Name:    "id",
-		Type:    types.SQLColumnTypeInt,
-		Primary: true,
-		Order:   1,
-	}
+		detCol["id"] = types.SQLTableColumn{
+			Name:    "id",
+			Type:    types.SQLColumnTypeInt,
+			Primary: true,
+			Order:   1,
+		}
 
-	detCol["tableName"] = types.SQLTableColumn{
-		Name:    "tblname",
-		Type:    types.SQLColumnTypeVarchar,
-		Length:  100,
-		Primary: true,
-		Order:   2,
-	}
+		detCol["tableName"] = types.SQLTableColumn{
+			Name:    "tblname",
+			Type:    types.SQLColumnTypeVarchar,
+			Length:  100,
+			Primary: true,
+			Order:   2,
+		}
 
-	detCol["tableMap"] = types.SQLTableColumn{
-		Name:    "tblmap",
-		Type:    types.SQLColumnTypeVarchar,
-		Length:  100,
-		Primary: true,
-		Order:   3,
-	}
 
-	detCol["registers"] = types.SQLTableColumn{
-		Name:    "registers",
-		Type:    types.SQLColumnTypeInt,
-		Primary: false,
-		Order:   4,
-	}
+		detCol["tableMap"] = types.SQLTableColumn{
+			Name:    "tblmap",
+			Type:    types.SQLColumnTypeVarchar,
+			Length:  100,
+			Primary: true,
+			Order:   3,
+		}
 
-	tables["detail"] = types.SQLTable{
-		Name:    "_bosmarmot_logdet",
-		Columns: detCol,
-	}
+		detCol["registers"] = types.SQLTableColumn{
+			Name:    "registers",
+			Type:    types.SQLColumnTypeInt,
+			Primary: false,
+			Order:   4,
+		}
 
+		tables["detail"] = types.SQLTable{
+			Name:    "_bosmarmot_logdet",
+			Columns: detCol,
+		}
+	*/
 	return tables
 }
 
@@ -319,12 +347,12 @@ func (db *SQLDB) createTable(table types.SQLTable) error {
 
 // getBlockTables return all SQL tables that had been involved
 // in a given batch transaction for a specific block id
-func (db *SQLDB) getBlockTables(block string) (types.EventTables, error) {
+func (db *SQLDB) getBlockTables(eventFilter string, block string) (types.EventTables, error) {
 	tables := make(types.EventTables)
 
 	query := db.DBAdapter.SelectLogQuery()
 	db.Log.Debug("msg", "QUERY LOG", "query", clean(query), "value", block)
-	rows, err := db.DB.Query(query, block)
+	rows, err := db.DB.Query(query, eventFilter, block)
 	if err != nil {
 		db.Log.Debug("msg", "Error querying log", "err", err)
 		return tables, err

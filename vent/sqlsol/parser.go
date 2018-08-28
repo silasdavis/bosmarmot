@@ -8,23 +8,29 @@ import (
 	"github.com/monax/bosmarmot/vent/types"
 )
 
-// Parser contains EventTable definition
+// Parser contains EventTable and EventSpecification definitions
 type Parser struct {
-	// maps event names to tables
-	Tables types.EventTables
+	Tables    types.EventTables
+	EventSpec types.EventSpec
 }
 
 // NewParser receives a sqlsol event configuration stream
 // and returns a pointer to a filled parser structure
 func NewParser(byteValue []byte) (*Parser, error) {
-	tables, err := mapToTable(byteValue)
+	tables, eventSpec, err := mapToTable(byteValue)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Parser{
-		Tables: tables,
+		Tables:    tables,
+		EventSpec: eventSpec,
 	}, nil
+}
+
+// GetEventSpec returns the event specification structure
+func (p *Parser) GetEventSpec() types.EventSpec {
+	return p.EventSpec
 }
 
 // GetTables returns the event tables structures
@@ -81,77 +87,103 @@ func (p *Parser) SetTableName(eventName, tableName string) error {
 // mapToTable gets a sqlsol event configuration stream,
 // parses contents, maps event types to SQL column types
 // and fills Event table structure with table and columns info
-func mapToTable(byteValue []byte) (map[string]types.SQLTable, error) {
-	tables := make(map[string]types.SQLTable)
-	eventsDefinition := []types.EventDefinition{}
+func mapToTable(byteValue []byte) (types.EventTables, types.EventSpec, error) {
+	tables := make(types.EventTables)
+	eventSpec := types.EventSpec{}
 
 	// parses json config stream
-	if err := json.Unmarshal(byteValue, &eventsDefinition); err != nil {
-		return nil, err
+	if err := json.Unmarshal(byteValue, &eventSpec); err != nil {
+		return nil, nil, err
 	}
 
 	// obtain global SQL table columns to add to columns definition map
 	globalColumns := getGlobalColumns()
 	globalColumnsLength := len(globalColumns)
 
-	for _, eventDef := range eventsDefinition {
+	for _, eventDef := range eventSpec {
 		// validate json structure
 		if err := eventDef.Validate(); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
-		// if it is an event
-		if eventDef.Event.Type == "event" {
-			// build columns mapping
-			columns := make(map[string]types.SQLTableColumn)
+		// build columns mapping
+		columns := make(map[string]types.SQLTableColumn)
 
-			for i, eventInput := range eventDef.Event.Inputs {
-				if col, ok := eventDef.Columns[eventInput.Name]; ok {
+		j := 0
 
-					sqlType, sqlTypeLength, err := getSQLType(eventInput.Type)
-					if err != nil {
-						return nil, err
-					}
+		for _, eventInput := range eventDef.Event.Inputs {
+			if col, ok := eventDef.Columns[eventInput.Name]; ok {
 
-					columns[eventInput.Name] = types.SQLTableColumn{
-						Name:    col.Name,
-						Type:    sqlType,
-						Length:  sqlTypeLength,
-						Primary: col.Primary,
-						Order:   i + (globalColumnsLength + 1),
-					}
+				sqlType, sqlTypeLength, err := getSQLType(eventInput.Type)
+				if err != nil {
+					return nil, nil, err
+				}
+
+				j++
+
+				columns[eventInput.Name] = types.SQLTableColumn{
+					Name:    strings.ToLower(col.Name),
+					Type:    sqlType,
+					Length:  sqlTypeLength,
+					Primary: col.Primary,
+					Order:   j + globalColumnsLength,
 				}
 			}
+		}
 
-			// add global columns to column definition
-			for k, v := range globalColumns {
-				columns[k] = v
-			}
+		// add global columns to column definition
+		for k, v := range globalColumns {
+			columns[k] = v
+		}
 
-			tables[eventDef.Event.Name] = types.SQLTable{
-				Name:    strings.ToLower(eventDef.TableName),
-				Columns: columns,
+		tables[eventDef.Event.Name] = types.SQLTable{
+			Name:    strings.ToLower(eventDef.TableName),
+			Filter:  eventDef.Filter,
+			Columns: columns,
+		}
+	}
+
+	// check if there are duplicated table names in structure or
+	// duplicated column names (for a given table)
+	tblName := make(map[string]int)
+	colName := make(map[string]int)
+
+	for _, tbls := range tables {
+		tblName[tbls.Name]++
+		if tblName[tbls.Name] > 1 {
+			return nil, nil, fmt.Errorf("mapToTable: duplicated table name: %s ", tbls.Name)
+		}
+
+		for _, cols := range tbls.Columns {
+			colName[tbls.Name+cols.Name]++
+			if colName[tbls.Name+cols.Name] > 1 {
+				return nil, nil, fmt.Errorf("mapToTable: duplicated column name: %s in table %s", cols.Name, tbls.Name)
 			}
 		}
 	}
 
-	return tables, nil
+	return tables, eventSpec, nil
 }
 
 // getSQLType maps event input types with corresponding
 // SQL column types
 func getSQLType(eventInputType string) (types.SQLColumnType, int, error) {
-	switch strings.ToLower(eventInputType) {
-	case types.EventInputTypeInt, types.EventInputTypeUInt:
+	if strings.HasPrefix(strings.ToLower(eventInputType), types.EventInputTypeInt) ||
+		strings.HasPrefix(strings.ToLower(eventInputType), types.EventInputTypeUInt) {
 		return types.SQLColumnTypeInt, 0, nil
-	case types.EventInputTypeAddress, types.EventInputTypeBytes:
+	}
+	if strings.HasPrefix(strings.ToLower(eventInputType), types.EventInputTypeBytes) {
+		return types.SQLColumnTypeVarchar, 100, nil
+	}
+	switch strings.ToLower(eventInputType) {
+	case types.EventInputTypeAddress:
 		return types.SQLColumnTypeVarchar, 100, nil
 	case types.EventInputTypeBool:
 		return types.SQLColumnTypeBool, 0, nil
 	case types.EventInputTypeString:
 		return types.SQLColumnTypeText, 0, nil
 	default:
-		return 0, 0, fmt.Errorf("getSQLType: don't know how to map eventInputType: %s ", eventInputType)
+		return -1, 0, fmt.Errorf("getSQLType: don't know how to map eventInputType: %s ", eventInputType)
 	}
 }
 
@@ -166,7 +198,7 @@ func getGlobalColumns() map[string]types.SQLTableColumn {
 	globalColumns := make(map[string]types.SQLTableColumn)
 
 	globalColumns["height"] = types.SQLTableColumn{
-		Name:    "height",
+		Name:    "_height",
 		Type:    types.SQLColumnTypeVarchar,
 		Length:  100,
 		Primary: false,
@@ -174,21 +206,21 @@ func getGlobalColumns() map[string]types.SQLTableColumn {
 	}
 
 	globalColumns["txHash"] = types.SQLTableColumn{
-		Name:    "txhash",
+		Name:    "_txhash",
 		Type:    types.SQLColumnTypeByteA,
 		Primary: false,
 		Order:   2,
 	}
 
 	globalColumns["index"] = types.SQLTableColumn{
-		Name:    "index",
+		Name:    "_index",
 		Type:    types.SQLColumnTypeInt,
 		Primary: false,
 		Order:   3,
 	}
 
 	globalColumns["eventType"] = types.SQLTableColumn{
-		Name:    "eventtype",
+		Name:    "_eventtype",
 		Type:    types.SQLColumnTypeVarchar,
 		Length:  100,
 		Primary: false,
@@ -196,7 +228,7 @@ func getGlobalColumns() map[string]types.SQLTableColumn {
 	}
 
 	globalColumns["eventName"] = types.SQLTableColumn{
-		Name:    "eventname",
+		Name:    "_eventname",
 		Type:    types.SQLColumnTypeVarchar,
 		Length:  100,
 		Primary: false,

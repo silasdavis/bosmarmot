@@ -1,5 +1,31 @@
 [
   {
+    "TableName" : "EventTest",
+    "Filter" : "EventType = 'LogEvent'",
+    "Event"  : {
+      "anonymous": false,
+      "inputs": [{
+        "indexed": true,
+        "name": "name",
+        "type": "string"
+      }, {
+        "indexed": true,
+        "name": "description",
+        "type": "string"
+      }, {
+        "indexed": false,
+        "name": "UnimportantInfo",
+        "type": "uint"
+      }],
+      "name": "TEST_EVENTS",
+      "type": "event"
+    },
+    "Columns"  : {
+      "name" : {"name" : "testname", "primary" : true},
+      "description": {"name" : "testdescription", "primary" : false}
+    }
+  },
+  {
     "TableName" : "UserAccounts",
     "Filter" : "LOG0 = 'UserAccounts'",
     "Event"  : {
@@ -23,32 +49,6 @@
     "Columns"  : {
       "userAddress" : {"name" : "address", "primary" : true},
       "userName": {"name" : "username", "primary" : false}
-    }
-  },
-  {
-    "TableName" : "EventTest",
-    "Filter" : "LOG0 = 'EventTest'",
-    "Event"  : {
-      "anonymous": false,
-      "inputs": [{
-        "indexed": false,
-        "name": "name",
-        "type": "string"
-      }, {
-        "indexed": false,
-        "name": "description",
-        "type": "string"
-      }, {
-        "indexed": false,
-        "name": "UnimportantInfo",
-        "type": "uint"
-      }],
-      "name": "TEST_EVENTS",
-      "type": "event"
-    },
-    "Columns"  : {
-      "name" : {"name" : "testname", "primary" : true},
-      "description": {"name" : "testdescription", "primary" : false}
     }
   }
 ]
