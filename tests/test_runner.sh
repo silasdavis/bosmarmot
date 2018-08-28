@@ -18,7 +18,6 @@
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Various required binaries locations can be provided by wrapper
-export bos_bin=${bos_bin:-bos}
 export burrow_bin=${burrow_bin:-burrow}
 
 # currently we must use 'solc' as hardcoded by compilers
@@ -73,7 +72,6 @@ test_setup(){
   echo
   echo "Using binaries:"
   echo "  $(type ${solc_bin}) (version: $(${solc_bin} --version))"
-  echo "  $(type ${bos_bin}) (version: $(${bos_bin} version))"
   echo "  $(type ${burrow_bin}) (version: $(${burrow_bin} --version))"
   echo
   # start test chain

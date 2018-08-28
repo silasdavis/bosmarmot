@@ -55,7 +55,7 @@ func StartServer(service *rpc.Service, pattern, listenAddress string, blockSampl
 	logger *logging.Logger) (*http.Server, error) {
 
 	// instantiate metrics and variables we do not expect to change during runtime
-	chainStatus, _ := service.Status("")
+	chainStatus, _ := service.Status()
 	exporter := Exporter{
 		burrowMetrics:    AddMetrics(),
 		datum:            &Datum{},
@@ -71,7 +71,7 @@ func StartServer(service *rpc.Service, pattern, listenAddress string, blockSampl
 	prometheus.MustRegister(&exporter)
 
 	mux := http.NewServeMux()
-	mux.Handle(pattern, prometheus.Handler())
+	mux.Handle(pattern, server.RecoverAndLogHandler(prometheus.Handler(), logger))
 
 	srv, err := server.StartHTTPServer(listenAddress, mux, logger)
 	if err != nil {

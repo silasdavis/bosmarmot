@@ -58,32 +58,24 @@ npm_install:
 	@cd burrow.js && npm install
 
 # Run tests including integration tests
-.PHONY:	test_integration_bos
-test_integration_bos: build_bin bin/solc bin/burrow
-	@tests/scripts/bin_wrapper.sh tests/bos.sh
-
 .PHONY:	test_integration_vent
 test_integration_vent:
 	@GOCACHE=off go test -tags integration ./vent/...
 
 .PHONY:	test_burrow_js
-test_burrow_js: build_bin bin/solc bin/burrow
+test_burrow_js: bin/solc bin/burrow
 	@cd burrow.js && ../tests/scripts/bin_wrapper.sh npm test
 
 .PHONY:	test_integration
-test_integration: test_integration_bos test_integration_vent test_burrow_js
+test_integration: test_integration_vent test_burrow_js
 
 # Use a provided/local Burrow
 .PHONY:	test_burrow_js_no_burrow
-test_burrow_js_no_burrow: build_bin bin/solc
+test_burrow_js_no_burrow: bin/solc
 	@cd burrow.js && ../tests/scripts/bin_wrapper.sh npm test
 
-.PHONY:	test_integration_bos_no_burrow
-test_integration_bos_no_burrow: build_bin bin/solc
-	@tests/scripts/bin_wrapper.sh tests/bos.sh
-
 PHONY:	test_integration_no_burrow
-test_integration_no_burrow: test_integration_bos_no_burrow test_burrow_js_no_burrow
+test_integration_no_burrow: test_burrow_js_no_burrow
 
 ### Vendoring
 
@@ -111,13 +103,6 @@ protobuf:
 	@rm -rf ${REPO}/burrow.js/protobuf
 	@cp -a ${REPO}/vendor/github.com/hyperledger/burrow/protobuf ${REPO}/burrow.js/protobuf
 
-.PHONY: build_bin
-build_bin:
-	@go build  -a -tags netgo \
-	-ldflags  "-w -extldflags '-static' \
-	-X github.com/monax/bosmarmot/project.commit=${COMMIT}" \
-	-o bin/bos ./bos/cmd/bos
-
 bin/solc: ./tests/scripts/deps/solc.sh
 	@mkdir -p bin
 	@tests/scripts/deps/solc.sh bin/solc
@@ -141,18 +126,11 @@ bin/burrow: ./tests/scripts/deps/burrow.sh
 	https://github.com/hyperledger/burrow.git \
 	${BURROW_PACKAGE} \
 	$(shell ./tests/scripts/deps/burrow.sh) \
-	"make build_db" && \
+	"make build" && \
 	cp .gopath_burrow/src/${BURROW_PACKAGE}/bin/burrow ./bin/burrow
 
 
 # Build all the things
-.PHONY: build
-build:	build_bin
-
-.PHONY: install
-install: build_bin
-	@cp bin/bos ${GOPATH}/bin/bos
-
 
 # Build binaries for all architectures
 .PHONY: build_dist
@@ -163,21 +141,6 @@ build_dist:
 .PHONY: build_ci
 build_ci: check test build
 
-### Release and versioning
-
-# Print version
-.PHONY: version
-version:
-	@go run ./project/cmd/version/main.go
-
-# Generate full changelog of all release notes
-CHANGELOG.md: ./project/history.go ./project/cmd/changelog/main.go
-	@go run ./project/cmd/changelog/main.go > CHANGELOG.md
-
-# Generated release notes for this version
-NOTES.md:  ./project/history.go ./project/cmd/notes/main.go
-	@go run ./project/cmd/notes/main.go > NOTES.md
-
 # Generate all docs
 .PHONY: docs
 docs: CHANGELOG.md NOTES.md
@@ -185,7 +148,7 @@ docs: CHANGELOG.md NOTES.md
 # Tag the current HEAD commit with the current release defined in
 # ./release/release.go
 .PHONY: tag_release
-tag_release: test check CHANGELOG.md build_bin
+tag_release: test check 
 	@tests/scripts/tag_release.sh
 
 # If the checked out commit is tagged with a version then release to github

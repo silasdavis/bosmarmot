@@ -72,7 +72,7 @@ func abiPackAddEvent(name, description string) []byte {
 	headSize := uint64(64)
 	descriptionOffset := headSize + uint64(len(namePacked))
 	// Write function selector
-	id := abi.FunctionID("addEvent(string,string)")
+	id := abi.GetFunctionID("addEvent(string,string)")
 	// Write heads (where does 'name' start)
 	bs := append(id[:], wordN(headSize)...)
 	// Where does 'description start'
