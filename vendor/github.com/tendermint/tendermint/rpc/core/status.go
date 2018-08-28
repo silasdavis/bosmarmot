@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"time"
 
+	cmn "github.com/tendermint/tendermint/libs/common"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 	sm "github.com/tendermint/tendermint/state"
 	"github.com/tendermint/tendermint/types"
-	cmn "github.com/tendermint/tendermint/libs/common"
 )
 
 // Get Tendermint status including node info, pubkey, latest block
@@ -105,9 +105,9 @@ func Status() (*ctypes.ResultStatus, error) {
 }
 
 func validatorAtHeight(h int64) *types.Validator {
-	lastBlockHeight, vals := consensusState.GetValidators()
-
 	privValAddress := pubKey.Address()
+
+	lastBlockHeight, vals := consensusState.GetValidators()
 
 	// if we're still at height h, search in the current validator set
 	if lastBlockHeight == h {

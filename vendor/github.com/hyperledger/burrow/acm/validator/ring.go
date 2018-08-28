@@ -50,7 +50,7 @@ func NewRing(initialSet Iterable, windowSize int) *Ring {
 
 // Implement Reader
 // Get power at index from the delta bucket then falling through to the cumulative
-func (vc *Ring) PowerAt(index int64, id crypto.Addressable) *big.Int {
+func (vc *Ring) PowerAt(index int64, id crypto.Address) *big.Int {
 	power := vc.Head().MaybePower(id)
 	if power != nil {
 		return power
@@ -58,7 +58,7 @@ func (vc *Ring) PowerAt(index int64, id crypto.Addressable) *big.Int {
 	return vc.Cum().Power(id)
 }
 
-func (vc *Ring) Power(id crypto.Addressable) *big.Int {
+func (vc *Ring) Power(id crypto.Address) *big.Int {
 	return vc.PowerAt(vc.head, id)
 }
 
@@ -67,7 +67,7 @@ func (vc *Ring) Resultant(index int64) *Set {
 	i := vc.index(index)
 	cum := CopyTrim(vc.cum[i])
 	vc.delta[i].Iterate(func(id crypto.Addressable, power *big.Int) (stop bool) {
-		cum.AlterPower(id, power)
+		cum.AlterPower(id.PublicKey(), power)
 		return
 	})
 	return cum
@@ -78,7 +78,7 @@ func (vc *Ring) TotalPower() *big.Int {
 }
 
 // Updates the current head bucket (accumulator) with some safety checks
-func (vc *Ring) AlterPower(id crypto.Addressable, power *big.Int) (*big.Int, error) {
+func (vc *Ring) AlterPower(id crypto.PublicKey, power *big.Int) (*big.Int, error) {
 	if power.Sign() == -1 {
 		return nil, fmt.Errorf("cannot set negative validator power: %v", power)
 	}
@@ -87,7 +87,7 @@ func (vc *Ring) AlterPower(id crypto.Addressable, power *big.Int) (*big.Int, err
 			"does not", power)
 	}
 	// if flow > maxflow then we cannot alter the power
-	flow := vc.Flow(id, power)
+	flow := vc.Flow(id.Address(), power)
 	maxFlow := vc.MaxFlow()
 	// Set flow for this id to update flow.totalPower (total flow) for comparison below, keep track of flow for each id
 	// so that we only count flow once for each id
@@ -95,13 +95,13 @@ func (vc *Ring) AlterPower(id crypto.Addressable, power *big.Int) (*big.Int, err
 	// The totalPower of the Flow Set is the absolute value of all power changes made so far
 	if vc.flow.totalPower.Cmp(maxFlow) == 1 {
 		// Reset flow to previous value to undo update above
-		prevFlow := vc.Flow(id, vc.Head().Power(id))
+		prevFlow := vc.Flow(id.Address(), vc.Head().Power(id.Address()))
 		vc.flow.ChangePower(id, prevFlow)
 		allowable := new(big.Int).Sub(maxFlow, vc.flow.totalPower)
 		return nil, fmt.Errorf("cannot change validator power of %v from %v to %v because that would result in a flow "+
 			"greater than or equal to 1/3 of total power for the next commit: flow induced by change: %v, "+
 			"current total flow: %v/%v (cumulative/max), remaining allowable flow: %v",
-			id.Address(), vc.Cum().Power(id), power, flow, vc.flow.totalPower, maxFlow, allowable)
+			id.Address(), vc.Cum().Power(id.Address()), power, flow, vc.flow.totalPower, maxFlow, allowable)
 	}
 	// Add to total power
 	vc.Head().ChangePower(id, power)
@@ -109,7 +109,7 @@ func (vc *Ring) AlterPower(id crypto.Addressable, power *big.Int) (*big.Int, err
 }
 
 // Returns the flow that would be induced by a validator change by comparing the head accumulater with the current set
-func (vc *Ring) Flow(id crypto.Addressable, power *big.Int) *big.Int {
+func (vc *Ring) Flow(id crypto.Address, power *big.Int) *big.Int {
 	flow := new(big.Int)
 	return flow.Abs(flow.Sub(power, vc.Cum().Power(id)))
 }

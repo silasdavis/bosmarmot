@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/types"
 )
@@ -37,14 +38,14 @@ func voteToStep(vote *types.Vote) int8 {
 // to prevent double signing.
 // NOTE: the directory containing the pv.filePath must already exist.
 type FilePV struct {
-	Address       types.Address    `json:"address"`
-	PubKey        crypto.PubKey    `json:"pub_key"`
-	LastHeight    int64            `json:"last_height"`
-	LastRound     int              `json:"last_round"`
-	LastStep      int8             `json:"last_step"`
-	LastSignature crypto.Signature `json:"last_signature,omitempty"` // so we dont lose signatures XXX Why would we lose signatures?
-	LastSignBytes cmn.HexBytes     `json:"last_signbytes,omitempty"` // so we dont lose signatures XXX Why would we lose signatures?
-	PrivKey       crypto.PrivKey   `json:"priv_key"`
+	Address       types.Address  `json:"address"`
+	PubKey        crypto.PubKey  `json:"pub_key"`
+	LastHeight    int64          `json:"last_height"`
+	LastRound     int            `json:"last_round"`
+	LastStep      int8           `json:"last_step"`
+	LastSignature []byte         `json:"last_signature,omitempty"` // so we dont lose signatures XXX Why would we lose signatures?
+	LastSignBytes cmn.HexBytes   `json:"last_signbytes,omitempty"` // so we dont lose signatures XXX Why would we lose signatures?
+	PrivKey       crypto.PrivKey `json:"priv_key"`
 
 	// For persistence.
 	// Overloaded for testing.
@@ -67,7 +68,7 @@ func (pv *FilePV) GetPubKey() crypto.PubKey {
 // GenFilePV generates a new validator with randomly generated private key
 // and sets the filePath, but does not call Save().
 func GenFilePV(filePath string) *FilePV {
-	privKey := crypto.GenPrivKeyEd25519()
+	privKey := ed25519.GenPrivKey()
 	return &FilePV{
 		Address:  privKey.PubKey().Address(),
 		PubKey:   privKey.PubKey(),
@@ -137,7 +138,7 @@ func (pv *FilePV) save() {
 // Reset resets all fields in the FilePV.
 // NOTE: Unsafe!
 func (pv *FilePV) Reset() {
-	var sig crypto.Signature
+	var sig []byte
 	pv.LastHeight = 0
 	pv.LastRound = 0
 	pv.LastStep = 0
@@ -276,7 +277,7 @@ func (pv *FilePV) signProposal(chainID string, proposal *types.Proposal) error {
 
 // Persist height/round/step and signature
 func (pv *FilePV) saveSigned(height int64, round int, step int8,
-	signBytes []byte, sig crypto.Signature) {
+	signBytes []byte, sig []byte) {
 
 	pv.LastHeight = height
 	pv.LastRound = round
