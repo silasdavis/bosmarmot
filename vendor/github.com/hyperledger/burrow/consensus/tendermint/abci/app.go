@@ -3,10 +3,8 @@ package abci
 import (
 	"fmt"
 	"math/big"
-	"sync"
-	"time"
-
 	"runtime/debug"
+	"sync"
 
 	"github.com/hyperledger/burrow/acm/validator"
 	"github.com/hyperledger/burrow/bcm"
@@ -49,8 +47,8 @@ func NewApp(nodeInfo string, blockchain *bcm.Blockchain, checker execution.Batch
 		blockchain: blockchain,
 		checker:    checker,
 		committer:  committer,
-		checkTx:    txExecutor(checker, txDecoder, logger.WithScope("CheckTx")),
-		deliverTx:  txExecutor(committer, txDecoder, logger.WithScope("DeliverTx")),
+		checkTx:    txExecutor("CheckTx", checker, txDecoder, logger.WithScope("CheckTx")),
+		deliverTx:  txExecutor("DeliverTx", committer, txDecoder, logger.WithScope("DeliverTx")),
 		panicFunc:  panicFunc,
 		logger: logger.WithScope("abci.NewApp").With(structure.ComponentKey, "ABCI_App",
 			"node_info", nodeInfo),
@@ -116,12 +114,12 @@ func (app *App) BeginBlock(block abciTypes.RequestBeginBlock) (respBeginBlock ab
 		var err error
 		// Tendermint runs a block behind with the validators passed in here
 		previousValidators := app.blockchain.PreviousValidators()
-		if len(block.Validators) != previousValidators.Count() {
+		if len(block.LastCommitInfo.Validators) != previousValidators.Count() {
 			err = fmt.Errorf("Tendermint passes %d validators to BeginBlock but Burrow's Blockchain has %d",
-				len(block.Validators), previousValidators.Count())
+				len(block.LastCommitInfo.Validators), previousValidators.Count())
 			panic(err)
 		}
-		for _, v := range block.Validators {
+		for _, v := range block.LastCommitInfo.Validators {
 			err = app.checkValidatorMatches(previousValidators, v.Validator)
 			if err != nil {
 				panic(err)
@@ -132,14 +130,14 @@ func (app *App) BeginBlock(block abciTypes.RequestBeginBlock) (respBeginBlock ab
 }
 
 func (app *App) checkValidatorMatches(ours validator.Reader, v abciTypes.Validator) error {
-	publicKey, err := crypto.PublicKeyFromABCIPubKey(v.PubKey)
+	address, err := crypto.AddressFromBytes(v.Address)
 	if err != nil {
 		return err
 	}
-	power := ours.Power(publicKey)
+	power := ours.Power(address)
 	if power.Cmp(big.NewInt(v.Power)) != 0 {
 		return fmt.Errorf("validator %v has power %d from Tendermint but power %d from Burrow",
-			publicKey.Address(), v.Power, power)
+			address, v.Power, power)
 	}
 	return nil
 }
@@ -167,34 +165,36 @@ func (app *App) DeliverTx(txBytes []byte) abciTypes.ResponseDeliverTx {
 		Log:       ctr.Log,
 		Data:      ctr.Data,
 		Tags:      ctr.Tags,
-		Fee:       ctr.Fee,
 		GasUsed:   ctr.GasUsed,
 		GasWanted: ctr.GasWanted,
 		Info:      ctr.Info,
 	}
 }
 
-func txExecutor(executor execution.BatchExecutor, txDecoder txs.Decoder, logger *logging.Logger) func(txBytes []byte) abciTypes.ResponseCheckTx {
+func txExecutor(name string, executor execution.BatchExecutor, txDecoder txs.Decoder, logger *logging.Logger) func(txBytes []byte) abciTypes.ResponseCheckTx {
+	logf := func(format string, args ...interface{}) string {
+		return fmt.Sprintf("%s: "+format, append([]interface{}{name}, args...)...)
+	}
 	return func(txBytes []byte) abciTypes.ResponseCheckTx {
 		txEnv, err := txDecoder.DecodeTx(txBytes)
 		if err != nil {
-			logger.TraceMsg("Decoding error",
+			logger.InfoMsg("Decoding error",
 				structure.ErrorKey, err)
 			return abciTypes.ResponseCheckTx{
 				Code: codes.EncodingErrorCode,
-				Log:  fmt.Sprintf("Encoding error: %s", err),
+				Log:  logf("Encoding error: %s", err),
 			}
 		}
 
 		txe, err := executor.Execute(txEnv)
 		if err != nil {
 			ex := errors2.AsException(err)
-			logger.TraceMsg("Execution error",
+			logger.InfoMsg("Execution error",
 				structure.ErrorKey, err,
 				"tx_hash", txEnv.Tx.Hash())
 			return abciTypes.ResponseCheckTx{
 				Code: codes.TxExecutionErrorCode,
-				Log:  fmt.Sprintf("Could not execute transaction: %s, error: %v", txEnv, ex.Exception),
+				Log:  logf("Could not execute transaction: %s, error: %v", txEnv, ex.Exception),
 			}
 		}
 
@@ -202,16 +202,16 @@ func txExecutor(executor execution.BatchExecutor, txDecoder txs.Decoder, logger 
 		if err != nil {
 			return abciTypes.ResponseCheckTx{
 				Code: codes.EncodingErrorCode,
-				Log:  fmt.Sprintf("Could not serialise receipt: %s", err),
+				Log:  logf("Could not serialise receipt: %s", err),
 			}
 		}
-		logger.TraceMsg("Execution success",
+		logger.InfoMsg("Execution success",
 			"tx_hash", txe.TxHash,
 			"contract_address", txe.Receipt.ContractAddress,
 			"creates_contract", txe.Receipt.CreatesContract)
 		return abciTypes.ResponseCheckTx{
 			Code: codes.TxExecutionSuccessCode,
-			Log:  "Execution success - TxExecution in data",
+			Log:  logf("Execution success - TxExecution in data"),
 			Data: bs,
 		}
 	}
@@ -241,7 +241,7 @@ func (app *App) Commit() abciTypes.ResponseCommit {
 			app.panicFunc(fmt.Errorf("panic occurred in abci.App/Commit: %v\n%s", r, debug.Stack()))
 		}
 	}()
-	blockTime := time.Unix(app.block.Header.Time, 0)
+	blockTime := app.block.Header.Time
 	app.logger.InfoMsg("Committing block",
 		"tag", "Commit",
 		structure.ScopeKey, "Commit()",

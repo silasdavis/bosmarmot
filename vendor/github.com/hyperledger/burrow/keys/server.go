@@ -9,6 +9,10 @@ import (
 	"net"
 	"strings"
 
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/hyperledger/burrow/crypto"
 	"github.com/hyperledger/burrow/logging"
 	"github.com/tmthrgd/go-hex"
@@ -20,14 +24,21 @@ import (
 // all cli commands pass through the http KeyStore
 // the KeyStore process also maintains the unlocked accounts
 
-func StartStandAloneServer(keysDir, host, port string, AllowBadFilePermissions bool, logger *logging.Logger) error {
+func StartStandAloneServer(keysDir, host, port string, AllowBadFilePermissions bool, logger *logging.Logger) (err error) {
 	listen, err := net.Listen("tcp", host+":"+port)
 	if err != nil {
 		return err
 	}
 	grpcServer := grpc.NewServer()
 	RegisterKeysServer(grpcServer, NewKeyStore(keysDir, AllowBadFilePermissions, logger))
-	return grpcServer.Serve(listen)
+
+	go func() {
+		err = grpcServer.Serve(listen)
+	}()
+	sigs := make(chan os.Signal)
+	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT)
+	<-sigs
+	return
 }
 
 //------------------------------------------------------------------------
@@ -76,8 +87,8 @@ func (k *KeyStore) Export(ctx context.Context, in *ExportRequest) (*ExportRespon
 	return &ExportResponse{
 		Address:    addrB[:],
 		CurveType:  key.CurveType.String(),
-		Publickey:  key.PublicKey.Key[:],
-		Privatekey: key.PrivateKey.Key[:],
+		Publickey:  key.PublicKey.PublicKey[:],
+		Privatekey: key.PrivateKey.PrivateKey[:],
 	}, nil
 }
 

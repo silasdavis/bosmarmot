@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/hyperledger/burrow/binary"
-	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/types"
 )
 
@@ -36,11 +35,11 @@ func voteToStep(vote *types.Vote) int8 {
 // data signed by a validator to help prevent double signing.
 type LastSignedInfo struct {
 	sync.Mutex
-	Height    int64            `json:"height"`
-	Round     int              `json:"round"`
-	Step      int8             `json:"step"`
-	Signature crypto.Signature `json:"signature,omitempty"` // so we dont lose signatures
-	SignBytes binary.HexBytes  `json:"signbytes,omitempty"` // so we dont lose signatures
+	Height    int64           `json:"height"`
+	Round     int             `json:"round"`
+	Step      int8            `json:"step"`
+	Signature []byte          `json:"signature,omitempty"` // so we dont lose signatures
+	SignBytes binary.HexBytes `json:"signbytes,omitempty"` // so we dont lose signatures
 }
 
 func NewLastSignedInfo() *LastSignedInfo {
@@ -49,11 +48,11 @@ func NewLastSignedInfo() *LastSignedInfo {
 	}
 }
 
-type goCryptoSigner func(msg []byte) crypto.Signature
+type tmCryptoSigner func(msg []byte) []byte
 
 // SignVote signs a canonical representation of the vote, along with the
 // chainID. Implements PrivValidator.
-func (lsi *LastSignedInfo) SignVote(sign goCryptoSigner, chainID string, vote *types.Vote) error {
+func (lsi *LastSignedInfo) SignVote(sign tmCryptoSigner, chainID string, vote *types.Vote) error {
 	lsi.Lock()
 	defer lsi.Unlock()
 	if err := lsi.signVote(sign, chainID, vote); err != nil {
@@ -64,7 +63,7 @@ func (lsi *LastSignedInfo) SignVote(sign goCryptoSigner, chainID string, vote *t
 
 // SignProposal signs a canonical representation of the proposal, along with
 // the chainID. Implements PrivValidator.
-func (lsi *LastSignedInfo) SignProposal(sign goCryptoSigner, chainID string, proposal *types.Proposal) error {
+func (lsi *LastSignedInfo) SignProposal(sign tmCryptoSigner, chainID string, proposal *types.Proposal) error {
 	lsi.Lock()
 	defer lsi.Unlock()
 	if err := lsi.signProposal(sign, chainID, proposal); err != nil {
@@ -104,7 +103,7 @@ func (lsi *LastSignedInfo) checkHRS(height int64, round int, step int8) (bool, e
 // signVote checks if the vote is good to sign and sets the vote signature.
 // It may need to set the timestamp as well if the vote is otherwise the same as
 // a previously signed vote (ie. we crashed after signing but before the vote hit the WAL).
-func (lsi *LastSignedInfo) signVote(sign goCryptoSigner, chainID string, vote *types.Vote) error {
+func (lsi *LastSignedInfo) signVote(sign tmCryptoSigner, chainID string, vote *types.Vote) error {
 	height, round, step := vote.Height, vote.Round, voteToStep(vote)
 	signBytes := vote.SignBytes(chainID)
 
@@ -140,7 +139,7 @@ func (lsi *LastSignedInfo) signVote(sign goCryptoSigner, chainID string, vote *t
 // signProposal checks if the proposal is good to sign and sets the proposal signature.
 // It may need to set the timestamp as well if the proposal is otherwise the same as
 // a previously signed proposal ie. we crashed after signing but before the proposal hit the WAL).
-func (lsi *LastSignedInfo) signProposal(sign goCryptoSigner, chainID string, proposal *types.Proposal) error {
+func (lsi *LastSignedInfo) signProposal(sign tmCryptoSigner, chainID string, proposal *types.Proposal) error {
 	height, round, step := proposal.Height, proposal.Round, stepPropose
 	signBytes := proposal.SignBytes(chainID)
 
@@ -175,7 +174,7 @@ func (lsi *LastSignedInfo) signProposal(sign goCryptoSigner, chainID string, pro
 
 // Persist height/round/step and signature
 func (lsi *LastSignedInfo) saveSigned(height int64, round int, step int8,
-	signBytes []byte, sig crypto.Signature) {
+	signBytes []byte, sig []byte) {
 
 	lsi.Height = height
 	lsi.Round = round
@@ -186,7 +185,7 @@ func (lsi *LastSignedInfo) saveSigned(height int64, round int, step int8,
 
 // SignHeartbeat signs a canonical representation of the heartbeat, along with the chainID.
 // Implements PrivValidator.
-func (lsi *LastSignedInfo) SignHeartbeat(sign goCryptoSigner, chainID string, heartbeat *types.Heartbeat) error {
+func (lsi *LastSignedInfo) SignHeartbeat(sign tmCryptoSigner, chainID string, heartbeat *types.Heartbeat) error {
 	lsi.Lock()
 	defer lsi.Unlock()
 	heartbeat.Signature = sign(heartbeat.SignBytes(chainID))

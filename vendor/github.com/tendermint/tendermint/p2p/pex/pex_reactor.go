@@ -7,9 +7,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
+
 	amino "github.com/tendermint/go-amino"
 	cmn "github.com/tendermint/tendermint/libs/common"
-
 	"github.com/tendermint/tendermint/p2p"
 	"github.com/tendermint/tendermint/p2p/conn"
 )
@@ -74,6 +75,8 @@ type PEXReactor struct {
 	requestsSent         *cmn.CMap // ID->struct{}: unanswered send requests
 	lastReceivedRequests *cmn.CMap // ID->time.Time: last time peer requested from us
 
+	seedAddrs []*p2p.NetAddress
+
 	attemptsToDial sync.Map // address (string) -> {number of attempts (int), last time dialed (time.Time)}
 }
 
@@ -91,10 +94,6 @@ type PEXReactorConfig struct {
 	// Seeds is a list of addresses reactor may use
 	// if it can't connect to peers in the addrbook.
 	Seeds []string
-
-	// PrivatePeerIDs is a list of peer IDs, which must not be gossiped to other
-	// peers.
-	PrivatePeerIDs []string
 }
 
 type _attemptsToDial struct {
@@ -117,19 +116,19 @@ func NewPEXReactor(b AddrBook, config *PEXReactorConfig) *PEXReactor {
 
 // OnStart implements BaseService
 func (r *PEXReactor) OnStart() error {
-	if err := r.BaseReactor.OnStart(); err != nil {
-		return err
-	}
 	err := r.book.Start()
 	if err != nil && err != cmn.ErrAlreadyStarted {
 		return err
 	}
 
-	// return err if user provided a bad seed address
-	// or a host name that we cant resolve
-	if err := r.checkSeeds(); err != nil {
+	numOnline, seedAddrs, err := r.checkSeeds()
+	if err != nil {
 		return err
+	} else if numOnline == 0 && r.book.Empty() {
+		return errors.New("Address book is empty, and could not connect to any seed nodes")
 	}
+
+	r.seedAddrs = seedAddrs
 
 	// Check if this node should run
 	// in seed/crawler mode
@@ -143,7 +142,6 @@ func (r *PEXReactor) OnStart() error {
 
 // OnStop implements BaseService
 func (r *PEXReactor) OnStop() {
-	r.BaseReactor.OnStop()
 	r.book.Stop()
 }
 
@@ -173,11 +171,6 @@ func (r *PEXReactor) AddPeer(p Peer) {
 		addr := p.NodeInfo().NetAddress()
 		src := addr
 
-		// ignore private addrs
-		if isAddrPrivate(addr, r.config.PrivatePeerIDs) {
-			return
-		}
-
 		// add to book. dont RequestAddrs right away because
 		// we don't trust inbound as much - let ensurePeersRoutine handle it.
 		err := r.book.AddAddress(addr, src)
@@ -191,7 +184,7 @@ func (r *PEXReactor) logErrAddrBook(err error) {
 		case ErrAddrBookNilAddr:
 			r.Logger.Error("Failed to add new address", "err", err)
 		default:
-			// non-routable, self, full book, etc.
+			// non-routable, self, full book, private, etc.
 			r.Logger.Debug("Failed to add new address", "err", err)
 		}
 	}
@@ -294,7 +287,6 @@ func (r *PEXReactor) RequestAddrs(p Peer) {
 // request for this peer and deletes the open request.
 // If there's no open request for the src peer, it returns an error.
 func (r *PEXReactor) ReceiveAddrs(addrs []*p2p.NetAddress, src Peer) error {
-
 	id := string(src.ID())
 	if !r.requestsSent.Has(id) {
 		return cmn.NewError("Received unsolicited pexAddrsMessage")
@@ -308,16 +300,15 @@ func (r *PEXReactor) ReceiveAddrs(addrs []*p2p.NetAddress, src Peer) error {
 			return cmn.NewError("received nil addr")
 		}
 
-		// ignore private peers
-		// TODO: give private peers to AddrBook so it can enforce this on AddAddress.
-		// We'd then have to check for ErrPrivatePeer on AddAddress here, which is
-		// an error we just ignore (maybe peer is probing us for our private peers :P)
-		if isAddrPrivate(netAddr, r.config.PrivatePeerIDs) {
-			continue
-		}
-
 		err := r.book.AddAddress(netAddr, srcAddr)
 		r.logErrAddrBook(err)
+
+		// If this address came from a seed node, try to connect to it without waiting.
+		for _, seedAddr := range r.seedAddrs {
+			if seedAddr.Equals(srcAddr) {
+				r.ensurePeers()
+			}
+		}
 	}
 	return nil
 }
@@ -488,34 +479,36 @@ func (r *PEXReactor) dialPeer(addr *p2p.NetAddress) {
 	}
 }
 
-// check seed addresses are well formed
-func (r *PEXReactor) checkSeeds() error {
+// checkSeeds checks that addresses are well formed.
+// Returns number of seeds we can connect to, along with all seeds addrs.
+// return err if user provided any badly formatted seed addresses.
+// Doesn't error if the seed node can't be reached.
+// numOnline returns -1 if no seed nodes were in the initial configuration.
+func (r *PEXReactor) checkSeeds() (numOnline int, netAddrs []*p2p.NetAddress, err error) {
 	lSeeds := len(r.config.Seeds)
 	if lSeeds == 0 {
-		return nil
+		return -1, nil, nil
 	}
-	_, errs := p2p.NewNetAddressStrings(r.config.Seeds)
+	netAddrs, errs := p2p.NewNetAddressStrings(r.config.Seeds)
+	numOnline = lSeeds - len(errs)
 	for _, err := range errs {
-		if err != nil {
-			return err
+		switch e := err.(type) {
+		case p2p.ErrNetAddressLookup:
+			r.Logger.Error("Connecting to seed failed", "err", e)
+		default:
+			return 0, nil, errors.Wrap(e, "seed node configuration has error")
 		}
 	}
-	return nil
+	return
 }
 
 // randomly dial seeds until we connect to one or exhaust them
 func (r *PEXReactor) dialSeeds() {
-	lSeeds := len(r.config.Seeds)
-	if lSeeds == 0 {
-		return
-	}
-	seedAddrs, _ := p2p.NewNetAddressStrings(r.config.Seeds)
-
-	perm := cmn.RandPerm(lSeeds)
+	perm := cmn.RandPerm(len(r.seedAddrs))
 	// perm := r.Switch.rng.Perm(lSeeds)
 	for _, i := range perm {
 		// dial a random seed
-		seedAddr := seedAddrs[i]
+		seedAddr := r.seedAddrs[i]
 		err := r.Switch.DialPeerWithAddress(seedAddr, false)
 		if err == nil {
 			return
@@ -645,16 +638,6 @@ func (r *PEXReactor) attemptDisconnects() {
 		}
 		r.Switch.StopPeerGracefully(peer)
 	}
-}
-
-// isAddrPrivate returns true if addr.ID is a private ID.
-func isAddrPrivate(addr *p2p.NetAddress, privatePeerIDs []string) bool {
-	for _, id := range privatePeerIDs {
-		if string(addr.ID) == id {
-			return true
-		}
-	}
-	return false
 }
 
 //-----------------------------------------------------------------------------
