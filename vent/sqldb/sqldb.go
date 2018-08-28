@@ -158,29 +158,6 @@ func (db *SQLDB) SetBlock(eventTables types.EventTables, eventData types.EventDa
 	}
 	defer tx.Rollback()
 
-	//TODO: COMMENTS
-	/*
-		// insert into log tables
-		id := 0
-		length := len(eventTables)
-		query := db.DBAdapter.InsertLogQuery()
-
-		db.Log.Debug("msg", "INSERT LOG", "query", clean(query), "value", fmt.Sprintf("%d %s", length, eventData.Block))
-		err = tx.QueryRow(query, length, ,eventData.Block).Scan(&id)
-		if err != nil {
-			db.Log.Debug("msg", "Error inserting into _bosmarmot_log", "err", err)
-			return err
-		}
-
-		// prepare log detail statement
-		logQuery := db.DBAdapter.InsertLogDetailQuery()
-		logStmt, err = tx.Prepare(logQuery)
-		if err != nil {
-			db.Log.Debug("msg", "Error preparing log stmt", "err", err)
-			return err
-		}
-	*/
-
 	// prepare log statement
 	logQuery := db.DBAdapter.InsertLogQuery()
 	logStmt, err = tx.Prepare(logQuery)

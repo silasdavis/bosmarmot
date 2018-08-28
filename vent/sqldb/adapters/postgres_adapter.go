@@ -284,21 +284,6 @@ func (adapter *PostgresAdapter) SelectRowQuery(tableName string, fields string, 
 
 // SelectLogQuery returns a query for selecting all tables involved in a block trn
 func (adapter *PostgresAdapter) SelectLogQuery() string {
-	//TODO: COMMENTS
-	/*
-		query := `
-			SELECT
-				tblname,
-				tblmap
-			FROM
-				%s._bosmarmot_log l
-				INNER JOIN %s._bosmarmot_logdet d ON l.id = d.id
-			WHERE
-				_height = $1;
-		`
-		query = fmt.Sprintf(query, adapter.Schema, adapter.Schema)
-	*/
-
 	query := `
 		SELECT DISTINCT
 			tblName,
@@ -324,14 +309,6 @@ func (adapter *PostgresAdapter) InsertLogQuery() string {
 
 	return fmt.Sprintf(query, adapter.Schema)
 }
-
-//TODO: COMMENTS
-/*
-// InsertLogDetailQuery returns a query to insert a row into logdetail table
-func (adapter *PostgresAdapter) InsertLogDetailQuery() string {
-	return fmt.Sprintf("INSERT INTO %s._bosmarmot_logdet (id, tblname, tblmap, registers) VALUES ($1, $2, $3, $4)", adapter.Schema)
-}
-*/
 
 // ErrorEquals verify if an error is of a given SQL type
 func (adapter *PostgresAdapter) ErrorEquals(err error, sqlErrorType types.SQLErrorType) bool {

@@ -22,7 +22,5 @@ type DBAdapter interface {
 	SelectRowQuery(tableName string, fields string, indexValue string) string
 	SelectLogQuery() string
 	InsertLogQuery() string
-	//TODO: COMMENTS
-	//InsertLogDetailQuery() string
 	ErrorEquals(err error, sqlErrorType types.SQLErrorType) bool
 }

@@ -128,47 +128,6 @@ func (db *SQLDB) getLogTableDef() types.EventTables {
 		Columns: logCol,
 	}
 
-	//TODO: COMMENTS
-	/*
-		//log detail
-		detCol := make(map[string]types.SQLTableColumn)
-
-		detCol["id"] = types.SQLTableColumn{
-			Name:    "id",
-			Type:    types.SQLColumnTypeInt,
-			Primary: true,
-			Order:   1,
-		}
-
-		detCol["tableName"] = types.SQLTableColumn{
-			Name:    "tblname",
-			Type:    types.SQLColumnTypeVarchar,
-			Length:  100,
-			Primary: true,
-			Order:   2,
-		}
-
-
-		detCol["tableMap"] = types.SQLTableColumn{
-			Name:    "tblmap",
-			Type:    types.SQLColumnTypeVarchar,
-			Length:  100,
-			Primary: true,
-			Order:   3,
-		}
-
-		detCol["registers"] = types.SQLTableColumn{
-			Name:    "registers",
-			Type:    types.SQLColumnTypeInt,
-			Primary: false,
-			Order:   4,
-		}
-
-		tables["detail"] = types.SQLTable{
-			Name:    "_bosmarmot_logdet",
-			Columns: detCol,
-		}
-	*/
 	return tables
 }
 
