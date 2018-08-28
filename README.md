@@ -15,8 +15,6 @@ Monax maintains Bosmarmot a satellite monorepo to
 If you are looking for `bos`, this has been replaced by `burrow deploy` in
 [Burrow](https://github.com/hyperledger/burrow).
 
-## Working with Javascript
+## Working with Javascript - Burrow.js
 
-Currently the javascript libraries are being rebuilt. The master branch of this repository works against the master branch of burrow.
-
-Please use the versions within the package.json of this repo on master branch for fully compatible and tested versions.
+Please see the [burrow.js readme](burrow.js/README.md) within this repo.

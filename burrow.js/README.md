@@ -287,7 +287,7 @@ Here I provide an example of communicating to a contract from start to finish.
 ```javascript
 var monax = require('@monax/burrow');
 var account = 'ABCDEF01234567890123'; // hex string representation of the address to use for signing
-var options = {objectReturn: True};
+var options = {objectReturn: true};
 var burrow = monax.createInstance("<IP address>:<PORT>", account, options);
 
 var abi = json.parse(contractABIJSON) // Get the contractABIJSON from somewhere such as solc
@@ -314,6 +314,11 @@ burrow.contracts.deploy(abi, bytecode, 'contract1').then((ContractObject) => {
 })
 
 ```
+
+## Fully working example
+
+See [basic-app example](../example/basic-app).
+
 
 ## Upgrading from pre-0.20.0 to 0.20.0 and above
 
