@@ -132,7 +132,7 @@ var SolidityFunction = function (abi) {
 
       // Decide if to make a "call" or a "transaction"
       // For the moment we need to use the burrowtoweb3 function to prefix bytes with 0x
-      // otherwise the coder will give an error with bugnumber not a number
+      // otherwise the coder will give an error with BigNumber not a number
       // TODO investigate if other libs or an updated lib will fix this
 
       var payload = txPayload(abi, utils.burrowToWeb3(args), self.burrow.account || ZERO_ADDRESS, address, self.code)
