@@ -53,7 +53,7 @@ app.get('/', (req, res) => store.get()
 // Sets the value by accepting a value in HTTP POST data and calling the Solidity 'set' method
 app.post('/', (req, res) => param(req.body, 'value')
   .then(value => asInteger(value))
-  .then(value => {store.set(value); return value})
+  .then(value => store.set(value).then(() => value))
   .then(value => res.send({value: value, success: true}))
   .catch(err => res.send(handlerError(err))))
 
