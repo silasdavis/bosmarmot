@@ -141,10 +141,6 @@ build_dist:
 .PHONY: build_ci
 build_ci: check test build
 
-# Generate all docs
-.PHONY: docs
-docs: CHANGELOG.md NOTES.md
-
 # Tag the current HEAD commit with the current release defined in
 # ./release/release.go
 .PHONY: tag_release
