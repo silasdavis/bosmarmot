@@ -27,7 +27,7 @@ make start_chain
 
 This will install burrow, create a new chain as necessary.
 
-If successfully you will see continuous output in your terminal, you can shutdown Burrow by sending the interrupt signal with Ctrl-C, and restart it again with whatever state has accumulated with `make start_chain`. If you would like to destroy the existing chain and start completely fresh (including deleting keys) run `make rechain`. If you would like to keep existing keys and chain config run `make reset_chain`.
+If successful you will see continuous output in your terminal, you can shutdown Burrow by sending the interrupt signal with Ctrl-C, and restart it again with whatever state has accumulated with `make start_chain`. If you would like to destroy the existing chain and start completely fresh (including deleting keys) run `make rechain`. If you would like to keep existing keys and chain config run `make reset_chain`.
 
 You can redeploy the contract (to a new address) with `make redeploy`. The node app will then use this new contract by reading the address deploy.output.json. Be sure to do this if you wish to modify simplestorage.sol.
 

@@ -11,15 +11,15 @@ contract simplestorage {
         storedData = value;
     }
 
-    function get() public constant returns (uint) {
+    function get() public constant returns (uint value) {
         return storedData;
     }
 
     // Since transactions are executed atomically we can implement this concurrency primitive in Solidity with the
     // desired behaviour
-    function testAndSet(uint expected, uint value) public returns (uint, bool) {
+    function testAndSet(uint expected, uint newValue) public returns (uint value, bool success) {
         if (storedData == expected) {
-            storedData = value;
+            storedData = newValue;
             return (storedData, true);
         }
         return (storedData, false);
