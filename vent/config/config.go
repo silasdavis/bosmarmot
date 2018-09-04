@@ -14,8 +14,8 @@ type Flags struct {
 func DefaultFlags() *Flags {
 	return &Flags{
 		DBAdapter: "postgres",
-		DBURL:     "postgres://user:pass@localhost:5432/bosmarmot?sslmode=disable",
-		DBSchema:  "bosmarmot",
+		DBURL:     "postgres://user:pass@localhost:5432/vent?sslmode=disable",
+		DBSchema:  "vent",
 		GRPCAddr:  "localhost:10997",
 		LogLevel:  "debug",
 		CfgFile:   "",

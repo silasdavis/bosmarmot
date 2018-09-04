@@ -8,4 +8,4 @@ Vent adapters are relational dbms that can be used to store event & log data.
 
 ## Considerations for adding new adapters:
 
-Each adapter must be in a separate file with the name `<dbms>_adapter.go` and must implement given interface functions described in `db_adapter.go`.
+Each adapter must be in a separate file with the name `<dbms>_adapter.go` and must implement given interface methods described in `db_adapter.go`.

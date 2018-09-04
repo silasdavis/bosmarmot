@@ -33,12 +33,42 @@ func NewPostgresAdapter(schema string, log *logger.Logger) *PostgresAdapter {
 	}
 }
 
-// Open connects to a SQL database and opens it
+// Open connects to a PostgreSQL database, opens it & create default schema if provided
 func (adapter *PostgresAdapter) Open(dbURL string) (*sql.DB, error) {
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		adapter.Log.Debug("msg", "Error opening database connection", "err", err)
 		return nil, err
+	}
+
+	// if there is a supplied Schema
+	if adapter.Schema != "" {
+		var found bool
+
+		query := adapter.findSchemaQuery()
+
+		adapter.Log.Debug("msg", "FIND SCHEMA", "query", query)
+		err := db.QueryRow(query).Scan(&found)
+		if err == nil {
+			if !found {
+				adapter.Log.Warn("msg", "Schema not found")
+			}
+			adapter.Log.Info("msg", "Creating schema")
+
+			query = adapter.createSchemaQuery()
+
+			adapter.Log.Debug("msg", "CREATE SCHEMA", "query", query)
+			_, err = db.Exec(query)
+			if err != nil {
+				if adapter.ErrorEquals(err, types.SQLErrorTypeDuplicatedSchema) {
+					adapter.Log.Warn("msg", "Duplicated schema")
+					return db, nil
+				}
+			}
+		} else {
+			adapter.Log.Debug("msg", "Error searching schema", "err", err)
+			return nil, err
+		}
 	}
 
 	return db, err
@@ -155,56 +185,29 @@ func (adapter *PostgresAdapter) UpsertQuery(table types.SQLTable) types.UpsertQu
 // LastBlockIDQuery returns a query for last inserted blockId in log table
 func (adapter *PostgresAdapter) LastBlockIDQuery() string {
 	query := `
-		WITH ll AS (
+		WITH ll AS
+		(
 			SELECT
-				MAX(_id) AS _id
-			FROM
-				%s._bosmarmot_log
-			WHERE
-				_eventFilter = $1
-		)
+				MAX(` + types.SQLColumnNameId + `) AS ` + types.SQLColumnNameId +
+		` FROM
+				%s.` + types.SQLLogTableName +
+		` WHERE ` +
+		types.SQLColumnNameEventFilter + ` = $1 ` +
+		`)
 		SELECT
-			COALESCE(_height, '0') AS _height
-		FROM
+			COALESCE(` + types.SQLColumnNameHeight + `, '0') AS ` + types.SQLColumnNameHeight +
+		` FROM
 			ll
-			LEFT OUTER JOIN %s._bosmarmot_log log ON ll._id = log._id
-	;`
+		LEFT OUTER JOIN %s.` + types.SQLLogTableName + ` log ON ll.` + types.SQLColumnNameId + ` = log.` + types.SQLColumnNameId + `;`
 
 	return fmt.Sprintf(query, adapter.Schema, adapter.Schema)
-}
-
-// FindSchemaQuery returns a query that checks if the default schema exists
-func (adapter *PostgresAdapter) FindSchemaQuery() string {
-	query := `
-		SELECT
-			EXISTS (
-				SELECT
-					1
-				FROM
-					pg_catalog.pg_namespace n
-				WHERE
-					n.nspname = '%s'
-			)
-	;`
-
-	return fmt.Sprintf(query, adapter.Schema)
-}
-
-// CreateSchemaQuery returns a query that creates a PostgreSQL schema
-func (adapter *PostgresAdapter) CreateSchemaQuery() string {
-	return fmt.Sprintf("CREATE SCHEMA %s;", adapter.Schema)
-}
-
-// DropSchemaQuery returns a query that drops a PostgreSQL schema
-func (adapter *PostgresAdapter) DropSchemaQuery() string {
-	return fmt.Sprintf("DROP SCHEMA %s CASCADE;", adapter.Schema)
 }
 
 // FindTableQuery returns a query that checks if a table exists
 func (adapter *PostgresAdapter) FindTableQuery(tableName string) string {
 	query := `
-		SELECT
-			EXISTS (
+		SELECT EXISTS
+			(
 				SELECT
 					1
 				FROM
@@ -214,8 +217,7 @@ func (adapter *PostgresAdapter) FindTableQuery(tableName string) string {
 					n.nspname = '%s'
 					AND c.relname = '%s'
 					AND c.relkind = 'r'
-			)
-	;`
+			);`
 
 	return fmt.Sprintf(query, adapter.Schema, tableName)
 }
@@ -223,7 +225,8 @@ func (adapter *PostgresAdapter) FindTableQuery(tableName string) string {
 // TableDefinitionQuery returns a query with table structure
 func (adapter *PostgresAdapter) TableDefinitionQuery(tableName string) string {
 	return fmt.Sprintf(`
-		WITH dsc AS (
+		WITH dsc AS
+		(
 			SELECT
 				pgd.objsubid,
 				st.schemaname,
@@ -258,8 +261,7 @@ func (adapter *PostgresAdapter) TableDefinitionQuery(tableName string) string {
 			dsc ON (c.ordinal_position = dsc.objsubid AND c.table_schema = dsc.schemaname AND c.table_name = dsc.relname)
 		WHERE
 			c.table_schema = '%s'
-			AND c.table_name = '%s'
-	;`,
+			AND c.table_name = '%s';`,
 		types.SQLColumnTypeInt,
 		types.SQLColumnTypeBool,
 		types.SQLColumnTypeByteA,
@@ -285,14 +287,13 @@ func (adapter *PostgresAdapter) SelectRowQuery(tableName string, fields string, 
 // SelectLogQuery returns a query for selecting all tables involved in a block trn
 func (adapter *PostgresAdapter) SelectLogQuery() string {
 	query := `
-		SELECT DISTINCT
-			_tableName,
-			_eventName
-		FROM
-			%s._bosmarmot_log l
-		WHERE
-			_eventFilter = $1 AND _height = $2;
-	`
+		SELECT DISTINCT ` +
+		types.SQLColumnNameTableName + `,` +
+		types.SQLColumnNameEventName +
+		` FROM
+			%s.` + types.SQLLogTableName + ` l ` +
+		`	WHERE ` +
+		types.SQLColumnNameEventFilter + ` = $1 AND ` + types.SQLColumnNameHeight + ` = $2;`
 
 	query = fmt.Sprintf(query, adapter.Schema)
 	return query
@@ -301,11 +302,17 @@ func (adapter *PostgresAdapter) SelectLogQuery() string {
 // InsertLogQuery returns a query to insert a row in log table
 func (adapter *PostgresAdapter) InsertLogQuery() string {
 	query := `
-		INSERT INTO %s._bosmarmot_log
-			(_timestamp, _rowCount, _tableName, _eventName, _eventFilter, _height)
-		VALUES
+		INSERT INTO %s.` + types.SQLLogTableName +
+		`(` +
+		types.SQLColumnNameTimeStamp + `,` +
+		types.SQLColumnNameRowCount + `,` +
+		types.SQLColumnNameTableName + `,` +
+		types.SQLColumnNameEventName + `,` +
+		types.SQLColumnNameEventFilter + `,` +
+		types.SQLColumnNameHeight + `)` +
+		` VALUES
 			(CURRENT_TIMESTAMP, $1, $2, $3, $4, $5)
-		RETURNING _id;`
+		RETURNING ` + types.SQLColumnNameId + `;`
 
 	return fmt.Sprintf(query, adapter.Schema)
 }
@@ -332,4 +339,14 @@ func (adapter *PostgresAdapter) ErrorEquals(err error, sqlErrorType types.SQLErr
 	}
 
 	return false
+}
+
+// FindSchemaQuery returns a query that checks if the default schema exists
+func (adapter *PostgresAdapter) findSchemaQuery() string {
+	return fmt.Sprintf(`SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_namespace n WHERE n.nspname = '%s');`, adapter.Schema)
+}
+
+// CreateSchemaQuery returns a query that creates a PostgreSQL schema
+func (adapter *PostgresAdapter) createSchemaQuery() string {
+	return fmt.Sprintf("CREATE SCHEMA %s;", adapter.Schema)
 }

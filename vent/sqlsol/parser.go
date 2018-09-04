@@ -223,7 +223,7 @@ func getGlobalColumns() map[string]types.SQLTableColumn {
 	globalColumns := make(map[string]types.SQLTableColumn)
 
 	globalColumns["height"] = types.SQLTableColumn{
-		Name:    "_height",
+		Name:    types.SQLColumnNameHeight,
 		Type:    types.SQLColumnTypeVarchar,
 		Length:  100,
 		Primary: false,
@@ -231,14 +231,14 @@ func getGlobalColumns() map[string]types.SQLTableColumn {
 	}
 
 	globalColumns["txHash"] = types.SQLTableColumn{
-		Name:    "_txhash",
+		Name:    types.SQLColumnNameTxHash,
 		Type:    types.SQLColumnTypeByteA,
 		Primary: false,
 		Order:   2,
 	}
 
 	globalColumns["index"] = types.SQLTableColumn{
-		Name:    "_index",
+		Name:    types.SQLColumnNameIndex,
 		Type:    types.SQLColumnTypeVarchar,
 		Length:  100,
 		Primary: false,
@@ -246,7 +246,7 @@ func getGlobalColumns() map[string]types.SQLTableColumn {
 	}
 
 	globalColumns["eventType"] = types.SQLTableColumn{
-		Name:    "_eventtype",
+		Name:    types.SQLColumnNameEventType,
 		Type:    types.SQLColumnTypeVarchar,
 		Length:  100,
 		Primary: false,
@@ -254,7 +254,7 @@ func getGlobalColumns() map[string]types.SQLTableColumn {
 	}
 
 	globalColumns["eventName"] = types.SQLTableColumn{
-		Name:    "_eventname",
+		Name:    types.SQLColumnNameEventName,
 		Type:    types.SQLColumnTypeVarchar,
 		Length:  100,
 		Primary: false,

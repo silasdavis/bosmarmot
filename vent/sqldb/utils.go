@@ -9,49 +9,13 @@ import (
 	"github.com/monax/bosmarmot/vent/types"
 )
 
-// findDefaultSchema checks if the default schema exists in SQL database
-func (db *SQLDB) findDefaultSchema() (bool, error) {
-	var found bool
-
-	query := db.DBAdapter.FindSchemaQuery()
-
-	db.Log.Debug("msg", "FIND SCHEMA", "query", clean(query))
-	err := db.DB.QueryRow(query).Scan(&found)
-	if err == nil {
-		if !found {
-			db.Log.Warn("msg", "Schema not found")
-		}
-	} else {
-		db.Log.Debug("msg", "Error searching schema", "err", err)
-	}
-
-	return found, err
-}
-
-// createDefaultSchema creates the default schema in SQL database
-func (db *SQLDB) createDefaultSchema() error {
-	db.Log.Info("msg", "Creating schema")
-
-	query := db.DBAdapter.CreateSchemaQuery()
-
-	db.Log.Debug("msg", "CREATE SCHEMA", "query", clean(query))
-	_, err := db.DB.Exec(query)
-	if err != nil {
-		if db.DBAdapter.ErrorEquals(err, types.SQLErrorTypeDuplicatedSchema) {
-			db.Log.Warn("msg", "Duplicated schema")
-			return nil
-		}
-	}
-	return err
-}
-
 // findTable checks if a table exists in the default schema
 func (db *SQLDB) findTable(tableName string) (bool, error) {
 	found := false
 	safeTable := safe(tableName)
-	query := db.DBAdapter.FindTableQuery(safeTable)
+	query := clean(db.DBAdapter.FindTableQuery(safeTable))
 
-	db.Log.Debug("msg", "FIND TABLE", "query", clean(query), "value", safeTable)
+	db.Log.Debug("msg", "FIND TABLE", "query", query, "value", safeTable)
 	err := db.DB.QueryRow(query).Scan(&found)
 
 	if err == nil {
@@ -71,21 +35,21 @@ func (db *SQLDB) getLogTableDef() types.EventTables {
 	logCol := make(map[string]types.SQLTableColumn)
 
 	logCol["id"] = types.SQLTableColumn{
-		Name:    "_id",
+		Name:    types.SQLColumnNameId,
 		Type:    types.SQLColumnTypeSerial,
 		Primary: true,
 		Order:   1,
 	}
 
 	logCol["timestamp"] = types.SQLTableColumn{
-		Name:    "_timestamp",
+		Name:    types.SQLColumnNameTimeStamp,
 		Type:    types.SQLColumnTypeTimeStamp,
 		Primary: false,
 		Order:   2,
 	}
 
 	logCol["tableName"] = types.SQLTableColumn{
-		Name:    "_tableName",
+		Name:    types.SQLColumnNameTableName,
 		Type:    types.SQLColumnTypeVarchar,
 		Length:  100,
 		Primary: true,
@@ -93,7 +57,7 @@ func (db *SQLDB) getLogTableDef() types.EventTables {
 	}
 
 	logCol["eventName"] = types.SQLTableColumn{
-		Name:    "_eventName",
+		Name:    types.SQLColumnNameEventName,
 		Type:    types.SQLColumnTypeVarchar,
 		Length:  100,
 		Primary: true,
@@ -101,14 +65,14 @@ func (db *SQLDB) getLogTableDef() types.EventTables {
 	}
 
 	logCol["rowCount"] = types.SQLTableColumn{
-		Name:    "_rowCount",
+		Name:    types.SQLColumnNameRowCount,
 		Type:    types.SQLColumnTypeInt,
 		Primary: false,
 		Order:   5,
 	}
 
 	logCol["eventFilter"] = types.SQLTableColumn{
-		Name:    "_eventFilter",
+		Name:    types.SQLColumnNameEventFilter,
 		Type:    types.SQLColumnTypeVarchar,
 		Length:  100,
 		Primary: false,
@@ -116,7 +80,7 @@ func (db *SQLDB) getLogTableDef() types.EventTables {
 	}
 
 	logCol["height"] = types.SQLTableColumn{
-		Name:    "_height",
+		Name:    types.SQLColumnNameHeight,
 		Type:    types.SQLColumnTypeVarchar,
 		Length:  100,
 		Primary: false,
@@ -124,7 +88,7 @@ func (db *SQLDB) getLogTableDef() types.EventTables {
 	}
 
 	tables["log"] = types.SQLTable{
-		Name:    "_bosmarmot_log",
+		Name:    types.SQLLogTableName,
 		Columns: logCol,
 	}
 
@@ -148,9 +112,9 @@ func (db *SQLDB) getTableDef(tableName string) (types.SQLTable, error) {
 	}
 
 	table.Name = safeTable
-	query := db.DBAdapter.TableDefinitionQuery(safeTable)
+	query := clean(db.DBAdapter.TableDefinitionQuery(safeTable))
 
-	db.Log.Debug("msg", "QUERY STRUCTURE", "query", clean(query), "value", safeTable)
+	db.Log.Debug("msg", "QUERY STRUCTURE", "query", query, "value", safeTable)
 	rows, err := db.DB.Query(query)
 	if err != nil {
 		db.Log.Debug("msg", "Error querying table structure", "err", err)
@@ -228,9 +192,9 @@ func (db *SQLDB) alterTable(newTable types.SQLTable) error {
 
 		if !found {
 			safeCol := safe(newColumn.Name)
-			query := db.DBAdapter.AlterColumnQuery(safeTable, safeCol, newColumn.Type)
+			query := clean(db.DBAdapter.AlterColumnQuery(safeTable, safeCol, newColumn.Type))
 
-			db.Log.Debug("msg", "ALTER TABLE", "query", clean(query))
+			db.Log.Debug("msg", "ALTER TABLE", "query", query)
 			_, err = db.DB.Exec(query)
 			if err != nil {
 				if db.DBAdapter.ErrorEquals(err, types.SQLErrorTypeDuplicatedColumn) {
@@ -262,7 +226,7 @@ func (db *SQLDB) getSelectQuery(table types.SQLTable, height string) (string, er
 		return "", errors.New("error table does not contain any fields")
 	}
 
-	query := db.DBAdapter.SelectRowQuery(table.Name, fields, height)
+	query := clean(db.DBAdapter.SelectRowQuery(table.Name, fields, height))
 	return query, nil
 }
 
@@ -278,14 +242,14 @@ func (db *SQLDB) createTable(table types.SQLTable) error {
 		sortedColumns[tableColumn.Order-1] = tableColumn
 	}
 
-	query := db.DBAdapter.CreateTableQuery(safeTable, sortedColumns)
+	query := clean(db.DBAdapter.CreateTableQuery(safeTable, sortedColumns))
 	if query == "" {
 		db.Log.Debug("msg", "empty CREATE TABLE query")
 		return errors.New("empty CREATE TABLE query")
 	}
 
 	// create table
-	db.Log.Debug("msg", "CREATE TABLE", "query", clean(query))
+	db.Log.Debug("msg", "CREATE TABLE", "query", query)
 	_, err := db.DB.Exec(query)
 	if err != nil {
 		if db.DBAdapter.ErrorEquals(err, types.SQLErrorTypeDuplicatedColumn) {
@@ -309,8 +273,8 @@ func (db *SQLDB) createTable(table types.SQLTable) error {
 func (db *SQLDB) getBlockTables(eventFilter string, block string) (types.EventTables, error) {
 	tables := make(types.EventTables)
 
-	query := db.DBAdapter.SelectLogQuery()
-	db.Log.Debug("msg", "QUERY LOG", "query", clean(query), "value", block)
+	query := clean(db.DBAdapter.SelectLogQuery())
+	db.Log.Debug("msg", "QUERY LOG", "query", query, "value", block)
 	rows, err := db.DB.Query(query, eventFilter, block)
 	if err != nil {
 		db.Log.Debug("msg", "Error querying log", "err", err)

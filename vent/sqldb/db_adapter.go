@@ -13,13 +13,10 @@ type DBAdapter interface {
 	CreateTableQuery(tableName string, columns []types.SQLTableColumn) string
 	UpsertQuery(table types.SQLTable) types.UpsertQuery
 	LastBlockIDQuery() string
-	FindSchemaQuery() string
-	CreateSchemaQuery() string
-	DropSchemaQuery() string
 	FindTableQuery(tableName string) string
 	TableDefinitionQuery(tableName string) string
-	AlterColumnQuery(tableName string, columnName string, sqlColumnType types.SQLColumnType) string
-	SelectRowQuery(tableName string, fields string, indexValue string) string
+	AlterColumnQuery(tableName, columnName string, sqlColumnType types.SQLColumnType) string
+	SelectRowQuery(tableName, fields, indexValue string) string
 	SelectLogQuery() string
 	InsertLogQuery() string
 	ErrorEquals(err error, sqlErrorType types.SQLErrorType) bool
