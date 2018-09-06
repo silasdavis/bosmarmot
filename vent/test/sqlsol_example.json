@@ -7,15 +7,15 @@
       "inputs": [{
         "indexed": true,
         "name": "name",
-        "type": "string"
+        "type": "bytes32"
       }, {
         "indexed": true,
         "name": "key",
-        "type": "string"
+        "type": "bytes32"
       }, {
         "indexed": true,
         "name": "description",
-        "type": "string"
+        "type": "bytes32"
       }],
       "name": "UpdateTestEvents",
       "type": "event"

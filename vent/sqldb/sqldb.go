@@ -45,23 +45,7 @@ func NewSQLDB(dbAdapter, dbURL, schema string, log *logger.Logger) (*SQLDB, erro
 		return nil, err
 	}
 
-	// if there is a supplied Schema
-	if schema != "" {
-		var found bool
-		found, err = db.findDefaultSchema()
-		if err != nil {
-			return nil, err
-		}
-
-		if !found {
-			if err = db.createDefaultSchema(); err != nil {
-				return nil, err
-			}
-		}
-
-	}
-
-	// create _bosmarmot_log
+	// create log table
 	if err = db.SynchronizeDB(db.getLogTableDef()); err != nil {
 		return nil, err
 	}
@@ -88,10 +72,10 @@ func (db *SQLDB) Ping() error {
 
 // GetLastBlockID returns last inserted blockId from log table
 func (db *SQLDB) GetLastBlockID(eventFilter string) (string, error) {
-	query := db.DBAdapter.LastBlockIDQuery()
+	query := clean(db.DBAdapter.LastBlockIDQuery())
 	id := ""
 
-	db.Log.Debug("msg", "MAX ID", "query", clean(query))
+	db.Log.Debug("msg", "MAX ID", "query", query)
 
 	if err := db.DB.QueryRow(query, eventFilter).Scan(&id); err != nil {
 		db.Log.Debug("msg", "Error selecting last block id", "err", err)
@@ -99,29 +83,6 @@ func (db *SQLDB) GetLastBlockID(eventFilter string) (string, error) {
 	}
 
 	return id, nil
-}
-
-// DestroySchema deletes the default schema
-func (db *SQLDB) DestroySchema() error {
-	db.Log.Info("msg", "Dropping schema")
-	found, err := db.findDefaultSchema()
-
-	if err != nil {
-		return err
-	}
-
-	if found {
-		query := db.DBAdapter.DropSchemaQuery()
-
-		db.Log.Info("msg", "Drop schema", "query", query)
-
-		if _, err := db.DB.Exec(query); err != nil {
-			db.Log.Debug("msg", "Error dropping schema", "err", err)
-			return err
-		}
-	}
-
-	return nil
 }
 
 // SynchronizeDB synchronize config structures with SQL database table structures
@@ -163,7 +124,7 @@ func (db *SQLDB) SetBlock(eventTables types.EventTables, eventData types.EventDa
 	defer tx.Rollback()
 
 	// prepare log statement
-	logQuery := db.DBAdapter.InsertLogQuery()
+	logQuery := clean(db.DBAdapter.InsertLogQuery())
 	logStmt, err = tx.Prepare(logQuery)
 	if err != nil {
 		db.Log.Debug("msg", "Error preparing log stmt", "err", err)
@@ -187,6 +148,7 @@ loop:
 
 		// get table upsert query
 		uQuery := db.DBAdapter.UpsertQuery(table)
+		query := clean(uQuery.Query)
 
 		// for Each Row
 		for _, row := range dataRows {
@@ -198,8 +160,8 @@ loop:
 			}
 
 			// upsert row data
-			db.Log.Debug("msg", "UPSERT", "query", clean(uQuery.Query), "value", value)
-			_, err = tx.Exec(uQuery.Query, pointers...)
+			db.Log.Debug("msg", "UPSERT", "query", query, "value", value)
+			_, err = tx.Exec(query, pointers...)
 			if err != nil {
 				db.Log.Debug("msg", "Error Upserting", "err", err)
 				// exits from all loops -> continue in close log stmt
@@ -281,8 +243,8 @@ func (db *SQLDB) GetBlock(eventFilter string, block string) (types.EventData, er
 			db.Log.Debug("msg", "Error building table query", "err", err)
 			return data, err
 		}
-
-		db.Log.Debug("msg", "Query table data", "query", clean(query))
+		query = clean(query)
+		db.Log.Debug("msg", "Query table data", "query", query)
 		rows, err := db.DB.Query(query)
 		if err != nil {
 			db.Log.Debug("msg", "Error querying table data", "err", err)

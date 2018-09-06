@@ -30,3 +30,20 @@ type UpsertColumn struct {
 	InsPosition int
 	UpdPosition int
 }
+
+// defined fixed sql column names in log and event tables
+const (
+	SQLColumnNameHeight      = "_height"
+	SQLColumnNameIndex       = "_index"
+	SQLColumnNameTxHash      = "_txhash"
+	SQLColumnNameEventName   = "_eventname"
+	SQLColumnNameEventType   = "_eventtype"
+	SQLColumnNameEventFilter = "_eventfilter"
+	SQLColumnNameTableName   = "_tablename"
+	SQLColumnNameTimeStamp   = "_timestamp"
+	SQLColumnNameId          = "_id"
+	SQLColumnNameRowCount    = "_rowcount"
+)
+
+// SQL log table
+const SQLLogTableName = "_vent_log"

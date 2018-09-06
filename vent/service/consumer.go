@@ -299,24 +299,20 @@ func decodeEvent(eventName string, header *exec.Header, log *exec.LogEvent, abiS
 		topicsInd++
 	}
 
-	// build expected data array with go types from abi spec to get log event values
+	// build expected type array with go types from abi spec to get log event values
 	decodedData := abi.GetPackingTypes(eventAbiSpec.Inputs)
 
-	// TODO: this will going to be deprecated
-	if len(log.Data) > 0 {
-		// decode log data (non indexed items)
-		if err := abi.Unpack(eventAbiSpec.Inputs, log.Data, &decodedData); err != nil {
-			return nil, errors.Wrap(err, "Could not decode log data")
-		}
-	}
+	// WA for now (but still not working)
+	decodedData[0] = new(string)
 
-	// TODO: this will become whats next when pr is merged in burrow
-	/*
-	   if err := abi.UnpackEvent(eventAbiSpec.Inputs, log.Topics, log.Data, &decodedData); err != nil {
-	   			return nil, errors.Wrap(err, "Could not decode log events")
-	   }
-	   fmt.Printf("\n\ndecodedData = %+v\n\n", decodedData)
-	*/
+	fmt.Printf("\n\neventAbiSpec.Inputs = %+v\n\n", eventAbiSpec.Inputs)
+	fmt.Printf("\n\ndecodedData = %+v\n\n", decodedData)
+
+	if err := abi.UnpackEvent(eventAbiSpec, log.Topics, log.Data, decodedData); err != nil {
+		return nil, errors.Wrap(err, "Could not decode log events")
+	}
+	fmt.Printf("\n\ndecodedData = %+v\n\n", decodedData)
+
 	// for each event item checks if it is in topics array (indexed) -> log.Topics
 	// or in data part (not indexed) -> log.Data
 	for i, input := range eventAbiSpec.Inputs {
@@ -325,9 +321,7 @@ func decodeEvent(eventName string, header *exec.Header, log *exec.LogEvent, abiS
 			if topicsLenght <= topicsInd {
 				return nil, errors.New("Not enough topics for event")
 			}
-			// TODO: this will change once decoding is finished
-			// topics need to be decoded as well as data
-			data[input.Name] = strings.Trim(log.Topics[topicsInd].String(), "\x00")
+			data[input.Name] = decodedData[topicsInd].(string)
 			topicsInd++
 		} else {
 			data[input.Name] = decodedData[i].(string)
