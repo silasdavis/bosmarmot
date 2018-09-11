@@ -9,6 +9,8 @@ import (
 	"github.com/monax/bosmarmot/vent/config"
 	"github.com/monax/bosmarmot/vent/logger"
 	"github.com/monax/bosmarmot/vent/sqldb"
+	"github.com/monax/bosmarmot/vent/types"
+	"os"
 )
 
 func init() {
@@ -41,11 +43,22 @@ func destroySchema(db *sqldb.SQLDB, dbSchema string) error {
 	return nil
 }
 
+func deleteFile(dbURL, schema string) error {
+	url := dbURL
+
+	if schema != "" {
+		url = url + "_" + schema
+	}
+	url += ".sqlite"
+	return os.Remove(url)
+}
+
 // NewTestDB creates a database connection for testing
-func NewTestDB(t *testing.T) (*sqldb.SQLDB, func()) {
+func NewTestDB(t *testing.T, database string) (*sqldb.SQLDB, func()) {
 	t.Helper()
 
-	cfg := config.DefaultFlags()
+	cfg := config.DefaultFlags(database)
+
 	dbSchema := fmt.Sprintf("test_%s", randString(10))
 	log := logger.NewLogger("debug")
 
@@ -55,7 +68,12 @@ func NewTestDB(t *testing.T) (*sqldb.SQLDB, func()) {
 	}
 
 	return db, func() {
-		destroySchema(db, dbSchema)
-		db.Close()
+		if database != types.SQLiteDB {
+			destroySchema(db, dbSchema)
+			db.Close()
+		} else {
+			db.Close()
+			deleteFile(cfg.DBURL, dbSchema)
+		}
 	}
 }
