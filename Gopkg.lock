@@ -159,7 +159,7 @@
 
 [[projects]]
   branch = "develop"
-  digest = "1:3f2cf6dd94088c7b4c812895ea85253a4051eae2a2b3535e1b5437fa65589eea"
+  digest = "1:cb8418940840002db1f5f584ab4d2d53f4fbb3a7572f0522be18b2afc845d5c5"
   name = "github.com/hyperledger/burrow"
   packages = [
     "acm",
@@ -217,7 +217,7 @@
     "txs/payload",
   ]
   pruneopts = "T"
-  revision = "28c83d092a93ea733ae0050fdad6a530c0287740"
+  revision = "7f1d0577cf81110e042fddf33574fd3f4a08991a"
 
 [[projects]]
   digest = "1:9a52adf44086cead3b384e5d0dbf7a1c1cce65e67552ee3383a8561c42a18cd3"
@@ -520,7 +520,7 @@
     "ssh/terminal",
   ]
   pruneopts = "NUT"
-  revision = "0709b304e793a5edb4a2c0145f281ecdc20838a4"
+  revision = "0e37d006457bf46f9e6692014ba72ef82c33022c"
 
 [[projects]]
   digest = "1:15dbe437d38eb2103f6b55348758958a6f85a400ecc16fcb53b3f271d38cd8ea"
@@ -579,7 +579,7 @@
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "NUT"
-  revision = "11092d34479b07829b72e10713b159248caf5dad"
+  revision = "36d5787dc5356b711fe8f3040271aaf51c35955b"
 
 [[projects]]
   digest = "1:f778941d5c2e46da5e0f5d553d3e80bf70eb40d2e80bb4c649b625b9133f3d5f"
