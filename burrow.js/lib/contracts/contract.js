@@ -1,7 +1,7 @@
 'use strict'
 
 var SolidityEvent = require('./event')
-var SolidityFunction = require('./function')
+var {SolidityFunction, Packer} = require('./function')
 
 /**
  * The contract type. This class is instantiated internally through the factory.
@@ -38,9 +38,11 @@ var addFunctionsToContract = function (contract) {
     return (json.type === 'function' || json.type === 'constructor')
   }).forEach(function (json) {
     let {displayName, typeName, call} = SolidityFunction(json)
+    let {pack} = Packer(json)
 
     if (json.type === 'constructor') {
       contract._constructor = call.bind(contract, false, '')
+      contract._constructor.pack = pack.bind(contract)
     } else {
       // bind the function call to the contract, specify if call or transact is desired
       var execute = call.bind(contract, json.constant, null)
@@ -48,6 +50,9 @@ var addFunctionsToContract = function (contract) {
       // These allow the interface to be used for a generic contract of this type
       execute.at = call.bind(contract, json.constant)
       execute.atSim = call.bind(contract, true)
+
+      // Packer for the transaction arguments
+      execute.pack = pack.bind(contract)
 
       // Attach to the contract object
       if (!contract[displayName]) {

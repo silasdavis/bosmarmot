@@ -155,4 +155,40 @@ var SolidityFunction = function (abi) {
   return {displayName, typeName, call}
 }
 
-module.exports = SolidityFunction
+/**
+ * Packs arguments based
+ *
+ * @method pack
+ * @param {...Object} Contract function arguments
+ * @param {function}
+ * @return {String} output bytes
+ */
+var Packer = function (abi) {
+  var isCon = (abi == null || abi.type === 'constructor')
+  var address = isCon ? null : ZERO_ADDRESS
+
+  var name
+  var displayName
+  var typeName
+
+  if (!isCon) {
+    name = utils.transformToFullName(abi)
+    displayName = utils.extractDisplayName(name)
+    typeName = utils.extractTypeName(name)
+  }
+
+  var pack = function () {
+    var args = Array.prototype.slice.call(arguments)
+
+    var payload = txPayload(abi, utils.burrowToWeb3(args), ZERO_ADDRESS, address, this.code)
+
+    return payload.Data
+  }
+
+  return {displayName, typeName, pack}
+}
+
+module.exports = {
+  SolidityFunction,
+  Packer
+}
