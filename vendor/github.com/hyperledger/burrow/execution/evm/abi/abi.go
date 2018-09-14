@@ -212,22 +212,21 @@ func (e EVMUint) unpack(data []byte, offset int, v interface{}) (int, error) {
 		*v = b.String()
 	case *big.Int:
 		b := new(big.Int)
-		b.SetBytes(data[0:ElementSize])
-		v = b
+		*v = *b.SetBytes(data[0:ElementSize])
 	case *uint64:
-		maxLen := int(unsafe.Sizeof(new(uint64)))
+		maxLen := int(unsafe.Sizeof(*v))
 		if length > maxLen {
 			return 0, fmt.Errorf("value to large for uint64")
 		}
 		*v = binary.BigEndian.Uint64(data[ElementSize-maxLen : ElementSize])
 	case *uint32:
-		maxLen := int(unsafe.Sizeof(new(uint32)))
+		maxLen := int(unsafe.Sizeof(*v))
 		if length > maxLen {
 			return 0, fmt.Errorf("value to large for uint64")
 		}
 		*v = binary.BigEndian.Uint32(data[ElementSize-maxLen : ElementSize])
 	case *uint16:
-		maxLen := int(unsafe.Sizeof(new(uint16)))
+		maxLen := int(unsafe.Sizeof(*v))
 		if length > maxLen {
 			return 0, fmt.Errorf("value to large for uint16")
 		}
@@ -239,19 +238,19 @@ func (e EVMUint) unpack(data []byte, offset int, v interface{}) (int, error) {
 		}
 		*v = uint8(data[31])
 	case *int64:
-		maxLen := int(unsafe.Sizeof(new(int64)))
+		maxLen := int(unsafe.Sizeof(*v))
 		if length > maxLen || (data[ElementSize-maxLen]&0x80) != 0 {
 			return 0, fmt.Errorf("value to large for int64")
 		}
 		*v = int64(binary.BigEndian.Uint64(data[ElementSize-maxLen : ElementSize]))
 	case *int32:
-		maxLen := int(unsafe.Sizeof(new(int32)))
+		maxLen := int(unsafe.Sizeof(*v))
 		if length > maxLen || (data[ElementSize-maxLen]&0x80) != 0 {
 			return 0, fmt.Errorf("value to large for int64")
 		}
 		*v = int32(binary.BigEndian.Uint32(data[ElementSize-maxLen : ElementSize]))
 	case *int16:
-		maxLen := int(unsafe.Sizeof(new(uint16)))
+		maxLen := int(unsafe.Sizeof(*v))
 		if length > maxLen || (data[ElementSize-maxLen]&0x80) != 0 {
 			return 0, fmt.Errorf("value to large for int16")
 		}
@@ -394,18 +393,18 @@ func (e EVMInt) unpack(data []byte, offset int, v interface{}) (int, error) {
 		}
 	case *big.Int:
 		b := new(big.Int)
-		b.SetBytes(data[0:ElementSize])
+		b.SetBytes(inv[0:ElementSize])
 		if sign {
-			v = b.Neg(b)
+			*v = *b.Sub(big.NewInt(-1), b)
 		} else {
-			v = b
+			*v = *b
 		}
 	case *uint64:
 		if sign {
 			return 0, fmt.Errorf("cannot convert negative EVM int to %s", toType)
 		}
-		maxLen := int(unsafe.Sizeof(new(uint64)))
-		if length > maxLen || (data[ElementSize-maxLen]&0x80) != 0 {
+		maxLen := int(unsafe.Sizeof(*v))
+		if length > maxLen {
 			return 0, fmt.Errorf("value to large for uint64")
 		}
 		*v = binary.BigEndian.Uint64(data[ElementSize-maxLen : ElementSize])
@@ -413,35 +412,35 @@ func (e EVMInt) unpack(data []byte, offset int, v interface{}) (int, error) {
 		if sign {
 			return 0, fmt.Errorf("cannot convert negative EVM int to %s", toType)
 		}
-		maxLen := int(unsafe.Sizeof(new(uint32)))
-		if length > maxLen || (data[ElementSize-maxLen]&0x80) != 0 {
-			return 0, fmt.Errorf("value to large for uint64")
+		maxLen := int(unsafe.Sizeof(*v))
+		if length > maxLen {
+			return 0, fmt.Errorf("value to large for int32")
 		}
 		*v = binary.BigEndian.Uint32(data[ElementSize-maxLen : ElementSize])
 	case *uint16:
 		if sign {
 			return 0, fmt.Errorf("cannot convert negative EVM int to %s", toType)
 		}
-		maxLen := int(unsafe.Sizeof(new(uint16)))
-		if length > maxLen || (data[ElementSize-maxLen]&0x80) != 0 {
+		maxLen := int(unsafe.Sizeof(*v))
+		if length > maxLen {
 			return 0, fmt.Errorf("value to large for uint16")
 		}
 		*v = binary.BigEndian.Uint16(data[ElementSize-maxLen : ElementSize])
 	case *int64:
-		maxLen := int(unsafe.Sizeof(new(int64)))
-		if length > maxLen {
-			return 0, fmt.Errorf("value to large for uint64")
+		maxLen := int(unsafe.Sizeof(*v))
+		if length > maxLen || (inv[ElementSize-maxLen]&0x80) != 0 {
+			return 0, fmt.Errorf("value to large for int64")
 		}
 		*v = int64(binary.BigEndian.Uint64(data[ElementSize-maxLen : ElementSize]))
 	case *int32:
-		maxLen := int(unsafe.Sizeof(new(int32)))
-		if length > maxLen {
+		maxLen := int(unsafe.Sizeof(*v))
+		if length > maxLen || (inv[ElementSize-maxLen]&0x80) != 0 {
 			return 0, fmt.Errorf("value to large for uint64")
 		}
 		*v = int32(binary.BigEndian.Uint32(data[ElementSize-maxLen : ElementSize]))
 	case *int16:
-		maxLen := int(unsafe.Sizeof(new(uint16)))
-		if length > maxLen {
+		maxLen := int(unsafe.Sizeof(*v))
+		if length > maxLen || (inv[ElementSize-maxLen]&0x80) != 0 {
 			return 0, fmt.Errorf("value to large for uint16")
 		}
 		*v = int16(binary.BigEndian.Uint16(data[ElementSize-maxLen : ElementSize]))
@@ -529,7 +528,8 @@ type EVMBytes struct {
 }
 
 func (e EVMBytes) getGoType() interface{} {
-	return make([]byte, e.M)
+	v := make([]byte, e.M)
+	return &v
 }
 
 func (e EVMBytes) pack(v interface{}) ([]byte, error) {
@@ -573,8 +573,9 @@ func (e EVMBytes) unpack(data []byte, offset int, v interface{}) (int, error) {
 		return s.unpack(data, offset, v)
 	}
 
-	switch v := v.(type) {
-	case *string:
+	v2 := reflect.ValueOf(v).Elem()
+	switch v2.Type().Kind() {
+	case reflect.String:
 		start := 0
 		end := int(e.M)
 
@@ -584,9 +585,11 @@ func (e EVMBytes) unpack(data []byte, offset int, v interface{}) (int, error) {
 		for end > start && data[offset+end-1] == 0 {
 			end--
 		}
-		*v = string(data[offset+start : offset+end])
-	case *[]byte:
-		*v = data[offset : offset+int(e.M)]
+		v2.SetString(string(data[offset+start : offset+end]))
+	case reflect.Array:
+		fallthrough
+	case reflect.Slice:
+		v2.SetBytes(data[offset : offset+int(e.M)])
 	default:
 		return 0, fmt.Errorf("cannot map EVM %s to %s", e.GetSignature(), reflect.ValueOf(v).Kind().String())
 	}
@@ -699,6 +702,7 @@ type Argument struct {
 	EVM         EVMType
 	IsArray     bool
 	Indexed     bool
+	Hashed      bool
 	ArrayLength uint64
 }
 
@@ -872,6 +876,7 @@ func ReadAbiSpec(specBytes []byte) (*AbiSpec, error) {
 				if inputs[i].Indexed && inputs[i].EVM.isDynamic() {
 					// For Dynamic types, the hash is stored in stead
 					inputs[i].EVM = EVMBytes{M: 32}
+					inputs[i].Hashed = true
 				}
 			}
 			abiSpec.Events[s.Name] = Event{Inputs: inputs, Anonymous: s.Anonymous}
