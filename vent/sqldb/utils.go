@@ -29,13 +29,13 @@ func (db *SQLDB) findTable(tableName string) (bool, error) {
 	return true, nil
 }
 
-// getSysTablesDefinition returns log structures
+// getSysTablesDefinition returns log & dictionary structures
 func (db *SQLDB) getSysTablesDefinition() types.EventTables {
 	tables := make(types.EventTables)
 	dicCol := make(map[string]types.SQLTableColumn)
 	logCol := make(map[string]types.SQLTableColumn)
 
-	//log table
+	// log table
 	logCol["id"] = types.SQLTableColumn{
 		Name:    types.SQLColumnNameId,
 		Type:    types.SQLColumnTypeSerial,
@@ -89,7 +89,7 @@ func (db *SQLDB) getSysTablesDefinition() types.EventTables {
 		Order:   7,
 	}
 
-	//dictionary table
+	// dictionary table
 	dicCol["tableName"] = types.SQLTableColumn{
 		Name:    types.SQLColumnNameTableName,
 		Type:    types.SQLColumnTypeVarchar,
@@ -138,7 +138,7 @@ func (db *SQLDB) getSysTablesDefinition() types.EventTables {
 		Order:   6,
 	}
 
-	//add tables
+	// add tables
 	tables[types.SQLLogTableName] = types.SQLTable{
 		Name:    types.SQLLogTableName,
 		Columns: logCol,
@@ -217,7 +217,7 @@ func (db *SQLDB) getTableDef(tableName string) (types.SQLTable, error) {
 	return table, nil
 }
 
-// alterTable alters the structure of a SQL table
+// alterTable alters the structure of a SQL table & add info to the dictionary
 func (db *SQLDB) alterTable(newTable types.SQLTable) error {
 	db.Log.Info("msg", "Altering table", "value", newTable.Name)
 
@@ -268,7 +268,7 @@ func (db *SQLDB) alterTable(newTable types.SQLTable) error {
 	return nil
 }
 
-// getSelectQuery builds a select query for a specific SQL table
+// getSelectQuery builds a select query for a specific SQL table and a given block
 func (db *SQLDB) getSelectQuery(table types.SQLTable, height string) (string, error) {
 	fields := ""
 
@@ -287,7 +287,7 @@ func (db *SQLDB) getSelectQuery(table types.SQLTable, height string) (string, er
 	return query, nil
 }
 
-// createTable creates a new table in the default schema
+// createTable creates a new table
 func (db *SQLDB) createTable(table types.SQLTable) error {
 	db.Log.Info("msg", "Creating Table", "value", table.Name)
 
@@ -296,19 +296,17 @@ func (db *SQLDB) createTable(table types.SQLTable) error {
 	// sort columns
 	columns := len(table.Columns)
 	sortedColumns := make([]types.SQLTableColumn, columns)
+
 	for _, tableColumn := range table.Columns {
 		if tableColumn.Order <= 0 {
 			db.Log.Debug("msg", "column_order <=0")
 			return fmt.Errorf("table definition error,%s has column_order <=0 (minimum value = 1)", tableColumn.Name)
-
 		} else if tableColumn.Order-1 > columns {
 			db.Log.Debug("msg", "column_order > total_columns")
 			return fmt.Errorf("table definition error, %s has column_order > total_columns", tableColumn.Name)
-
 		} else if sortedColumns[tableColumn.Order-1].Order != 0 {
 			db.Log.Debug("msg", "duplicated column_oder")
 			return fmt.Errorf("table definition error, %s and %s have duplicated column_order", sortedColumns[tableColumn.Order-1].Name, tableColumn.Name)
-
 		} else {
 			sortedColumns[tableColumn.Order-1] = tableColumn
 		}
@@ -347,13 +345,14 @@ func (db *SQLDB) createTable(table types.SQLTable) error {
 	return nil
 }
 
-// getBlockTables return all SQL tables that had been involved
-// in a given batch transaction for a specific block id
-func (db *SQLDB) getBlockTables(eventFilter string, block string) (types.EventTables, error) {
+// getBlockTables return all SQL tables that have been involved
+// in a given batch transaction for a specific block & events filter
+func (db *SQLDB) getBlockTables(eventFilter, block string) (types.EventTables, error) {
 	tables := make(types.EventTables)
 
 	query := clean(db.DBAdapter.SelectLogQuery())
 	db.Log.Debug("msg", "QUERY LOG", "query", query, "value", block)
+
 	rows, err := db.DB.Query(query, eventFilter, block)
 	if err != nil {
 		db.Log.Debug("msg", "Error querying log", "err", err)
@@ -362,8 +361,7 @@ func (db *SQLDB) getBlockTables(eventFilter string, block string) (types.EventTa
 	defer rows.Close()
 
 	for rows.Next() {
-		var eventName string
-		var tableName string
+		var eventName, tableName string
 		var table types.SQLTable
 
 		err = rows.Scan(&tableName, &eventName)
@@ -385,6 +383,7 @@ func (db *SQLDB) getBlockTables(eventFilter string, block string) (types.EventTa
 
 		tables[eventName] = table
 	}
+
 	return tables, nil
 }
 

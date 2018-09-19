@@ -13,7 +13,7 @@ import (
 // SQLDB implements the access to a sql database
 type SQLDB struct {
 	DB        *sql.DB
-	DBAdapter DBAdapter
+	DBAdapter adapters.DBAdapter
 	Schema    string
 	Log       *logger.Logger
 }
@@ -31,14 +31,8 @@ func NewSQLDB(dbAdapter, dbURL, schema string, log *logger.Logger) (*SQLDB, erro
 	switch dbAdapter {
 	case types.PostgresDB:
 		db.DBAdapter = adapters.NewPostgresAdapter(safe(schema), log)
-
 	case types.SQLiteDB:
 		db.DBAdapter = adapters.NewSQLiteAdapter(log)
-		if schema != "" {
-			url = url + "_" + schema
-		}
-		url += ".sqlite"
-
 	default:
 		return nil, errors.New("invalid database adapter")
 	}
@@ -58,7 +52,7 @@ func NewSQLDB(dbAdapter, dbURL, schema string, log *logger.Logger) (*SQLDB, erro
 	db.Log.Info("msg", "Initializing DB")
 	eventTables := db.getSysTablesDefinition()
 
-	//IMPORTANT: DO NOT CHANGE TABLE CREATION ORDER (1)
+	// IMPORTANT: DO NOT CHANGE TABLE CREATION ORDER (1)
 	table := eventTables[types.SQLDictionaryTableName]
 	if err = db.createTable(table); err != nil {
 		if !db.DBAdapter.ErrorEquals(err, types.SQLErrorTypeDuplicatedTable) {
@@ -67,7 +61,7 @@ func NewSQLDB(dbAdapter, dbURL, schema string, log *logger.Logger) (*SQLDB, erro
 		}
 	}
 
-	//IMPORTANT: DO NOT CHANGE TABLE CREATION ORDER (2)
+	// IMPORTANT: DO NOT CHANGE TABLE CREATION ORDER (2)
 	table = eventTables[types.SQLLogTableName]
 	if err = db.createTable(table); err != nil {
 		if !db.DBAdapter.ErrorEquals(err, types.SQLErrorTypeDuplicatedTable) {
@@ -96,7 +90,7 @@ func (db *SQLDB) Ping() error {
 	return nil
 }
 
-// GetLastBlockID returns last inserted blockId from log table
+// GetLastBlockID returns last inserted blockId for a given events filter from log table
 func (db *SQLDB) GetLastBlockID(eventFilter string) (string, error) {
 	query := clean(db.DBAdapter.LastBlockIDQuery())
 	id := ""
@@ -111,7 +105,7 @@ func (db *SQLDB) GetLastBlockID(eventFilter string) (string, error) {
 	return id, nil
 }
 
-// SynchronizeDB synchronize config structures with SQL database table structures
+// SynchronizeDB synchronize db tables structures from given tables specifications
 func (db *SQLDB) SynchronizeDB(eventTables types.EventTables) error {
 	db.Log.Info("msg", "Synchronizing DB")
 
@@ -162,7 +156,7 @@ loop:
 	for eventName, table := range eventTables {
 		safeTable = safe(table.Name)
 
-		// insert in logdet table
+		// insert in log table
 		dataRows := eventData.Tables[table.Name]
 		length := len(dataRows)
 		db.Log.Debug("msg", "INSERT LOG", "query", logQuery, "value", fmt.Sprintf("rows = %d tableName = %s eventName = %s filter = %s block = %s", length, safeTable, eventName, table.Filter, eventData.Block))
@@ -172,7 +166,7 @@ loop:
 			return err
 		}
 
-		// get table upsert query
+		// get row upsert query
 		uQuery := db.DBAdapter.UpsertQuery(table)
 		query := clean(uQuery.Query)
 
@@ -189,7 +183,7 @@ loop:
 			db.Log.Debug("msg", "UPSERT", "query", query, "value", value)
 			_, err = tx.Exec(query, pointers...)
 			if err != nil {
-				db.Log.Debug("msg", "Error Upserting", "err", err)
+				db.Log.Debug("msg", "Error Upserting row", "err", err, "value", value)
 				// exits from all loops -> continue in close log stmt
 				break loop
 			}
@@ -203,7 +197,7 @@ loop:
 		}
 	}
 
-	//------------------------error handling----------------------
+	// error handling
 	if err != nil {
 		// rollback error
 		if errRb := tx.Rollback(); errRb != nil {
@@ -229,8 +223,6 @@ loop:
 				}
 				return db.SetBlock(eventTables, eventData)
 			}
-
-			db.Log.Debug("msg", "Error upserting row", "err", err)
 			return err
 		}
 
@@ -247,8 +239,8 @@ loop:
 	return nil
 }
 
-// GetBlock returns a table's structure and row data for given block id
-func (db *SQLDB) GetBlock(eventFilter string, block string) (types.EventData, error) {
+// GetBlock returns all tables structures and row data for given block & events filter
+func (db *SQLDB) GetBlock(eventFilter, block string) (types.EventData, error) {
 	var data types.EventData
 	data.Block = block
 	data.Tables = make(map[string]types.EventDataTable)

@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
+	"unicode/utf8"
 
 	"github.com/hyperledger/burrow/execution/evm/abi"
 	"github.com/hyperledger/burrow/execution/exec"
@@ -20,6 +22,14 @@ import (
 	"github.com/monax/bosmarmot/vent/types"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
+)
+
+const (
+	eventNameLabel   = "eventName"
+	eventHeightLabel = "height"
+	eventTxHashLabel = "txHash"
+	eventIndexLabel  = "index"
+	eventTypeLabel   = "eventType"
 )
 
 // Consumer contains basic configuration for consumer to run
@@ -44,7 +54,7 @@ func NewConsumer(cfg *config.Flags, log *logger.Logger) *Consumer {
 func (c *Consumer) Run() error {
 	c.Log.Info("msg", "Reading events config file")
 
-	byteValue, err := readFile(c.Config.CfgFile)
+	byteValue, err := readFile(c.Config.SpecFile)
 	if err != nil {
 		return errors.Wrap(err, "Error reading events config file")
 	}
@@ -130,6 +140,7 @@ func (c *Consumer) Run() error {
 				BlockRange: rpcevents.NewBlockRange(rpcevents.AbsoluteBound(startingBlock), rpcevents.LatestBound()),
 			}
 
+			// gets events with given filter & block range based on last processed block taken from database
 			evs, err := cli.GetEvents(context.Background(), request)
 			if err != nil {
 				doneCh <- errors.Wrapf(err, "Error connecting to events stream (filter: %s)", spec.Filter)
@@ -139,10 +150,12 @@ func (c *Consumer) Run() error {
 			// create a fresh new structure to store block data
 			blockData := sqlsol.NewBlockData()
 
-			// start listening to events
+			// getting events
 			for {
 				if c.Closing {
 					break
+				} else {
+					time.Sleep(100 * time.Millisecond)
 				}
 
 				c.Log.Info("msg", "Waiting for events", "filter", spec.Filter)
@@ -162,31 +175,32 @@ func (c *Consumer) Run() error {
 
 				// get event data
 				for _, event := range resp.Events {
+
 					// a fresh new row to store column/value data
 					row := make(types.EventDataRow)
 
-					// GetHeader gets Header data for the given event
-					// GetLog gets log event data for the given event
+					// get header & log data for the given event
 					eventHeader := event.GetHeader()
 					eventLog := event.GetLog()
 
 					c.Log.Info("msg", fmt.Sprintf("Event Header: %v", eventHeader), "filter", spec.Filter)
 
 					// decode event data using the provided abi specification
-					eventData, err := decodeEvent(spec.Event.Name, eventHeader, eventLog, abiSpec)
+					eventData, err := decodeEvent(spec.Event.Name, eventHeader, eventLog, abiSpec, c.Log)
 					if err != nil {
 						doneCh <- errors.Wrapf(err, "Error decoding event (filter: %s)", spec.Filter)
 						return
 					}
 
-					// ------------------------------------------------
-					// if source block number is different than current...
+					// if source block number is different than current
 					// upsert rows in specific SQL event tables and update block number
 					eventBlockID := fmt.Sprintf("%v", eventHeader.GetHeight())
 
 					if strings.TrimSpace(fromBlock) != strings.TrimSpace(eventBlockID) {
+
 						// store block data in SQL tables (if any)
 						if blockData.PendingRows(fromBlock) {
+
 							// gets block data to upsert
 							blk := blockData.GetBlockData()
 
@@ -203,7 +217,7 @@ func (c *Consumer) Run() error {
 					}
 
 					// get eventName to map to SQL tableName
-					eventName := eventData["eventName"]
+					eventName := eventData[eventNameLabel]
 					tableName, err := parser.GetTableName(eventName)
 					if err != nil {
 						doneCh <- errors.Wrapf(err, "Error getting table name for event (filter: %s)", spec.Filter)
@@ -211,16 +225,14 @@ func (c *Consumer) Run() error {
 					}
 
 					// for each data element, maps to SQL columnName and gets its value
-					// if there is no matching column for event item,
-					// that item doesn't need to be stored in db
+					// if there is no matching column for the item, it doesn't need to be store in db
 					for k, v := range eventData {
 						if columnName, err := parser.GetColumnName(eventName, k); err == nil {
 							row[columnName] = v
 						}
 					}
 
-					// so, the row is filled with data, update structure
-					// store block number
+					// so, the row is filled with data, update block number in structure
 					blockData.SetBlockID(fromBlock)
 
 					// set row in structure
@@ -230,6 +242,7 @@ func (c *Consumer) Run() error {
 
 			// store pending block data in SQL tables (if any)
 			if blockData.PendingRows(fromBlock) {
+
 				// gets block data to upsert
 				blk := blockData.GetBlockData()
 
@@ -272,11 +285,13 @@ func (c *Consumer) Shutdown() {
 	c.Closing = true
 }
 
-// decodeEvent decodes event data
-func decodeEvent(eventName string, header *exec.Header, log *exec.LogEvent, abiSpec *abi.AbiSpec) (map[string]string, error) {
+// decodeEvent unpacks & decodes event data
+func decodeEvent(eventName string, header *exec.Header, log *exec.LogEvent, abiSpec *abi.AbiSpec, l *logger.Logger) (map[string]string, error) {
+
+	// to prepare decoded data and map to event item name
 	data := make(map[string]string)
 
-	data["eventName"] = eventName
+	data[eventNameLabel] = eventName
 
 	eventAbiSpec, ok := abiSpec.Events[eventName]
 	if !ok {
@@ -284,52 +299,46 @@ func decodeEvent(eventName string, header *exec.Header, log *exec.LogEvent, abiS
 	}
 
 	// decode header to get context data for each event
-	data["index"] = fmt.Sprintf("%v", header.GetIndex())
-	data["height"] = fmt.Sprintf("%v", header.GetHeight())
-	data["eventType"] = header.GetEventType().String()
-	data["txHash"] = string(header.TxHash)
+	data[eventIndexLabel] = fmt.Sprintf("%v", header.GetIndex())
+	data[eventHeightLabel] = fmt.Sprintf("%v", header.GetHeight())
+	data[eventTypeLabel] = header.GetEventType().String()
+	data[eventTxHashLabel] = fmt.Sprintf("%v", header.TxHash)
 
-	// decode log
-	topicsInd := 0
-	topicsLenght := len(log.Topics)
-
-	if !eventAbiSpec.Anonymous {
-		// if the event is not anonymous,
-		// then the first topic is the signature of the event
-		topicsInd++
+	// build expected interface type array to get log event values & make it string
+	unpackedData := make([]interface{}, len(eventAbiSpec.Inputs))
+	for i, _ := range unpackedData {
+		unpackedData[i] = new(string)
 	}
 
-	// build expected type array with go types from abi spec to get log event values
-	decodedData := abi.GetPackingTypes(eventAbiSpec.Inputs)
-
-	for i, topics := range log.Topics {
-		fmt.Printf("\n\ni = %+v\n", i)
-		fmt.Printf("\nlogTopics[i] = %+v\n", topics)
+	// unpack event data (topics & data part)
+	if err := abi.UnpackEvent(eventAbiSpec, log.Topics, log.Data, unpackedData...); err != nil {
+		return nil, errors.Wrap(err, "Could not unpack event data")
 	}
 
-	fmt.Printf("\n\nlogData = %+v\n\n", log.Data)
+	l.Debug("msg", fmt.Sprintf("Unpacked event data %v", unpackedData), "eventName", eventName)
 
-	fmt.Printf("\n\neventAbiSpec.Inputs = %+v\n\n", eventAbiSpec.Inputs)
-	fmt.Printf("\n\ndecodedData = %+v\n\n", decodedData)
-
-	if err := abi.UnpackEvent(eventAbiSpec, log.Topics, log.Data, decodedData); err != nil {
-		return nil, errors.Wrap(err, "Could not decode log events")
-	}
-	fmt.Printf("\n\ndecodedData = %+v\n\n", decodedData)
-
-	// for each event item checks if it is in topics array (indexed) -> log.Topics
-	// or in data part (not indexed) -> log.Data
+	// for each decoded item value, stores it in given item name
 	for i, input := range eventAbiSpec.Inputs {
-		if input.Indexed {
-			// get from log topics
-			if topicsLenght <= topicsInd {
-				return nil, errors.New("Not enough topics for event")
+		data[input.Name] = *unpackedData[i].(*string)
+
+		dataItem := data[input.Name]
+
+		// in the rare case that a not valid UTF8 string is found, convert characters to hexa
+		if !utf8.ValidString(dataItem) {
+
+			l.Warn("msg", fmt.Sprintf("Illegal UTF8 string: i = %v, data[input.Name] = %v, input.Name = %v", i, data[input.Name], input.Name), "eventName", eventName)
+
+			s := make([]string, 0, len(dataItem))
+
+			for i := 0; i < len(dataItem); i++ {
+				s = append(s, fmt.Sprintf("%x", dataItem[i]))
 			}
-			data[input.Name] = decodedData[topicsInd].(string)
-			topicsInd++
-		} else {
-			data[input.Name] = decodedData[i].(string)
+
+			data[input.Name] = strings.ToUpper(strings.Join(s, ""))
 		}
+
+		l.Debug("msg", fmt.Sprintf("Unpacked data items: unpackedData[%v] = %v, data[input.Name] = %v, input.Name = %v", i, unpackedData[i], data[input.Name], input.Name), "eventName", eventName)
+
 	}
 
 	return data, nil

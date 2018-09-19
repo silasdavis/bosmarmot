@@ -48,13 +48,13 @@ func TestNewParser(t *testing.T) {
 		col, err = tableStruct.GetColumn("UpdateUserAccount", "userAddress")
 		require.NoError(t, err)
 		require.Equal(t, true, col.Primary)
-		require.Equal(t, types.SQLColumnTypeVarchar, col.Type)
+		require.Equal(t, types.SQLColumnTypeByteA, col.Type)
 		require.Equal(t, "address", col.Name)
 
 		col, err = tableStruct.GetColumn("UpdateUserAccount", "index")
 		require.NoError(t, err)
 		require.Equal(t, false, col.Primary)
-		require.Equal(t, types.SQLColumnTypeVarchar, col.Type)
+		require.Equal(t, types.SQLColumnTypeNumeric, col.Type)
 		require.Equal(t, "_index", col.Name)
 		require.Equal(t, 3, col.Order)
 
@@ -146,7 +146,7 @@ func TestGetColumn(t *testing.T) {
 		column, err := tableStruct.GetColumn("UpdateTable", "blocknum")
 		require.NoError(t, err)
 		require.Equal(t, strings.ToLower("block"), column.Name)
-		require.Equal(t, types.SQLColumnTypeVarchar, column.Type)
+		require.Equal(t, types.SQLColumnTypeNumeric, column.Type)
 		require.Equal(t, false, column.Primary)
 	})
 

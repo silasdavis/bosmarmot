@@ -18,6 +18,7 @@ var sqliteDataTypes = map[types.SQLColumnType]string{
 	types.SQLColumnTypeText:      "TEXT",
 	types.SQLColumnTypeVarchar:   "VARCHAR",
 	types.SQLColumnTypeTimeStamp: "TIMESTAMP",
+	types.SQLColumnTypeNumeric:   "NUMERIC",
 }
 
 // SQLiteAdapter implements DBAdapter for SQLiteDB
@@ -40,7 +41,7 @@ func (adapter *SQLiteAdapter) Open(dbURL string) (*sql.DB, error) {
 		return nil, err
 	}
 
-	return db, err
+	return db, nil
 }
 
 // TypeMapping convert generic dataTypes to database dependent dataTypes
@@ -48,11 +49,11 @@ func (adapter *SQLiteAdapter) TypeMapping(sqlColumnType types.SQLColumnType) (st
 	if sqlDataType, ok := sqliteDataTypes[sqlColumnType]; ok {
 		return sqlDataType, nil
 	}
-	err := fmt.Errorf("datatype %v not recognized", sqlColumnType)
-	return "", err
+
+	return "", fmt.Errorf("datatype %v not recognized", sqlColumnType)
 }
 
-//SecureColumnName return columns between appropriate security containers
+// SecureColumnName return columns between appropriate security containers
 func (adapter *SQLiteAdapter) SecureColumnName(columnName string) string {
 	return fmt.Sprintf("[%s]", columnName)
 }
@@ -66,7 +67,7 @@ func (adapter *SQLiteAdapter) CreateTableQuery(tableName string, columns []types
 	hasSerial := false
 
 	for i, tableColumn := range columns {
-		secureColumn := fmt.Sprintf("%s", adapter.SecureColumnName(tableColumn.Name))
+		secureColumn := adapter.SecureColumnName(tableColumn.Name)
 		sqlType, _ := adapter.TypeMapping(tableColumn.Type)
 		pKey := 0
 
@@ -76,7 +77,7 @@ func (adapter *SQLiteAdapter) CreateTableQuery(tableName string, columns []types
 		}
 
 		if tableColumn.Type == types.SQLColumnTypeSerial {
-			//SQLITE AUTOINCREMENT LIMITATION
+			// SQLITE AUTOINCREMENT LIMITATION
 			columnsDef += fmt.Sprintf("%s %s", secureColumn, "INTEGER PRIMARY KEY AUTOINCREMENT")
 			hasSerial = true
 		} else {
@@ -93,7 +94,7 @@ func (adapter *SQLiteAdapter) CreateTableQuery(tableName string, columns []types
 			if primaryKey != "" {
 				primaryKey += ", "
 			}
-			primaryKey += fmt.Sprintf("%s", secureColumn)
+			primaryKey += secureColumn
 		}
 
 		dictionaryValues += fmt.Sprintf("('%s','%s',%d,%d,%d,%d)",
@@ -108,7 +109,7 @@ func (adapter *SQLiteAdapter) CreateTableQuery(tableName string, columns []types
 	query := fmt.Sprintf("CREATE TABLE %s (%s", tableName, columnsDef)
 	if primaryKey != "" {
 		if hasSerial {
-			//SQLITE AUTOINCREMENT LIMITATION
+			// SQLITE AUTOINCREMENT LIMITATION
 			query += "," + fmt.Sprintf("UNIQUE (%s)", primaryKey)
 		} else {
 			query += "," + fmt.Sprintf("CONSTRAINT %s_pkey PRIMARY KEY (%s)", tableName, primaryKey)
@@ -145,7 +146,7 @@ func (adapter *SQLiteAdapter) UpsertQuery(table types.SQLTable) types.UpsertQuer
 	i := 0
 
 	for _, tableColumn := range table.Columns {
-		secureColumn := fmt.Sprintf("%s", adapter.SecureColumnName(tableColumn.Name))
+		secureColumn := adapter.SecureColumnName(tableColumn.Name)
 		cKey = 0
 		i++
 
@@ -167,7 +168,7 @@ func (adapter *SQLiteAdapter) UpsertQuery(table types.SQLTable) types.UpsertQuer
 			}
 			updValues += secureColumn + " = $" + fmt.Sprintf("%d", cKey+1)
 		} else {
-			//ON CONFLICT (....values....)
+			// ON CONFLICT (....values....)
 			if pkColumns != "" {
 				pkColumns += ", "
 			}
@@ -202,22 +203,20 @@ func (adapter *SQLiteAdapter) UpsertQuery(table types.SQLTable) types.UpsertQuer
 func (adapter *SQLiteAdapter) LastBlockIDQuery() string {
 	query := `
 		WITH ll AS (
-			SELECT MAX(%s) AS %s FROM %s WHERE %s = $1 
+			SELECT MAX(%s) AS %s FROM %s WHERE %s = $1
 		)
-		SELECT COALESCE(%s, '0') AS %s 
+		SELECT COALESCE(%s, '0') AS %s
 			FROM ll LEFT OUTER JOIN %s log ON (ll.%s = log.%s);`
 
 	return fmt.Sprintf(query,
-		types.SQLColumnNameId,          //max
-		types.SQLColumnNameId,          //as
-		types.SQLLogTableName,          //from
-		types.SQLColumnNameEventFilter, //where
-
-		types.SQLColumnNameHeight,                    //coalesce
-		types.SQLColumnNameHeight,                    //as
-		types.SQLLogTableName,                        //from
-		types.SQLColumnNameId, types.SQLColumnNameId) //on
-
+		types.SQLColumnNameId,                        // max
+		types.SQLColumnNameId,                        // as
+		types.SQLLogTableName,                        // from
+		types.SQLColumnNameEventFilter,               // where
+		types.SQLColumnNameHeight,                    // coalesce
+		types.SQLColumnNameHeight,                    // as
+		types.SQLLogTableName,                        // from
+		types.SQLColumnNameId, types.SQLColumnNameId) // on
 }
 
 // FindTableQuery returns a query that checks if a table exists
@@ -225,34 +224,34 @@ func (adapter *SQLiteAdapter) FindTableQuery() string {
 	query := "SELECT COUNT(*) found FROM %s WHERE %s = $1;"
 
 	return fmt.Sprintf(query,
-		types.SQLDictionaryTableName, //from
-		types.SQLColumnNameTableName) //where
+		types.SQLDictionaryTableName, // from
+		types.SQLColumnNameTableName) // where
 
 }
 
 // TableDefinitionQuery returns a query with table structure
 func (adapter *SQLiteAdapter) TableDefinitionQuery() string {
 	query := `
-		SELECT 
-			%s,%s,%s,%s 
-		FROM 
-			%s 
-		WHERE 
-			%s=$1 
+		SELECT
+			%s,%s,%s,%s
+		FROM
+			%s
+		WHERE
+			%s = $1
 		ORDER BY
 			%s;`
 
 	return fmt.Sprintf(query,
-		types.SQLColumnNameColumnName, types.SQLColumnNameColumnType, //select
-		types.SQLColumnNameColumnLength, types.SQLColumnNamePrimaryKey, //select
-		types.SQLDictionaryTableName,   //from
-		types.SQLColumnNameTableName,   //where
-		types.SQLColumnNameColumnOrder) //order by
+		types.SQLColumnNameColumnName, types.SQLColumnNameColumnType, // select
+		types.SQLColumnNameColumnLength, types.SQLColumnNamePrimaryKey, // select
+		types.SQLDictionaryTableName,   // from
+		types.SQLColumnNameTableName,   // where
+		types.SQLColumnNameColumnOrder) // order by
 
 }
 
 // AlterColumnQuery returns a query for adding a new column to a table
-func (adapter *SQLiteAdapter) AlterColumnQuery(tableName string, columnName string, sqlColumnType types.SQLColumnType, length, order int) (string, string) {
+func (adapter *SQLiteAdapter) AlterColumnQuery(tableName, columnName string, sqlColumnType types.SQLColumnType, length, order int) (string, string) {
 	sqlType, _ := adapter.TypeMapping(sqlColumnType)
 	if length > 0 {
 		sqlType = fmt.Sprintf("%s(%d)", sqlType, length)
@@ -260,14 +259,12 @@ func (adapter *SQLiteAdapter) AlterColumnQuery(tableName string, columnName stri
 
 	query := fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s;",
 		tableName,
-		fmt.Sprintf("%s", adapter.SecureColumnName(columnName)),
+		adapter.SecureColumnName(columnName),
 		sqlType)
 
-	dictionaryQuery := fmt.Sprintf(
-		`INSERT INTO %s 
-					(%s,%s,%s,%s,%s,%s) 
-				VALUES 
-					('%s','%s',%d,%d,%d,%d);`,
+	dictionaryQuery := fmt.Sprintf(`
+		INSERT INTO %s (%s,%s,%s,%s,%s,%s)
+		VALUES ('%s','%s',%d,%d,%d,%d);`,
 
 		types.SQLDictionaryTableName,
 
@@ -275,27 +272,25 @@ func (adapter *SQLiteAdapter) AlterColumnQuery(tableName string, columnName stri
 		types.SQLColumnNameColumnType, types.SQLColumnNameColumnLength,
 		types.SQLColumnNamePrimaryKey, types.SQLColumnNameColumnOrder,
 
-		tableName, columnName,
-		sqlColumnType, length,
-		0, order)
+		tableName, columnName, sqlColumnType, length, 0, order)
 
 	return query, dictionaryQuery
 }
 
 // SelectRowQuery returns a query for selecting row values
-func (adapter *SQLiteAdapter) SelectRowQuery(tableName string, fields string, indexValue string) string {
-	return fmt.Sprintf("SELECT %s FROM %s WHERE %s='%s';", fields, tableName, types.SQLColumnNameHeight, indexValue)
+func (adapter *SQLiteAdapter) SelectRowQuery(tableName, fields, indexValue string) string {
+	return fmt.Sprintf("SELECT %s FROM %s WHERE %s = '%s';", fields, tableName, types.SQLColumnNameHeight, indexValue)
 }
 
 // SelectLogQuery returns a query for selecting all tables involved in a block trn
 func (adapter *SQLiteAdapter) SelectLogQuery() string {
 	query := `
-		SELECT DISTINCT %s,%s FROM %s l  WHERE %s = $1 AND %s = $2;`
+		SELECT DISTINCT %s,%s FROM %s l WHERE %s = $1 AND %s = $2;`
 
 	return fmt.Sprintf(query,
 		types.SQLColumnNameTableName, types.SQLColumnNameEventName, // select
-		types.SQLLogTableName,                                     //from
-		types.SQLColumnNameEventFilter, types.SQLColumnNameHeight) //where
+		types.SQLLogTableName,                                     // from
+		types.SQLColumnNameEventFilter, types.SQLColumnNameHeight) // where
 }
 
 // InsertLogQuery returns a query to insert a row in log table
@@ -305,35 +300,29 @@ func (adapter *SQLiteAdapter) InsertLogQuery() string {
 		VALUES (CURRENT_TIMESTAMP, $1, $2, $3, $4, $5);`
 
 	return fmt.Sprintf(query,
-		types.SQLLogTableName,                                                                   //insert
-		types.SQLColumnNameTimeStamp, types.SQLColumnNameRowCount, types.SQLColumnNameTableName, //fields
-		types.SQLColumnNameEventName, types.SQLColumnNameEventFilter, types.SQLColumnNameHeight) //fields
+		types.SQLLogTableName,                                                                   // insert
+		types.SQLColumnNameTimeStamp, types.SQLColumnNameRowCount, types.SQLColumnNameTableName, // fields
+		types.SQLColumnNameEventName, types.SQLColumnNameEventFilter, types.SQLColumnNameHeight) // fields
 }
 
 // ErrorEquals verify if an error is of a given SQL type
 func (adapter *SQLiteAdapter) ErrorEquals(err error, sqlErrorType types.SQLErrorType) bool {
-
 	if err, ok := err.(sqlite3.Error); ok {
 		errDescription := err.Error()
 
 		switch sqlErrorType {
 		case types.SQLErrorTypeGeneric:
 			return true
-
 		case types.SQLErrorTypeDuplicatedColumn:
 			return err.Code == 1 && strings.Contains(errDescription, "duplicate column")
-
 		case types.SQLErrorTypeDuplicatedTable:
 			return err.Code == 1 && strings.Contains(errDescription, "table") && strings.Contains(errDescription, "already exists")
-
 		case types.SQLErrorTypeUndefinedTable:
 			return err.Code == 1 && strings.Contains(errDescription, "no such table")
-
 		case types.SQLErrorTypeUndefinedColumn:
 			return err.Code == 1 && strings.Contains(errDescription, "table") && strings.Contains(errDescription, "has no column named")
-
 		case types.SQLErrorTypeInvalidType:
-			//NOT SUPPORTED
+			// NOT SUPPORTED
 			return false
 		}
 	}
