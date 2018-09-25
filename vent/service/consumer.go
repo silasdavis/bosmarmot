@@ -137,7 +137,7 @@ func (c *Consumer) Run() error {
 
 			request := &rpcevents.BlocksRequest{
 				Query:      spec.Filter,
-				BlockRange: rpcevents.NewBlockRange(rpcevents.AbsoluteBound(startingBlock), rpcevents.LatestBound()),
+				BlockRange: rpcevents.NewBlockRange(rpcevents.AbsoluteBound(startingBlock), rpcevents.StreamBound()),
 			}
 
 			// gets events with given filter & block range based on last processed block taken from database
