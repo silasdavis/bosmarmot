@@ -9,7 +9,7 @@ import (
 	"github.com/monax/bosmarmot/vent/types"
 )
 
-var sqlDataTypes = map[types.SQLColumnType]string{
+var pgDataTypes = map[types.SQLColumnType]string{
 	types.SQLColumnTypeBool:      "BOOLEAN",
 	types.SQLColumnTypeByteA:     "BYTEA",
 	types.SQLColumnTypeInt:       "INTEGER",
@@ -17,6 +17,7 @@ var sqlDataTypes = map[types.SQLColumnType]string{
 	types.SQLColumnTypeText:      "TEXT",
 	types.SQLColumnTypeVarchar:   "VARCHAR",
 	types.SQLColumnTypeTimeStamp: "TIMESTAMP",
+	types.SQLColumnTypeNumeric:   "NUMERIC",
 }
 
 // PostgresAdapter implements DBAdapter for Postgres
@@ -33,12 +34,45 @@ func NewPostgresAdapter(schema string, log *logger.Logger) *PostgresAdapter {
 	}
 }
 
-// Open connects to a SQL database and opens it
+// Open connects to a PostgreSQL database, opens it & create default schema if provided
 func (adapter *PostgresAdapter) Open(dbURL string) (*sql.DB, error) {
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
-		adapter.Log.Debug("msg", "Error opening database connection", "err", err)
+		adapter.Log.Debug("msg", "Error creating database connection", "err", err)
 		return nil, err
+	}
+
+	// if there is a supplied Schema
+	if adapter.Schema != "" {
+		if err = db.Ping(); err != nil {
+			adapter.Log.Debug("msg", "Error opening database connection", "err", err)
+			return nil, err
+		}
+
+		var found bool
+
+		query := fmt.Sprintf(`SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_namespace n WHERE n.nspname = '%s');`, adapter.Schema)
+		adapter.Log.Debug("msg", "FIND SCHEMA", "query", query)
+
+		if err := db.QueryRow(query).Scan(&found); err == nil {
+			if !found {
+				adapter.Log.Warn("msg", "Schema not found")
+			}
+			adapter.Log.Info("msg", "Creating schema")
+
+			query = fmt.Sprintf("CREATE SCHEMA %s;", adapter.Schema)
+			adapter.Log.Debug("msg", "CREATE SCHEMA", "query", query)
+
+			if _, err = db.Exec(query); err != nil {
+				if adapter.ErrorEquals(err, types.SQLErrorTypeDuplicatedSchema) {
+					adapter.Log.Warn("msg", "Duplicated schema")
+					return db, nil
+				}
+			}
+		} else {
+			adapter.Log.Debug("msg", "Error searching schema", "err", err)
+			return nil, err
+		}
 	}
 
 	return db, err
@@ -46,39 +80,57 @@ func (adapter *PostgresAdapter) Open(dbURL string) (*sql.DB, error) {
 
 // TypeMapping convert generic dataTypes to database dependent dataTypes
 func (adapter *PostgresAdapter) TypeMapping(sqlColumnType types.SQLColumnType) (string, error) {
-	if sqlDataType, ok := sqlDataTypes[sqlColumnType]; ok {
+	if sqlDataType, ok := pgDataTypes[sqlColumnType]; ok {
 		return sqlDataType, nil
 	}
-	err := fmt.Errorf("datatype %v not recognized", sqlColumnType)
-	return "", err
+
+	return "", fmt.Errorf("datatype %v not recognized", sqlColumnType)
+}
+
+// SecureColumnName return columns between appropriate security containers
+func (adapter *PostgresAdapter) SecureColumnName(columnName string) string {
+	return `"` + columnName + `"`
 }
 
 // CreateTableQuery builds query for creating a new table
-func (adapter *PostgresAdapter) CreateTableQuery(tableName string, columns []types.SQLTableColumn) string {
+func (adapter *PostgresAdapter) CreateTableQuery(tableName string, columns []types.SQLTableColumn) (string, string) {
 	// build query
 	columnsDef := ""
 	primaryKey := ""
+	dictionaryValues := ""
 
-	for _, tableColumn := range columns {
+	for i, tableColumn := range columns {
+		secureColumn := adapter.SecureColumnName(tableColumn.Name)
 		sqlType, _ := adapter.TypeMapping(tableColumn.Type)
+		pKey := 0
 
 		if columnsDef != "" {
 			columnsDef += ", "
+			dictionaryValues += ", "
 		}
 
-		columnsDef += fmt.Sprintf("%s %s", tableColumn.Name, sqlType)
+		columnsDef += fmt.Sprintf("%s %s", secureColumn, sqlType)
 
 		if tableColumn.Length > 0 {
 			columnsDef += fmt.Sprintf("(%v)", tableColumn.Length)
 		}
 
 		if tableColumn.Primary {
+			pKey = 1
 			columnsDef += " NOT NULL"
 			if primaryKey != "" {
 				primaryKey += ", "
 			}
-			primaryKey += tableColumn.Name
+			primaryKey += secureColumn
 		}
+
+		dictionaryValues += fmt.Sprintf("('%s','%s',%d,%d,%d,%d)",
+			tableName,
+			tableColumn.Name,
+			tableColumn.Type,
+			tableColumn.Length,
+			pKey,
+			i)
 	}
 
 	query := fmt.Sprintf("CREATE TABLE %s.%s (%s", adapter.Schema, tableName, columnsDef)
@@ -87,10 +139,17 @@ func (adapter *PostgresAdapter) CreateTableQuery(tableName string, columns []typ
 	}
 	query += ");"
 
-	return query
+	dictionaryQuery := fmt.Sprintf("INSERT INTO %s.%s (%s,%s,%s,%s,%s,%s) VALUES %s;",
+		adapter.Schema, types.SQLDictionaryTableName,
+		types.SQLColumnNameTableName, types.SQLColumnNameColumnName,
+		types.SQLColumnNameColumnType, types.SQLColumnNameColumnLength,
+		types.SQLColumnNamePrimaryKey, types.SQLColumnNameColumnOrder,
+		dictionaryValues)
+
+	return query, dictionaryQuery
 }
 
-// UpsertQuery builds a query for upserting rows
+// UpsertQuery builds a query for row upsert
 func (adapter *PostgresAdapter) UpsertQuery(table types.SQLTable) types.UpsertQuery {
 	columns := ""
 	insValues := ""
@@ -108,6 +167,7 @@ func (adapter *PostgresAdapter) UpsertQuery(table types.SQLTable) types.UpsertQu
 	i := 0
 
 	for _, tableColumn := range table.Columns {
+		secureColumn := adapter.SecureColumnName(tableColumn.Name)
 		cKey = 0
 		i++
 
@@ -116,7 +176,7 @@ func (adapter *PostgresAdapter) UpsertQuery(table types.SQLTable) types.UpsertQu
 			columns += ", "
 			insValues += ", "
 		}
-		columns += tableColumn.Name
+		columns += secureColumn
 		insValues += "$" + fmt.Sprintf("%d", i)
 
 		if !tableColumn.Primary {
@@ -127,7 +187,7 @@ func (adapter *PostgresAdapter) UpsertQuery(table types.SQLTable) types.UpsertQu
 			if updValues != "" {
 				updValues += ", "
 			}
-			updValues += tableColumn.Name + " = $" + fmt.Sprintf("%d", cKey+1)
+			updValues += secureColumn + " = $" + fmt.Sprintf("%d", cKey+1)
 		}
 
 		upsertQuery.Columns[tableColumn.Name] = types.UpsertColumn{
@@ -156,154 +216,107 @@ func (adapter *PostgresAdapter) UpsertQuery(table types.SQLTable) types.UpsertQu
 func (adapter *PostgresAdapter) LastBlockIDQuery() string {
 	query := `
 		WITH ll AS (
-			SELECT
-				MAX(id) id
-			FROM
-				%s._bosmarmot_log
+			SELECT MAX(%s) AS %s FROM %s.%s WHERE %s = $1
 		)
-		SELECT
-			COALESCE(height, '0') AS height
-		FROM
-			ll
-			LEFT OUTER JOIN %s._bosmarmot_log log ON ll.id = log.id
-	;`
+		SELECT COALESCE(%s, '0') AS %s
+			FROM ll LEFT OUTER JOIN %s.%s log ON (ll.%s = log.%s);`
 
-	return fmt.Sprintf(query, adapter.Schema, adapter.Schema)
-}
+	return fmt.Sprintf(query,
+		types.SQLColumnNameId,                 // max
+		types.SQLColumnNameId,                 // as
+		adapter.Schema, types.SQLLogTableName, // from
+		types.SQLColumnNameEventFilter,        // where
+		types.SQLColumnNameHeight,             // coalesce
+		types.SQLColumnNameHeight,             // as
+		adapter.Schema, types.SQLLogTableName, // from
+		types.SQLColumnNameId, types.SQLColumnNameId) // on
 
-// FindSchemaQuery returns a query that checks if the default schema exists
-func (adapter *PostgresAdapter) FindSchemaQuery() string {
-	query := `
-		SELECT
-			EXISTS (
-				SELECT
-					1
-				FROM
-					pg_catalog.pg_namespace n
-				WHERE
-					n.nspname = '%s'
-			)
-	;`
-
-	return fmt.Sprintf(query, adapter.Schema)
-}
-
-// CreateSchemaQuery returns a query that creates a PostgreSQL schema
-func (adapter *PostgresAdapter) CreateSchemaQuery() string {
-	return fmt.Sprintf("CREATE SCHEMA %s;", adapter.Schema)
-}
-
-// DropSchemaQuery returns a query that drops a PostgreSQL schema
-func (adapter *PostgresAdapter) DropSchemaQuery() string {
-	return fmt.Sprintf("DROP SCHEMA %s CASCADE;", adapter.Schema)
 }
 
 // FindTableQuery returns a query that checks if a table exists
-func (adapter *PostgresAdapter) FindTableQuery(tableName string) string {
-	query := `
-		SELECT
-			EXISTS (
-				SELECT
-					1
-				FROM
-					pg_catalog.pg_class c
-					JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-				WHERE
-					n.nspname = '%s'
-					AND c.relname = '%s'
-					AND c.relkind = 'r'
-			)
-	;`
+func (adapter *PostgresAdapter) FindTableQuery() string {
+	query := "SELECT COUNT(*) found FROM %s.%s WHERE %s = $1;"
 
-	return fmt.Sprintf(query, adapter.Schema, tableName)
+	return fmt.Sprintf(query,
+		adapter.Schema, types.SQLDictionaryTableName, // from
+		types.SQLColumnNameTableName) // where
 }
 
 // TableDefinitionQuery returns a query with table structure
-func (adapter *PostgresAdapter) TableDefinitionQuery(tableName string) string {
-	return fmt.Sprintf(`
-		WITH dsc AS (
-			SELECT
-				pgd.objsubid,
-				st.schemaname,
-				st.relname
-			FROM
-				pg_catalog.pg_statio_all_tables AS st
-				INNER JOIN pg_catalog.pg_description pgd ON (pgd.objoid = st.relid)
-		)
+func (adapter *PostgresAdapter) TableDefinitionQuery() string {
+	query := `
 		SELECT
-			c.column_name ColumnName,
-			(
-				CASE
-					WHEN c.data_type = 'integer' THEN %v
-					WHEN c.data_type = 'boolean' THEN %v
-					WHEN c.data_type = 'bytea' THEN %v
-					WHEN c.data_type = 'text' THEN %v
-					WHEN c.udt_name = 'timestamp' THEN %v
-					WHEN c.udt_name = 'varchar' THEN %v
-					ELSE 0
-				END
-			) ColumnSQLType,
-			(
-				CASE
-					WHEN is_nullable = 'NO' THEN true
-					ELSE false
-				END
-			) ColumnIsPK,
-			COALESCE(c.character_maximum_length,0) ColumnLength
+			%s,%s,%s,%s
 		FROM
-			information_schema.columns AS c
-		LEFT OUTER JOIN
-			dsc ON (c.ordinal_position = dsc.objsubid AND c.table_schema = dsc.schemaname AND c.table_name = dsc.relname)
+			%s.%s
 		WHERE
-			c.table_schema = '%s'
-			AND c.table_name = '%s'
-	;`,
-		types.SQLColumnTypeInt,
-		types.SQLColumnTypeBool,
-		types.SQLColumnTypeByteA,
-		types.SQLColumnTypeText,
-		types.SQLColumnTypeTimeStamp,
-		types.SQLColumnTypeVarchar,
-		adapter.Schema,
-		tableName,
-	)
+			%s = $1
+		ORDER BY
+			%s;`
+
+	return fmt.Sprintf(query,
+		types.SQLColumnNameColumnName, types.SQLColumnNameColumnType, // select
+		types.SQLColumnNameColumnLength, types.SQLColumnNamePrimaryKey, // select
+		adapter.Schema, types.SQLDictionaryTableName, // from
+		types.SQLColumnNameTableName,   // where
+		types.SQLColumnNameColumnOrder) // order by
+
 }
 
 // AlterColumnQuery returns a query for adding a new column to a table
-func (adapter *PostgresAdapter) AlterColumnQuery(tableName string, columnName string, sqlColumnType types.SQLColumnType) string {
+func (adapter *PostgresAdapter) AlterColumnQuery(tableName, columnName string, sqlColumnType types.SQLColumnType, length, order int) (string, string) {
 	sqlType, _ := adapter.TypeMapping(sqlColumnType)
-	return fmt.Sprintf("ALTER TABLE %s.%s ADD COLUMN %s %s;", adapter.Schema, tableName, tableName, sqlType)
+	if length > 0 {
+		sqlType = fmt.Sprintf("%s(%d)", sqlType, length)
+	}
+
+	query := fmt.Sprintf("ALTER TABLE %s.%s ADD COLUMN %s %s;",
+		adapter.Schema,
+		tableName,
+		adapter.SecureColumnName(columnName),
+		sqlType)
+
+	dictionaryQuery := fmt.Sprintf(`
+		INSERT INTO %s.%s (%s,%s,%s,%s,%s,%s)
+		VALUES ('%s','%s',%d,%d,%d,%d);`,
+
+		adapter.Schema, types.SQLDictionaryTableName,
+
+		types.SQLColumnNameTableName, types.SQLColumnNameColumnName,
+		types.SQLColumnNameColumnType, types.SQLColumnNameColumnLength,
+		types.SQLColumnNamePrimaryKey, types.SQLColumnNameColumnOrder,
+
+		tableName, columnName, sqlColumnType, length, 0, order)
+
+	return query, dictionaryQuery
 }
 
 // SelectRowQuery returns a query for selecting row values
-func (adapter *PostgresAdapter) SelectRowQuery(tableName string, fields string, indexValue string) string {
-	return fmt.Sprintf("SELECT %s FROM %s.%s WHERE height='%s';", fields, adapter.Schema, tableName, indexValue)
+func (adapter *PostgresAdapter) SelectRowQuery(tableName, fields, indexValue string) string {
+	return fmt.Sprintf("SELECT %s FROM %s.%s WHERE %s = '%s';", fields, adapter.Schema, tableName, types.SQLColumnNameHeight, indexValue)
 }
 
 // SelectLogQuery returns a query for selecting all tables involved in a block trn
 func (adapter *PostgresAdapter) SelectLogQuery() string {
 	query := `
-		SELECT
-			tblname,
-			tblmap
-		FROM
-			%s._bosmarmot_log l
-			INNER JOIN %s._bosmarmot_logdet d ON l.id = d.id
-		WHERE
-			height = $1;
-	`
-	query = fmt.Sprintf(query, adapter.Schema, adapter.Schema)
-	return query
+		SELECT DISTINCT %s,%s FROM %s.%s l WHERE %s = $1 AND %s = $2;`
+
+	return fmt.Sprintf(query,
+		types.SQLColumnNameTableName, types.SQLColumnNameEventName, // select
+		adapter.Schema, types.SQLLogTableName, // from
+		types.SQLColumnNameEventFilter, types.SQLColumnNameHeight) // where
 }
 
 // InsertLogQuery returns a query to insert a row in log table
 func (adapter *PostgresAdapter) InsertLogQuery() string {
-	return fmt.Sprintf("INSERT INTO %s._bosmarmot_log (timestamp, registers, height) VALUES (CURRENT_TIMESTAMP, $1, $2) RETURNING id", adapter.Schema)
-}
+	query := `
+		INSERT INTO %s.%s (%s,%s,%s,%s,%s,%s)
+		VALUES (CURRENT_TIMESTAMP, $1, $2, $3, $4, $5);`
 
-// InsertLogDetailQuery returns a query to insert a row into logdetail table
-func (adapter *PostgresAdapter) InsertLogDetailQuery() string {
-	return fmt.Sprintf("INSERT INTO %s._bosmarmot_logdet (id, tblname, tblmap, registers) VALUES ($1, $2, $3, $4)", adapter.Schema)
+	return fmt.Sprintf(query,
+		adapter.Schema, types.SQLLogTableName, // insert
+		types.SQLColumnNameTimeStamp, types.SQLColumnNameRowCount, types.SQLColumnNameTableName, // fields
+		types.SQLColumnNameEventName, types.SQLColumnNameEventFilter, types.SQLColumnNameHeight) // fields
 }
 
 // ErrorEquals verify if an error is of a given SQL type

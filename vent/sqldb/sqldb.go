@@ -13,7 +13,7 @@ import (
 // SQLDB implements the access to a sql database
 type SQLDB struct {
 	DB        *sql.DB
-	DBAdapter DBAdapter
+	DBAdapter adapters.DBAdapter
 	Schema    string
 	Log       *logger.Logger
 }
@@ -26,14 +26,18 @@ func NewSQLDB(dbAdapter, dbURL, schema string, log *logger.Logger) (*SQLDB, erro
 		Log:    log,
 	}
 
+	url := dbURL
+
 	switch dbAdapter {
-	case "postgres":
+	case types.PostgresDB:
 		db.DBAdapter = adapters.NewPostgresAdapter(safe(schema), log)
+	case types.SQLiteDB:
+		db.DBAdapter = adapters.NewSQLiteAdapter(log)
 	default:
-		return nil, errors.New("Invalid database adapter")
+		return nil, errors.New("invalid database adapter")
 	}
 
-	dbc, err := db.DBAdapter.Open(dbURL)
+	dbc, err := db.DBAdapter.Open(url)
 	if err != nil {
 		db.Log.Debug("msg", "Error opening database connection", "err", err)
 		return nil, err
@@ -45,24 +49,28 @@ func NewSQLDB(dbAdapter, dbURL, schema string, log *logger.Logger) (*SQLDB, erro
 		return nil, err
 	}
 
-	var found bool
-	found, err = db.findDefaultSchema()
-	if err != nil {
-		return nil, err
-	}
+	db.Log.Info("msg", "Initializing DB")
+	eventTables := db.getSysTablesDefinition()
 
-	if !found {
-		if err = db.createDefaultSchema(); err != nil {
+	// IMPORTANT: DO NOT CHANGE TABLE CREATION ORDER (1)
+	table := eventTables[types.SQLDictionaryTableName]
+	if err = db.createTable(table); err != nil {
+		if !db.DBAdapter.ErrorEquals(err, types.SQLErrorTypeDuplicatedTable) {
+			db.Log.Debug("msg", "Error Initializing DB", "err", err)
 			return nil, err
 		}
 	}
 
-	// create _bosmarmot_log
-	if err = db.SynchronizeDB(db.getLogTableDef()); err != nil {
-		return nil, err
+	// IMPORTANT: DO NOT CHANGE TABLE CREATION ORDER (2)
+	table = eventTables[types.SQLLogTableName]
+	if err = db.createTable(table); err != nil {
+		if !db.DBAdapter.ErrorEquals(err, types.SQLErrorTypeDuplicatedTable) {
+			db.Log.Debug("msg", "Error Initializing DB", "err", err)
+			return nil, err
+		}
 	}
 
-	return db, err
+	return db, nil
 }
 
 // Close database connection
@@ -82,14 +90,14 @@ func (db *SQLDB) Ping() error {
 	return nil
 }
 
-// GetLastBlockID returns last inserted blockId from log table
-func (db *SQLDB) GetLastBlockID() (string, error) {
-	query := db.DBAdapter.LastBlockIDQuery()
+// GetLastBlockID returns last inserted blockId for a given events filter from log table
+func (db *SQLDB) GetLastBlockID(eventFilter string) (string, error) {
+	query := clean(db.DBAdapter.LastBlockIDQuery())
 	id := ""
 
-	db.Log.Debug("msg", "MAX ID", "query", clean(query))
+	db.Log.Debug("msg", "MAX ID", "query", query)
 
-	if err := db.DB.QueryRow(query).Scan(&id); err != nil {
+	if err := db.DB.QueryRow(query, eventFilter).Scan(&id); err != nil {
 		db.Log.Debug("msg", "Error selecting last block id", "err", err)
 		return "", err
 	}
@@ -97,30 +105,7 @@ func (db *SQLDB) GetLastBlockID() (string, error) {
 	return id, nil
 }
 
-// DestroySchema deletes the default schema
-func (db *SQLDB) DestroySchema() error {
-	db.Log.Info("msg", "Dropping schema")
-	found, err := db.findDefaultSchema()
-
-	if err != nil {
-		return err
-	}
-
-	if found {
-		query := db.DBAdapter.DropSchemaQuery()
-
-		db.Log.Info("msg", "Drop schema", "query", query)
-
-		if _, err := db.DB.Exec(query); err != nil {
-			db.Log.Debug("msg", "Error dropping schema", "err", err)
-			return err
-		}
-	}
-
-	return nil
-}
-
-// SynchronizeDB synchronize config structures with SQL database table structures
+// SynchronizeDB synchronize db tables structures from given tables specifications
 func (db *SQLDB) SynchronizeDB(eventTables types.EventTables) error {
 	db.Log.Info("msg", "Synchronizing DB")
 
@@ -158,20 +143,8 @@ func (db *SQLDB) SetBlock(eventTables types.EventTables, eventData types.EventDa
 	}
 	defer tx.Rollback()
 
-	// insert into log tables
-	id := 0
-	length := len(eventTables)
-	query := db.DBAdapter.InsertLogQuery()
-
-	db.Log.Debug("msg", "INSERT LOG", "query", clean(query), "value", fmt.Sprintf("%d %s", length, eventData.Block))
-	err = tx.QueryRow(query, length, eventData.Block).Scan(&id)
-	if err != nil {
-		db.Log.Debug("msg", "Error inserting into _bosmarmot_log", "err", err)
-		return err
-	}
-
-	// prepare log detail statement
-	logQuery := db.DBAdapter.InsertLogDetailQuery()
+	// prepare log statement
+	logQuery := clean(db.DBAdapter.InsertLogQuery())
 	logStmt, err = tx.Prepare(logQuery)
 	if err != nil {
 		db.Log.Debug("msg", "Error preparing log stmt", "err", err)
@@ -180,21 +153,22 @@ func (db *SQLDB) SetBlock(eventTables types.EventTables, eventData types.EventDa
 
 loop:
 	// for each table in the block
-	for tblMap, table := range eventTables {
+	for eventName, table := range eventTables {
 		safeTable = safe(table.Name)
 
-		// insert in logdet table
+		// insert in log table
 		dataRows := eventData.Tables[table.Name]
-		length = len(dataRows)
-		db.Log.Debug("msg", "INSERT LOGDET", "query", logQuery, "value", fmt.Sprintf("%d %s %s %d", id, safeTable, tblMap, length))
-		_, err = logStmt.Exec(id, safeTable, tblMap, length)
+		length := len(dataRows)
+		db.Log.Debug("msg", "INSERT LOG", "query", logQuery, "value", fmt.Sprintf("rows = %d tableName = %s eventName = %s filter = %s block = %s", length, safeTable, eventName, table.Filter, eventData.Block))
+		_, err = logStmt.Exec(length, safeTable, eventName, table.Filter, eventData.Block)
 		if err != nil {
-			db.Log.Debug("msg", "Error inserting into logdet", "err", err)
+			db.Log.Debug("msg", "Error inserting into log", "err", err)
 			return err
 		}
 
-		// get table upsert query
+		// get row upsert query
 		uQuery := db.DBAdapter.UpsertQuery(table)
+		query := clean(uQuery.Query)
 
 		// for Each Row
 		for _, row := range dataRows {
@@ -206,10 +180,10 @@ loop:
 			}
 
 			// upsert row data
-			db.Log.Debug("msg", "UPSERT", "query", clean(uQuery.Query), "value", value)
-			_, err = tx.Exec(uQuery.Query, pointers...)
+			db.Log.Debug("msg", "UPSERT", "query", query, "value", value)
+			_, err = tx.Exec(query, pointers...)
 			if err != nil {
-				db.Log.Debug("msg", "Error Upserting", "err", err)
+				db.Log.Debug("msg", "Error Upserting row", "err", err, "value", value)
 				// exits from all loops -> continue in close log stmt
 				break loop
 			}
@@ -223,7 +197,7 @@ loop:
 		}
 	}
 
-	//------------------------error handling----------------------
+	// error handling
 	if err != nil {
 		// rollback error
 		if errRb := tx.Rollback(); errRb != nil {
@@ -249,8 +223,6 @@ loop:
 				}
 				return db.SetBlock(eventTables, eventData)
 			}
-
-			db.Log.Debug("msg", "Error upserting row", "err", err)
 			return err
 		}
 
@@ -267,14 +239,14 @@ loop:
 	return nil
 }
 
-// GetBlock returns a table's structure and row data for given block id
-func (db *SQLDB) GetBlock(block string) (types.EventData, error) {
+// GetBlock returns all tables structures and row data for given block & events filter
+func (db *SQLDB) GetBlock(eventFilter, block string) (types.EventData, error) {
 	var data types.EventData
 	data.Block = block
 	data.Tables = make(map[string]types.EventDataTable)
 
 	// get all table structures involved in the block
-	tables, err := db.getBlockTables(block)
+	tables, err := db.getBlockTables(eventFilter, block)
 	if err != nil {
 		return data, err
 	}
@@ -289,8 +261,8 @@ func (db *SQLDB) GetBlock(block string) (types.EventData, error) {
 			db.Log.Debug("msg", "Error building table query", "err", err)
 			return data, err
 		}
-
-		db.Log.Debug("msg", "Query table data", "query", clean(query))
+		query = clean(query)
+		db.Log.Debug("msg", "Query table data", "query", query)
 		rows, err := db.DB.Query(query)
 		if err != nil {
 			db.Log.Debug("msg", "Error querying table data", "err", err)
@@ -319,8 +291,7 @@ func (db *SQLDB) GetBlock(block string) (types.EventData, error) {
 		for rows.Next() {
 			row := make(map[string]string)
 
-			err = rows.Scan(pointers...)
-			if err != nil {
+			if err = rows.Scan(pointers...); err != nil {
 				db.Log.Debug("msg", "Error scanning data", "err", err)
 				return data, err
 			}
@@ -335,6 +306,11 @@ func (db *SQLDB) GetBlock(block string) (types.EventData, error) {
 			}
 
 			dataRows = append(dataRows, row)
+		}
+
+		if err = rows.Err(); err != nil {
+			db.Log.Debug("msg", "Error during rows iteration", "err", err)
+			return data, err
 		}
 
 		data.Tables[table.Name] = dataRows

@@ -3,6 +3,7 @@ package types
 // SQLTable contains the structure of a SQL table,
 type SQLTable struct {
 	Name    string
+	Filter  string
 	Columns map[string]SQLTableColumn
 }
 
@@ -29,3 +30,33 @@ type UpsertColumn struct {
 	InsPosition int
 	UpdPosition int
 }
+
+// SQL log & dictionary tables
+const SQLLogTableName = "_vent_log"
+const SQLDictionaryTableName = "_vent_dictionary"
+
+// defined fixed sql column names in log table
+const (
+	// log
+	SQLColumnNameId          = "_id"
+	SQLColumnNameTimeStamp   = "_timestamp"
+	SQLColumnNameEventName   = "_eventname"
+	SQLColumnNameRowCount    = "_rowcount"
+	SQLColumnNameEventFilter = "_eventfilter"
+	SQLColumnNameHeight      = "_height"
+
+	// common
+	SQLColumnNameTableName = "_tablename"
+
+	// dictionary
+	SQLColumnNameColumnName   = "_columnname"
+	SQLColumnNameColumnType   = "_columntype"
+	SQLColumnNameColumnLength = "_columnlength"
+	SQLColumnNamePrimaryKey   = "_primarykey"
+	SQLColumnNameColumnOrder  = "_columnorder"
+
+	// auxiliar (not in DB)
+	SQLColumnNameIndex     = "_index"
+	SQLColumnNameTxHash    = "_txhash"
+	SQLColumnNameEventType = "_eventtype"
+)
