@@ -84,7 +84,7 @@ func TestRun(t *testing.T) {
 	log := logger.NewLogger(cfg.LogLevel)
 	consumer := service.NewConsumer(cfg, log)
 
-	err := consumer.Run()
+	err := consumer.Run(false)
 	require.NoError(t, err)
 
 	// test data stored in database for two different block ids

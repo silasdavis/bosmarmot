@@ -51,7 +51,7 @@ func NewConsumer(cfg *config.Flags, log *logger.Logger) *Consumer {
 // Run connects to a grpc service and subscribes to log events,
 // then gets tables structures, maps them & parse event data.
 // Store data in SQL event tables, it runs forever
-func (c *Consumer) Run() error {
+func (c *Consumer) Run(stream bool) error {
 	c.Log.Info("msg", "Reading events config file")
 
 	byteValue, err := readFile(c.Config.SpecFile)
@@ -134,10 +134,16 @@ func (c *Consumer) Run() error {
 
 			// setup the execution events client for this spec
 			cli := rpcevents.NewExecutionEventsClient(conn)
+			var end *rpcevents.Bound
+			if stream {
+				end = rpcevents.StreamBound()
+			} else {
+				end = rpcevents.LatestBound()
+			}
 
 			request := &rpcevents.BlocksRequest{
 				Query:      spec.Filter,
-				BlockRange: rpcevents.NewBlockRange(rpcevents.AbsoluteBound(startingBlock), rpcevents.StreamBound()),
+				BlockRange: rpcevents.NewBlockRange(rpcevents.AbsoluteBound(startingBlock), end),
 			}
 
 			// gets events with given filter & block range based on last processed block taken from database

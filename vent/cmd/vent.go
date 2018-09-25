@@ -52,7 +52,7 @@ func runVentCmd(cmd *cobra.Command, args []string) {
 	wg.Add(1)
 
 	go func() {
-		if err := consumer.Run(); err != nil {
+		if err := consumer.Run(true); err != nil {
 			log.Error("err", err)
 			os.Exit(1)
 		}
