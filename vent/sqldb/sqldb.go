@@ -289,7 +289,7 @@ func (db *SQLDB) GetBlock(eventFilter, block string) (types.EventData, error) {
 		var dataRows []types.EventDataRow
 
 		for rows.Next() {
-			row := make(map[string]string)
+			row := make(map[string]interface{})
 
 			if err = rows.Scan(pointers...); err != nil {
 				db.Log.Debug("msg", "Error scanning data", "err", err)
