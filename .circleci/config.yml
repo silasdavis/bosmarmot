@@ -1,4 +1,4 @@
-# Some resuable sections, note the top-level keys 'defaults' and 'tag_filters'
+# Some reusable sections, note the top-level keys 'defaults' and 'tag_filters'
 # have no special meaning, they just exist so I can alias them and import them
 # in later blocks
 defaults: &defaults
@@ -59,6 +59,17 @@ jobs:
       - run: cd legacy-db.js && npm publish
       - run: cd legacy-contracts.js && npm publish
 
+  publish_vent:
+    <<: *defaults
+    steps:
+      - checkout
+      - run:
+        name: Build vent image
+        command: |
+          docker login -u ${DOCKER_USER} -p ${DOCKER_PASS} quay.io
+          docker build -t quay.io/monax/vent:$CIRCLE_BRANCH -f vent/Dockerfile .
+          docker push quay.io/monax/vent:$CIRCLE_BRANCH
+
 
 workflows:
   version: 2
@@ -86,3 +97,13 @@ workflows:
             <<: *tags_filters
             branches:
               ignore: /.*/
+
+      - publish_vent:
+          requires:
+            - test_integration
+            - ensure_vendor
+          filters:
+            branches:
+              only:
+                - master
+                - develop
