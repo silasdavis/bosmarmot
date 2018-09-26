@@ -114,7 +114,7 @@ func TestSetBlock(t *testing.T) {
 		cols1["Column6"] = types.SQLTableColumn{Name: "col6", Type: types.SQLColumnTypeVarchar, Length: 100, Primary: false, Order: 7}
 		table1 := types.SQLTable{Name: "FullDataTable", Columns: cols1}
 		tables := make(map[string]types.SQLTable)
-		tables["FullDataTable"] = table1
+		tables["AllDataTypesTable"] = table1
 
 		err := db.SynchronizeDB(tables)
 		require.NoError(t, err)
@@ -138,7 +138,7 @@ func TestSetBlock(t *testing.T) {
 		cols1["Column6"] = types.SQLTableColumn{Name: "col6", Type: types.SQLColumnTypeVarchar, Length: 100, Primary: false, Order: 7}
 		table1 := types.SQLTable{Name: "FullDataTable", Columns: cols1}
 		tables := make(map[string]types.SQLTable)
-		tables["FullDataTable"] = table1
+		tables["AllDataTypesTable"] = table1
 
 		err := db.SynchronizeDB(tables)
 		require.NoError(t, err)

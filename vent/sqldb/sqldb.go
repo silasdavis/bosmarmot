@@ -131,7 +131,6 @@ func (db *SQLDB) SynchronizeDB(eventTables types.EventTables) error {
 // SetBlock inserts or updates multiple rows and stores log info in SQL tables
 func (db *SQLDB) SetBlock(eventTables types.EventTables, eventData types.EventData) error {
 	var pointers []interface{}
-	var value string
 	var safeTable string
 	var logStmt *sql.Stmt
 
@@ -173,17 +172,17 @@ loop:
 		// for Each Row
 		for _, row := range dataRows {
 			// get parameter interface
-			pointers, value, err = getUpsertParams(uQuery, row)
+			pointers, err = getUpsertParams(uQuery, row)
 			if err != nil {
 				db.Log.Debug("msg", "Error building parameters", "err", err, "value", fmt.Sprintf("%v", row))
 				return err
 			}
 
 			// upsert row data
-			db.Log.Debug("msg", "UPSERT", "query", query, "value", value)
+			db.Log.Debug("msg", "UPSERT", "query", query, "value", fmt.Sprint(pointers))
 			_, err = tx.Exec(query, pointers...)
 			if err != nil {
-				db.Log.Debug("msg", "Error Upserting row", "err", err, "value", value)
+				db.Log.Debug("msg", "Error Upserting row", "err", err, "value", fmt.Sprint(pointers))
 				// exits from all loops -> continue in close log stmt
 				break loop
 			}
