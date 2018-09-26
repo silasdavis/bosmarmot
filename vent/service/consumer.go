@@ -10,7 +10,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"unicode/utf8"
 
 	"github.com/hyperledger/burrow/execution/evm/abi"
 	"github.com/hyperledger/burrow/execution/exec"
@@ -218,7 +217,7 @@ func (c *Consumer) Run() error {
 
 					// get eventName to map to SQL tableName
 					eventName := eventData[eventNameLabel]
-					tableName, err := parser.GetTableName(eventName)
+					tableName, err := parser.GetTableName(eventName.(string))
 					if err != nil {
 						doneCh <- errors.Wrapf(err, "Error getting table name for event (filter: %s)", spec.Filter)
 						return
@@ -227,7 +226,7 @@ func (c *Consumer) Run() error {
 					// for each data element, maps to SQL columnName and gets its value
 					// if there is no matching column for the item, it doesn't need to be store in db
 					for k, v := range eventData {
-						if columnName, err := parser.GetColumnName(eventName, k); err == nil {
+						if columnName, err := parser.GetColumnName(eventName.(string), k); err == nil {
 							row[columnName] = v
 						}
 					}
@@ -285,9 +284,9 @@ func (c *Consumer) Shutdown() {
 }
 
 // decodeEvent unpacks & decodes event data
-func decodeEvent(eventName string, header *exec.Header, log *exec.LogEvent, abiSpec *abi.AbiSpec, l *logger.Logger) (map[string]string, error) {
+func decodeEvent(eventName string, header *exec.Header, log *exec.LogEvent, abiSpec *abi.AbiSpec, l *logger.Logger) (map[string]interface{}, error) {
 	// to prepare decoded data and map to event item name
-	data := make(map[string]string)
+	data := make(map[string]interface{})
 
 	data[eventNameLabel] = eventName
 
@@ -302,10 +301,15 @@ func decodeEvent(eventName string, header *exec.Header, log *exec.LogEvent, abiS
 	data[eventTypeLabel] = header.GetEventType().String()
 	data[eventTxHashLabel] = fmt.Sprintf("%v", header.TxHash)
 
-	// build expected interface type array to get log event values & make it string
-	unpackedData := make([]interface{}, len(eventAbiSpec.Inputs))
-	for i, _ := range unpackedData {
-		unpackedData[i] = new(string)
+	// build expected interface type array to get log event values
+	unpackedData := abi.GetPackingTypes(eventAbiSpec.Inputs)
+
+	// any indexed string (or dynamic array) will be hashed, so we might want to store strings
+	// in bytes32. This shows how we would automatically map this to string
+	for i, a := range eventAbiSpec.Inputs {
+		if a.Indexed && !a.Hashed && a.EVM.GetSignature() == "bytes32" {
+			unpackedData[i] = new(string)
+		}
 	}
 
 	// unpack event data (topics & data part)
@@ -317,27 +321,11 @@ func decodeEvent(eventName string, header *exec.Header, log *exec.LogEvent, abiS
 
 	// for each decoded item value, stores it in given item name
 	for i, input := range eventAbiSpec.Inputs {
-		data[input.Name] = *unpackedData[i].(*string)
-
-		dataItem := data[input.Name]
-
-		// in the rare case that a not valid UTF8 string is found, convert characters to hexa
-		if !utf8.ValidString(dataItem) {
-			l.Warn("msg", fmt.Sprintf("Illegal UTF8 string: i = %v, data[input.Name] = %v, input.Name = %v", i, data[input.Name], input.Name), "eventName", eventName)
-
-			s := make([]string, 0, len(dataItem))
-
-			for i := 0; i < len(dataItem); i++ {
-				s = append(s, fmt.Sprintf("%x", dataItem[i]))
-			}
-
-			data[input.Name] = strings.ToUpper(strings.Join(s, ""))
-		}
-
-		l.Debug("msg", fmt.Sprintf("Unpacked data items: unpackedData[%v] = %v, data[input.Name] = %v, input.Name = %v", i, unpackedData[i], data[input.Name], input.Name), "eventName", eventName)
-
+    
+		data[input.Name] = unpackedData[i]
+    
+		l.Debug("msg", fmt.Sprintf("Unpacked data items: unpackedData[%v] = %v, input.Name = %v", i, unpackedData[i], input.Name), "eventName", eventName)
 	}
-
 	return data, nil
 }
 

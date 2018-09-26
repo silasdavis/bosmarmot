@@ -13,4 +13,4 @@ type EventDataTable []EventDataRow
 
 // EventDataRow contains each SQL column name and a corresponding value to upsert
 // map key is the column name and map value is the given column value
-type EventDataRow map[string]string
+type EventDataRow map[string]interface{}

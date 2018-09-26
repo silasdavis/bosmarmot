@@ -3,6 +3,8 @@ package sqlsol
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/hyperledger/burrow/execution/evm/abi"
@@ -17,14 +19,21 @@ type Parser struct {
 	AbiSpec   *abi.AbiSpec
 }
 
-// NewParser receives a sqlsol event configuration stream
+// NewParser receives a sqlsol event specification file stream
 // and returns a pointer to a filled parser structure
+// that contains event types mapped to SQL column types
+// and Event tables structures with table and columns info
 func NewParser(byteValue []byte) (*Parser, error) {
-	tables, eventSpec, err := mapToTable(byteValue)
-	if err != nil {
-		return nil, err
+
+	tables := make(types.EventTables)
+	eventSpec := types.EventSpec{}
+
+	// parses json specification stream
+	if err := json.Unmarshal(byteValue, &eventSpec); err != nil {
+		return nil, errors.Wrap(err, "Error unmarshalling eventSpec")
 	}
 
+	// builds abi information from specification
 	abiSpecInput := []types.Event{}
 
 	for _, spec := range eventSpec {
@@ -39,6 +48,79 @@ func NewParser(byteValue []byte) (*Parser, error) {
 	abiSpec, err := abi.ReadAbiSpec(abiSpecInputBytes)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error creating abi spec")
+	}
+
+	// obtain global SQL table columns to add to columns definition map
+	globalColumns := getGlobalColumns()
+	globalColumnsLength := len(globalColumns)
+
+	for _, eventDef := range eventSpec {
+		// validate json structure
+		if err := eventDef.Validate(); err != nil {
+			return nil, err
+		}
+
+		// build columns mapping
+		columns := make(map[string]types.SQLTableColumn)
+
+		j := 0
+
+		if abiEvent, ok := abiSpec.Events[eventDef.Event.Name]; ok {
+
+			for _, eventInput := range abiEvent.Inputs {
+
+				if col, ok := eventDef.Columns[eventInput.Name]; ok {
+
+					sqlType, sqlTypeLength, err := getSQLType(eventInput)
+					if err != nil {
+						return nil, err
+					}
+
+					j++
+
+					columns[eventInput.Name] = types.SQLTableColumn{
+						Name:    strings.ToLower(col.Name),
+						Type:    sqlType,
+						Length:  sqlTypeLength,
+						Primary: col.Primary,
+						Order:   j + globalColumnsLength,
+					}
+
+				}
+
+			}
+
+			// add global columns to columns definition
+			for k, v := range globalColumns {
+				columns[k] = v
+			}
+
+			tables[eventDef.Event.Name] = types.SQLTable{
+				Name:    strings.ToLower(eventDef.TableName),
+				Filter:  eventDef.Filter,
+				Columns: columns,
+			}
+		}
+
+	}
+
+	// check if there are duplicated table names in structure or
+	// duplicated column names (for a given table)
+	tblName := make(map[string]int)
+	colName := make(map[string]int)
+
+	for _, tbls := range tables {
+		tblName[tbls.Name]++
+		if tblName[tbls.Name] > 1 {
+			return nil, fmt.Errorf("Duplicated table name: %s ", tbls.Name)
+		}
+
+		for _, cols := range tbls.Columns {
+			colName[tbls.Name+cols.Name]++
+			if colName[tbls.Name+cols.Name] > 1 {
+				return nil, fmt.Errorf("Duplicated column name: %s in table %s", cols.Name, tbls.Name)
+			}
+		}
 	}
 
 	return &Parser{
@@ -109,106 +191,59 @@ func (p *Parser) SetTableName(eventName, tableName string) error {
 	return fmt.Errorf("SetTableName: eventName does not exists as a table in SQL table structure: %s ", eventName)
 }
 
-// mapToTable gets a sqlsol specification stream,
-// parses contents, maps event types to SQL column types
-// and fills Event tables structures with table and columns info
-func mapToTable(byteValue []byte) (types.EventTables, types.EventSpec, error) {
-	tables := make(types.EventTables)
-	eventSpec := types.EventSpec{}
-
-	// parses json specification stream
-	if err := json.Unmarshal(byteValue, &eventSpec); err != nil {
-		return nil, nil, err
-	}
-
-	// obtain global SQL table columns to add to columns definition map
-	globalColumns := getGlobalColumns()
-	globalColumnsLength := len(globalColumns)
-
-	for _, eventDef := range eventSpec {
-		// validate json structure
-		if err := eventDef.Validate(); err != nil {
-			return nil, nil, err
-		}
-
-		// build columns mapping
-		columns := make(map[string]types.SQLTableColumn)
-
-		j := 0
-
-		for _, eventInput := range eventDef.Event.Inputs {
-			if col, ok := eventDef.Columns[eventInput.Name]; ok {
-
-				sqlType, sqlTypeLength, err := getSQLType(eventInput.Type)
-				if err != nil {
-					return nil, nil, err
-				}
-
-				j++
-
-				columns[eventInput.Name] = types.SQLTableColumn{
-					Name:    strings.ToLower(col.Name),
-					Type:    sqlType,
-					Length:  sqlTypeLength,
-					Primary: col.Primary,
-					Order:   j + globalColumnsLength,
-				}
-			}
-		}
-
-		// add global columns to columns definition
-		for k, v := range globalColumns {
-			columns[k] = v
-		}
-
-		tables[eventDef.Event.Name] = types.SQLTable{
-			Name:    strings.ToLower(eventDef.TableName),
-			Filter:  eventDef.Filter,
-			Columns: columns,
-		}
-	}
-
-	// check if there are duplicated table names in structure or
-	// duplicated column names (for a given table)
-	tblName := make(map[string]int)
-	colName := make(map[string]int)
-
-	for _, tbls := range tables {
-		tblName[tbls.Name]++
-		if tblName[tbls.Name] > 1 {
-			return nil, nil, fmt.Errorf("mapToTable: duplicated table name: %s ", tbls.Name)
-		}
-
-		for _, cols := range tbls.Columns {
-			colName[tbls.Name+cols.Name]++
-			if colName[tbls.Name+cols.Name] > 1 {
-				return nil, nil, fmt.Errorf("mapToTable: duplicated column name: %s in table %s", cols.Name, tbls.Name)
-			}
-		}
-	}
-
-	return tables, eventSpec, nil
-}
-
 // getSQLType maps event input types with corresponding SQL column types
-func getSQLType(eventInputType string) (types.SQLColumnType, int, error) {
-	if strings.HasPrefix(strings.ToLower(eventInputType), types.EventInputTypeInt) ||
-		strings.HasPrefix(strings.ToLower(eventInputType), types.EventInputTypeUInt) {
-		return types.SQLColumnTypeNumeric, 0, nil
-	}
-	if strings.HasPrefix(strings.ToLower(eventInputType), types.EventInputTypeBytes) {
-		return types.SQLColumnTypeVarchar, 100, nil
-	}
-	switch strings.ToLower(eventInputType) {
-	case types.EventInputTypeAddress:
+// takes into account related solidity types info and element indexed or hashed
+func getSQLType(abiInputInfo abi.Argument) (types.SQLColumnType, int, error) {
+
+	evmSignature := strings.ToLower(abiInputInfo.EVM.GetSignature())
+
+	re := regexp.MustCompile("[0-9]+")
+	typeSize, _ := strconv.Atoi(re.FindString(evmSignature))
+
+	// solidity arrays => sql bytes
+	if abiInputInfo.IsArray {
 		return types.SQLColumnTypeByteA, 0, nil
-	case types.EventInputTypeBool:
-		return types.SQLColumnTypeBool, 0, nil
-	case types.EventInputTypeString:
-		return types.SQLColumnTypeText, 0, nil
-	default:
-		return -1, 0, fmt.Errorf("getSQLType: don't know how to map eventInputType: %s ", eventInputType)
 	}
+
+	switch {
+	// solidity address => sql bytes
+	case evmSignature == types.EventInputTypeAddress:
+		return types.SQLColumnTypeByteA, 0, nil
+		// solidity bool => sql bool
+	case evmSignature == types.EventInputTypeBool:
+		return types.SQLColumnTypeBool, 0, nil
+	// solidity bytes not 32 => sql bytes
+	case strings.HasPrefix(evmSignature, types.EventInputTypeBytes):
+		if typeSize != 32 {
+			return types.SQLColumnTypeByteA, 0, nil
+		} else if !abiInputInfo.Hashed {
+			return types.SQLColumnTypeVarchar, 100, nil
+		} else {
+			return types.SQLColumnTypeByteA, 0, nil
+		}
+		// solidity string => sql text
+	case evmSignature == types.EventInputTypeString:
+		return types.SQLColumnTypeText, 0, nil
+		// solidity int <= 32 => sql int
+		// solidity int > 32 => sql numeric
+	case strings.HasPrefix(evmSignature, types.EventInputTypeInt):
+		if typeSize <= 32 {
+			return types.SQLColumnTypeInt, 0, nil
+		} else {
+			return types.SQLColumnTypeNumeric, 0, nil
+		}
+		// solidity uint <= 16 => sql int
+		// solidity uint > 16 => sql numeric
+	case strings.HasPrefix(evmSignature, types.EventInputTypeUInt):
+		if typeSize <= 16 {
+			return types.SQLColumnTypeInt, 0, nil
+		} else {
+			return types.SQLColumnTypeNumeric, 0, nil
+		}
+	default:
+		return -1, 0, fmt.Errorf("Don't know how to map evmSignature: %s ", evmSignature)
+	}
+
 }
 
 // getGlobalColumns returns global columns for event table structures,
