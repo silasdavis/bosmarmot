@@ -64,11 +64,11 @@ jobs:
     steps:
       - checkout
       - run:
-        name: Build vent image
-        command: |
-          docker login -u ${DOCKER_USER} -p ${DOCKER_PASS} quay.io
-          docker build -t quay.io/monax/vent:$CIRCLE_BRANCH -f vent/Dockerfile .
-          docker push quay.io/monax/vent:$CIRCLE_BRANCH
+          name: Build vent image
+          command: |
+            docker login -u ${DOCKER_USER} -p ${DOCKER_PASS} quay.io
+            docker build -t quay.io/monax/vent:$CIRCLE_BRANCH -f vent/Dockerfile .
+            docker push quay.io/monax/vent:$CIRCLE_BRANCH
 
 
 workflows:
