@@ -10,9 +10,6 @@ tag_filters: &tags_filters
   tags:
     only: /^v[0-9]+\.[0-9]+\.[0-9]+$/
 
-setup_docker: &setup_docker
-  version: 17.06.1-ce
-
 # Start of CircleCI 2.0 config
 version: 2
 jobs:
