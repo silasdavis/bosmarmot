@@ -6,6 +6,7 @@ import (
 	"context"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -84,8 +85,21 @@ func TestRun(t *testing.T) {
 	log := logger.NewLogger(cfg.LogLevel)
 	consumer := service.NewConsumer(cfg, log)
 
-	err := consumer.Run()
-	require.NoError(t, err)
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		err := consumer.Run()
+		require.NoError(t, err)
+
+		wg.Done()
+	}()
+
+	// shutdown consumer in a few secs and wait for its end
+	time.Sleep(time.Second * 2)
+	consumer.Shutdown()
+
+	wg.Wait()
 
 	// test data stored in database for two different block ids
 	eventName := "EventTest"

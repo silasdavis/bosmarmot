@@ -163,7 +163,7 @@ func (c *Consumer) Run() error {
 				if err != nil {
 					if err == io.EOF {
 						c.Log.Info("msg", "EOF received", "filter", spec.Filter)
-						break
+						continue
 					} else {
 						doneCh <- errors.Wrapf(err, "Error receiving events (filter: %s)", spec.Filter)
 						return
@@ -241,7 +241,6 @@ func (c *Consumer) Run() error {
 
 			// store pending block data in SQL tables (if any)
 			if blockData.PendingRows(fromBlock) {
-
 				// gets block data to upsert
 				blk := blockData.GetBlockData()
 
@@ -286,7 +285,6 @@ func (c *Consumer) Shutdown() {
 
 // decodeEvent unpacks & decodes event data
 func decodeEvent(eventName string, header *exec.Header, log *exec.LogEvent, abiSpec *abi.AbiSpec, l *logger.Logger) (map[string]interface{}, error) {
-
 	// to prepare decoded data and map to event item name
 	data := make(map[string]interface{})
 
@@ -323,8 +321,9 @@ func decodeEvent(eventName string, header *exec.Header, log *exec.LogEvent, abiS
 
 	// for each decoded item value, stores it in given item name
 	for i, input := range eventAbiSpec.Inputs {
+    
 		data[input.Name] = unpackedData[i]
-
+    
 		l.Debug("msg", fmt.Sprintf("Unpacked data items: unpackedData[%v] = %v, input.Name = %v", i, unpackedData[i], input.Name), "eventName", eventName)
 	}
 	return data, nil
