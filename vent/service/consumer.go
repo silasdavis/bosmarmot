@@ -164,7 +164,7 @@ func (c *Consumer) Run() error {
 				if err != nil {
 					if err == io.EOF {
 						c.Log.Info("msg", "EOF received", "filter", spec.Filter)
-						break
+						continue
 					} else {
 						doneCh <- errors.Wrapf(err, "Error receiving events (filter: %s)", spec.Filter)
 						return
@@ -242,7 +242,6 @@ func (c *Consumer) Run() error {
 
 			// store pending block data in SQL tables (if any)
 			if blockData.PendingRows(fromBlock) {
-
 				// gets block data to upsert
 				blk := blockData.GetBlockData()
 
@@ -287,7 +286,6 @@ func (c *Consumer) Shutdown() {
 
 // decodeEvent unpacks & decodes event data
 func decodeEvent(eventName string, header *exec.Header, log *exec.LogEvent, abiSpec *abi.AbiSpec, l *logger.Logger) (map[string]string, error) {
-
 	// to prepare decoded data and map to event item name
 	data := make(map[string]string)
 
@@ -325,7 +323,6 @@ func decodeEvent(eventName string, header *exec.Header, log *exec.LogEvent, abiS
 
 		// in the rare case that a not valid UTF8 string is found, convert characters to hexa
 		if !utf8.ValidString(dataItem) {
-
 			l.Warn("msg", fmt.Sprintf("Illegal UTF8 string: i = %v, data[input.Name] = %v, input.Name = %v", i, data[input.Name], input.Name), "eventName", eventName)
 
 			s := make([]string, 0, len(dataItem))
