@@ -63,6 +63,7 @@ jobs:
       - run: cd legacy-contracts.js && npm publish
 
   publish_vent:
+    working_directory: /go/src/github.com/monax/bosmarmot
     docker:
       - image: hyperledger/burrow:ci
     steps:
