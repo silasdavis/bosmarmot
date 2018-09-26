@@ -63,7 +63,8 @@ jobs:
       - run: cd legacy-contracts.js && npm publish
 
   publish_vent:
-    <<: *defaults
+    docker:
+      - image: hyperledger/burrow:ci
     steps:
       - checkout
       - setup_remote_docker:
