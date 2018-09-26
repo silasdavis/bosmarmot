@@ -389,8 +389,8 @@ func (db *SQLDB) getBlockTables(eventFilter, block string) (types.EventTables, e
 
 // getUpsertParams builds parameters in preparation for an upsert query
 func getUpsertParams(upsertQuery types.UpsertQuery, row types.EventDataRow) ([]interface{}, error) {
-	pointers := make([]interface{}, upsertQuery.Length)
 
+	pointers := make([]interface{}, upsertQuery.Length)
 
 	for colName, col := range upsertQuery.Columns {
 		// interface=data
@@ -406,7 +406,7 @@ func getUpsertParams(upsertQuery types.UpsertQuery, row types.EventDataRow) ([]i
 			}
 		} else if col.UpdPosition > 0 {
 			// column not found and is not PK (null)
-			null:=sql.NullString{ Valid: false}
+			null := sql.NullString{Valid: false}
 			pointers[col.InsPosition] = &null
 			pointers[col.UpdPosition] = &null
 
@@ -418,6 +418,7 @@ func getUpsertParams(upsertQuery types.UpsertQuery, row types.EventDataRow) ([]i
 
 	return pointers, nil
 }
+
 // clean queries from tabs, spaces  and returns
 func clean(parameter string) string {
 	replacer := strings.NewReplacer("\n", " ", "\t", "")

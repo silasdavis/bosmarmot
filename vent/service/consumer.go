@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/hyperledger/burrow/crypto"
 	"github.com/hyperledger/burrow/execution/evm/abi"
 	"github.com/hyperledger/burrow/execution/exec"
 	"github.com/hyperledger/burrow/rpc/rpcevents"
@@ -299,18 +301,10 @@ func decodeEvent(eventName string, header *exec.Header, log *exec.LogEvent, abiS
 	data[eventIndexLabel] = fmt.Sprintf("%v", header.GetIndex())
 	data[eventHeightLabel] = fmt.Sprintf("%v", header.GetHeight())
 	data[eventTypeLabel] = header.GetEventType().String()
-	data[eventTxHashLabel] = fmt.Sprintf("%v", header.TxHash)
+	data[eventTxHashLabel] = header.TxHash.String()
 
 	// build expected interface type array to get log event values
 	unpackedData := abi.GetPackingTypes(eventAbiSpec.Inputs)
-
-	// any indexed string (or dynamic array) will be hashed, so we might want to store strings
-	// in bytes32. This shows how we would automatically map this to string
-	for i, a := range eventAbiSpec.Inputs {
-		if a.Indexed && !a.Hashed && a.EVM.GetSignature() == "bytes32" {
-			unpackedData[i] = new(string)
-		}
-	}
 
 	// unpack event data (topics & data part)
 	if err := abi.UnpackEvent(eventAbiSpec, log.Topics, log.Data, unpackedData...); err != nil {
@@ -321,10 +315,21 @@ func decodeEvent(eventName string, header *exec.Header, log *exec.LogEvent, abiS
 
 	// for each decoded item value, stores it in given item name
 	for i, input := range eventAbiSpec.Inputs {
-    
-		data[input.Name] = unpackedData[i]
-    
-		l.Debug("msg", fmt.Sprintf("Unpacked data items: unpackedData[%v] = %v, input.Name = %v", i, unpackedData[i], input.Name), "eventName", eventName)
+
+		switch v := unpackedData[i].(type) {
+		case *crypto.Address:
+			data[input.Name] = v.Bytes()
+		case *big.Int:
+			if v.IsInt64() {
+				data[input.Name] = v.Int64()
+			} else {
+				data[input.Name] = v.Uint64()
+			}
+		default:
+			data[input.Name] = v
+		}
+
+		l.Debug("msg", fmt.Sprintf("Unpacked data items: data[%v] = %v", input.Name, data[input.Name]), "eventName", eventName)
 	}
 	return data, nil
 }
