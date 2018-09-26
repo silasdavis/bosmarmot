@@ -22,8 +22,6 @@ FROM alpine:3.8
 RUN apk add --no-cache ca-certificates
 
 ARG REPO=/go/src/github.com/monax/bosmarmot/vent
-COPY ./vent/ $REPO/
-WORKDIR $REPO
 
 # Copy binaries built in previous stage
 COPY --from=builder $REPO/bin/* /usr/local/bin/
