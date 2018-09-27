@@ -26,4 +26,4 @@ ARG REPO=/go/src/github.com/monax/bosmarmot/vent
 # Copy binaries built in previous stage
 COPY --from=builder $REPO/bin/* /usr/local/bin/
 
-CMD vent --db-adapter="postgres" --db-url="postgres://$USER:$PASS@$POSTGRES_ADDRESS" --db-schema="$SCHEMA" --grpc-addr="$BURROW_ADDRESS" --log-level="$LOGGING" --spec-file="/config/EventSpec.json"
+ENTRYPOINT [ "vent" ]
