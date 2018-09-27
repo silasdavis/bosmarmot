@@ -244,17 +244,17 @@ func (c *Consumer) Run(stream bool) error {
 					// set row in structure
 					blockData.AddRow(tableName, row)
 				}
-			}
 
-			// store pending block data in SQL tables (if any)
-			if blockData.PendingRows(fromBlock) {
+				// store pending block data in SQL tables (if any)
+				if blockData.PendingRows(fromBlock) {
 
-				// gets block data to upsert
-				blk := blockData.GetBlockData()
+					// gets block data to upsert
+					blk := blockData.GetBlockData()
 
-				c.Log.Info("msg", fmt.Sprintf("Upserting rows in SQL event tables %v", blk), "filter", spec.Filter)
+					c.Log.Info("msg", fmt.Sprintf("Upserting rows in SQL event tables %v", blk), "filter", spec.Filter)
 
-				eventCh <- blk
+					eventCh <- blk
+				}
 			}
 		}()
 	}
@@ -312,7 +312,7 @@ func decodeEvent(eventName string, header *exec.Header, log *exec.LogEvent, abiS
 
 	// build expected interface type array to get log event values & make it string
 	unpackedData := make([]interface{}, len(eventAbiSpec.Inputs))
-	for i, _ := range unpackedData {
+	for i := range unpackedData {
 		unpackedData[i] = new(string)
 	}
 
