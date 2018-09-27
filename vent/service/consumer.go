@@ -239,17 +239,19 @@ func (c *Consumer) Run() error {
 					// set row in structure
 					blockData.AddRow(tableName, row)
 				}
+
+				// store pending block data in SQL tables (if any)
+				if blockData.PendingRows(fromBlock) {
+					// gets block data to upsert
+					blk := blockData.GetBlockData()
+
+					c.Log.Info("msg", fmt.Sprintf("Upserting rows in SQL event tables %v", blk), "filter", spec.Filter)
+
+					eventCh <- blk
+				}
+
 			}
 
-			// store pending block data in SQL tables (if any)
-			if blockData.PendingRows(fromBlock) {
-				// gets block data to upsert
-				blk := blockData.GetBlockData()
-
-				c.Log.Info("msg", fmt.Sprintf("Upserting rows in SQL event tables %v", blk), "filter", spec.Filter)
-
-				eventCh <- blk
-			}
 		}()
 	}
 
