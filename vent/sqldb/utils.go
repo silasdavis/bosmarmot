@@ -1,7 +1,6 @@
 package sqldb
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
@@ -387,37 +386,6 @@ func (db *SQLDB) getBlockTables(eventFilter, block string) (types.EventTables, e
 	return tables, nil
 }
 
-// getUpsertParams builds parameters in preparation for an upsert query
-func getUpsertParams(upsertQuery types.UpsertQuery, row types.EventDataRow) ([]interface{}, error) {
-
-	pointers := make([]interface{}, upsertQuery.Length)
-
-	for colName, col := range upsertQuery.Columns {
-		// interface=data
-
-		// build parameter list
-		if value, ok := row[colName]; ok {
-			// column found (not null)
-			pointers[col.InsPosition] = &value
-
-			// if column is not PK
-			if col.UpdPosition > 0 {
-				pointers[col.UpdPosition] = &value
-			}
-		} else if col.UpdPosition > 0 {
-			// column not found and is not PK (null)
-			null := sql.NullString{Valid: false}
-			pointers[col.InsPosition] = &null
-			pointers[col.UpdPosition] = &null
-
-		} else {
-			// column not found is PK
-			return nil, fmt.Errorf("error null primary key for column %s", colName)
-		}
-	}
-
-	return pointers, nil
-}
 
 // clean queries from tabs, spaces  and returns
 func clean(parameter string) string {
