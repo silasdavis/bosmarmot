@@ -320,11 +320,7 @@ func decodeEvent(eventName string, header *exec.Header, log *exec.LogEvent, abiS
 		case *crypto.Address:
 			data[input.Name] = v.Bytes()
 		case *big.Int:
-			if v.IsInt64() {
-				data[input.Name] = v.Int64()
-			} else {
-				data[input.Name] = v.Uint64()
-			}
+			data[input.Name] = v.String()
 		default:
 			data[input.Name] = v
 		}

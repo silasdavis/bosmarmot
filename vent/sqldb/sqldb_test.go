@@ -96,7 +96,7 @@ func TestSetBlock(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("POSTGRES: successfully creates a empty table", func(t *testing.T) {
+	t.Run("POSTGRES: successfully creates an empty table", func(t *testing.T) {
 		db, closeDB := test.NewTestDB(t, types.PostgresDB)
 		defer closeDB()
 
@@ -120,7 +120,7 @@ func TestSetBlock(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("SQLITE: successfully creates a empty table", func(t *testing.T) {
+	t.Run("SQLITE: successfully creates an empty table", func(t *testing.T) {
 		db, closeDB := test.NewTestDB(t, types.SQLiteDB)
 		defer closeDB()
 
@@ -241,4 +241,3 @@ func getAlterBlock() (types.EventTables, types.EventData) {
 
 	return str, dat
 }
-

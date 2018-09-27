@@ -386,7 +386,6 @@ func (db *SQLDB) getBlockTables(eventFilter, block string) (types.EventTables, e
 	return tables, nil
 }
 
-
 // clean queries from tabs, spaces  and returns
 func clean(parameter string) string {
 	replacer := strings.NewReplacer("\n", " ", "\t", "")
@@ -398,4 +397,3 @@ func safe(parameter string) string {
 	replacer := strings.NewReplacer(";", "", ",", "")
 	return replacer.Replace(parameter)
 }
-
