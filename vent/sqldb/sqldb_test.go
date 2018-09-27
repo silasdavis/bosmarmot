@@ -96,7 +96,7 @@ func TestSetBlock(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("POSTGRES: successfully creates a table", func(t *testing.T) {
+	t.Run("POSTGRES: successfully creates a empty table", func(t *testing.T) {
 		db, closeDB := test.NewTestDB(t, types.PostgresDB)
 		defer closeDB()
 
@@ -112,7 +112,7 @@ func TestSetBlock(t *testing.T) {
 		cols1["Column4"] = types.SQLTableColumn{Name: "col4", Type: types.SQLColumnTypeText, Primary: false, Order: 5}
 		cols1["Column5"] = types.SQLTableColumn{Name: "col5", Type: types.SQLColumnTypeTimeStamp, Primary: false, Order: 6}
 		cols1["Column6"] = types.SQLTableColumn{Name: "col6", Type: types.SQLColumnTypeVarchar, Length: 100, Primary: false, Order: 7}
-		table1 := types.SQLTable{Name: "FullDataTable", Columns: cols1}
+		table1 := types.SQLTable{Name: "AllDataTypesTable", Columns: cols1}
 		tables := make(map[string]types.SQLTable)
 		tables["AllDataTypesTable"] = table1
 
@@ -120,7 +120,7 @@ func TestSetBlock(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("SQLITE: successfully creates a table", func(t *testing.T) {
+	t.Run("SQLITE: successfully creates a empty table", func(t *testing.T) {
 		db, closeDB := test.NewTestDB(t, types.SQLiteDB)
 		defer closeDB()
 
@@ -136,7 +136,7 @@ func TestSetBlock(t *testing.T) {
 		cols1["Column4"] = types.SQLTableColumn{Name: "col4", Type: types.SQLColumnTypeText, Primary: false, Order: 5}
 		cols1["Column5"] = types.SQLTableColumn{Name: "col5", Type: types.SQLColumnTypeTimeStamp, Primary: false, Order: 6}
 		cols1["Column6"] = types.SQLTableColumn{Name: "col6", Type: types.SQLColumnTypeVarchar, Length: 100, Primary: false, Order: 7}
-		table1 := types.SQLTable{Name: "FullDataTable", Columns: cols1}
+		table1 := types.SQLTable{Name: "AllDataTypesTable", Columns: cols1}
 		tables := make(map[string]types.SQLTable)
 		tables["AllDataTypesTable"] = table1
 
@@ -199,8 +199,8 @@ func getBlock() (types.EventTables, types.EventData) {
 	rows2 = append(rows2, map[string]interface{}{"_height": "0123456789ABCDEF0", "sid_id": "1", "field_1": "A", "field_2": "B"})
 	rows2 = append(rows2, map[string]interface{}{"_height": "0123456789ABCDEF0", "sid_id": "2", "field_1": "C", "field_2": ""})
 	rows2 = append(rows2, map[string]interface{}{"_height": "0123456789ABCDEF0", "sid_id": "3", "field_1": "D", "field_2": "E"})
-	rows2 = append(rows2, map[string]interface{}{"_height": "0123456789ABCDEF0", "sid_id": "4", "field_1": "F"})
-	rows2 = append(rows2, map[string]interface{}{"_height": "0123456789ABCDEF0", "sid_id": "1", "field_1": "U", "field_2": "U"})
+	rows2 = append(rows2, map[string]interface{}{"_height": "0123456789ABCDEF0", "sid_id": "1", "field_1": "F"})
+	rows2 = append(rows2, map[string]interface{}{"_height": "0123456789ABCDEF0", "sid_id": "1", "field_2": "U"})
 	dat.Tables["test_table2"] = rows2
 
 	var rows3 []types.EventDataRow
@@ -241,3 +241,4 @@ func getAlterBlock() (types.EventTables, types.EventData) {
 
 	return str, dat
 }
+

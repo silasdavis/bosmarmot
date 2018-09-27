@@ -13,7 +13,6 @@ type DBAdapter interface {
 	ErrorEquals(err error, sqlErrorType types.SQLErrorType) bool
 	SecureColumnName(columnName string) string
 	CreateTableQuery(tableName string, columns []types.SQLTableColumn) (string, string)
-	UpsertQuery(table types.SQLTable) types.UpsertQuery
 	LastBlockIDQuery() string
 	FindTableQuery() string
 	TableDefinitionQuery() string
@@ -21,4 +20,6 @@ type DBAdapter interface {
 	SelectRowQuery(tableName, fields, indexValue string) string
 	SelectLogQuery() string
 	InsertLogQuery() string
+	UpsertQuery(table types.SQLTable, row types.EventDataRow) (string,string,[]interface{}, error)
+
 }

@@ -127,78 +127,6 @@ func (adapter *SQLiteAdapter) CreateTableQuery(tableName string, columns []types
 	return query, dictionaryQuery
 }
 
-// UpsertQuery builds a query for row upsert
-func (adapter *SQLiteAdapter) UpsertQuery(table types.SQLTable) types.UpsertQuery {
-	columns := ""
-	insValues := ""
-	updValues := ""
-	pkColumns := ""
-	cols := len(table.Columns)
-	nKeys := 0
-	cKey := 0
-
-	upsertQuery := types.UpsertQuery{
-		Query:   "",
-		Length:  0,
-		Columns: make(map[string]types.UpsertColumn),
-	}
-
-	i := 0
-
-	for _, tableColumn := range table.Columns {
-		secureColumn := adapter.SecureColumnName(tableColumn.Name)
-		cKey = 0
-		i++
-
-		// INSERT INTO TABLE (*columns).........
-		if columns != "" {
-			columns += ", "
-			insValues += ", "
-		}
-		columns += secureColumn
-		insValues += "$" + fmt.Sprintf("%d", i)
-
-		if !tableColumn.Primary {
-			cKey = cols + nKeys
-			nKeys++
-
-			// INSERT........... ON CONFLICT......DO UPDATE (*updValues)
-			if updValues != "" {
-				updValues += ", "
-			}
-			updValues += secureColumn + " = $" + fmt.Sprintf("%d", cKey+1)
-		} else {
-			// ON CONFLICT (....values....)
-			if pkColumns != "" {
-				pkColumns += ", "
-			}
-			pkColumns += secureColumn
-		}
-
-		upsertQuery.Columns[tableColumn.Name] = types.UpsertColumn{
-			IsNumeric:   tableColumn.Type.IsNumeric(),
-			InsPosition: i - 1,
-			UpdPosition: cKey,
-		}
-	}
-	upsertQuery.Length = cols + nKeys
-
-	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s) ", table.Name, columns, insValues)
-
-	if pkColumns != "" {
-		if nKeys != 0 {
-			query += fmt.Sprintf("ON CONFLICT (%s) DO UPDATE SET ", pkColumns)
-			query += updValues
-		} else {
-			query += fmt.Sprintf("ON CONFLICT (%s) DO NOTHING", pkColumns)
-		}
-	}
-	query += ";"
-
-	upsertQuery.Query = query
-	return upsertQuery
-}
-
 // LastBlockIDQuery returns a query for last inserted blockId in log table
 func (adapter *SQLiteAdapter) LastBlockIDQuery() string {
 	query := `
@@ -209,13 +137,13 @@ func (adapter *SQLiteAdapter) LastBlockIDQuery() string {
 			FROM ll LEFT OUTER JOIN %s log ON (ll.%s = log.%s);`
 
 	return fmt.Sprintf(query,
-		types.SQLColumnNameId,                        // max
-		types.SQLColumnNameId,                        // as
-		types.SQLLogTableName,                        // from
-		types.SQLColumnNameEventFilter,               // where
-		types.SQLColumnNameHeight,                    // coalesce
-		types.SQLColumnNameHeight,                    // as
-		types.SQLLogTableName,                        // from
+		types.SQLColumnNameId,          // max
+		types.SQLColumnNameId,          // as
+		types.SQLLogTableName,          // from
+		types.SQLColumnNameEventFilter, // where
+		types.SQLColumnNameHeight,      // coalesce
+		types.SQLColumnNameHeight,      // as
+		types.SQLLogTableName,          // from
 		types.SQLColumnNameId, types.SQLColumnNameId) // on
 }
 
@@ -242,10 +170,10 @@ func (adapter *SQLiteAdapter) TableDefinitionQuery() string {
 			%s;`
 
 	return fmt.Sprintf(query,
-		types.SQLColumnNameColumnName, types.SQLColumnNameColumnType, // select
+		types.SQLColumnNameColumnName, types.SQLColumnNameColumnType,   // select
 		types.SQLColumnNameColumnLength, types.SQLColumnNamePrimaryKey, // select
-		types.SQLDictionaryTableName,   // from
-		types.SQLColumnNameTableName,   // where
+		types.SQLDictionaryTableName,                                   // from
+		types.SQLColumnNameTableName,                                   // where
 		types.SQLColumnNameColumnOrder) // order by
 
 }
@@ -289,7 +217,7 @@ func (adapter *SQLiteAdapter) SelectLogQuery() string {
 
 	return fmt.Sprintf(query,
 		types.SQLColumnNameTableName, types.SQLColumnNameEventName, // select
-		types.SQLLogTableName,                                     // from
+		types.SQLLogTableName,                                      // from
 		types.SQLColumnNameEventFilter, types.SQLColumnNameHeight) // where
 }
 
@@ -328,4 +256,82 @@ func (adapter *SQLiteAdapter) ErrorEquals(err error, sqlErrorType types.SQLError
 	}
 
 	return false
+}
+
+
+func (adapter *SQLiteAdapter) UpsertQuery(table types.SQLTable, row types.EventDataRow) (string, string, []interface{}, error) {
+
+	pointers := make([]interface{}, 0)
+	null := sql.NullString{Valid: false}
+	columns := ""
+	insValues := ""
+	updValues := ""
+	pkColumns := ""
+	values := ""
+
+	i := 0
+
+	// for each column in table
+	for _, tableColumn := range table.Columns {
+		secureColumn := adapter.SecureColumnName(tableColumn.Name)
+
+		i++
+
+		// INSERT INTO TABLE (*columns).........
+		if columns != "" {
+			columns += ", "
+			insValues += ", "
+			values += ", "
+		}
+		columns += secureColumn
+		insValues += "$" + fmt.Sprintf("%d", i)
+
+		//find data for column
+		if value, ok := row[tableColumn.Name]; ok {
+			// column found (not null)
+			// load values
+			pointers = append(pointers, &value)
+			values += fmt.Sprint(value)
+
+			if !tableColumn.Primary {
+				// column is no PK
+				// add to update list
+				// INSERT........... ON CONFLICT......DO UPDATE (*updValues)
+				if updValues != "" {
+					updValues += ", "
+				}
+				updValues += secureColumn + " = $" + fmt.Sprintf("%d", i)
+			}
+		} else if tableColumn.Primary {
+			// column NOT found (is null) and is PK
+			return "", "", nil, fmt.Errorf("error null primary key for column %s", secureColumn)
+		} else {
+			// column NOT found (is null) and is NOT PK
+			pointers = append(pointers, &null)
+			values += "null"
+		}
+
+
+		if tableColumn.Primary {
+			// ON CONFLICT (....values....)
+			if pkColumns != "" {
+				pkColumns += ", "
+			}
+			pkColumns += secureColumn
+		}
+
+	}
+
+	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s) ", table.Name, columns, insValues)
+
+	if pkColumns != "" {
+		if updValues != "" {
+			query += fmt.Sprintf("ON CONFLICT (%s) DO UPDATE SET %s", pkColumns, updValues)
+		} else {
+			query += fmt.Sprintf("ON CONFLICT (%s) DO NOTHING", pkColumns)
+		}
+	}
+	query += ";"
+
+	return query, values, pointers, nil
 }
