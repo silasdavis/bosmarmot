@@ -1,7 +1,6 @@
 package sqldb
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
@@ -385,40 +384,6 @@ func (db *SQLDB) getBlockTables(eventFilter, block string) (types.EventTables, e
 	}
 
 	return tables, nil
-}
-
-// getUpsertParams builds parameters in preparation for an upsert query
-func getUpsertParams(upsertQuery types.UpsertQuery, row types.EventDataRow) ([]interface{}, string, error) {
-	pointers := make([]interface{}, upsertQuery.Length)
-	containers := make([]sql.NullString, upsertQuery.Length)
-
-	for colName, col := range upsertQuery.Columns {
-		// interface=data
-		pointers[col.InsPosition] = &containers[col.InsPosition]
-		if col.UpdPosition > 0 {
-			pointers[col.UpdPosition] = &containers[col.UpdPosition]
-		}
-
-		// build parameter list
-		if value, ok := row[colName]; ok {
-			// column found (not null)
-			containers[col.InsPosition] = sql.NullString{String: value, Valid: true}
-
-			// if column is not PK
-			if col.UpdPosition > 0 {
-				containers[col.UpdPosition] = sql.NullString{String: value, Valid: true}
-			}
-		} else if col.UpdPosition > 0 {
-			// column not found and is not PK (null)
-			containers[col.InsPosition].Valid = false
-			containers[col.UpdPosition].Valid = false
-		} else {
-			// column not found is PK
-			return nil, "", fmt.Errorf("error null primary key for column %s", colName)
-		}
-	}
-
-	return pointers, fmt.Sprintf("%v", containers), nil
 }
 
 // clean queries from tabs, spaces  and returns

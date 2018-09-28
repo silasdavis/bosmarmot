@@ -212,15 +212,9 @@ func getSQLType(abiInputInfo abi.Argument) (types.SQLColumnType, int, error) {
 		// solidity bool => sql bool
 	case evmSignature == types.EventInputTypeBool:
 		return types.SQLColumnTypeBool, 0, nil
-	// solidity bytes not 32 => sql bytes
+		// solidity bytes => sql bytes
 	case strings.HasPrefix(evmSignature, types.EventInputTypeBytes):
-		if typeSize != 32 {
-			return types.SQLColumnTypeByteA, 0, nil
-		} else if !abiInputInfo.Hashed {
-			return types.SQLColumnTypeVarchar, 100, nil
-		} else {
-			return types.SQLColumnTypeByteA, 0, nil
-		}
+		return types.SQLColumnTypeByteA, 0, nil
 		// solidity string => sql text
 	case evmSignature == types.EventInputTypeString:
 		return types.SQLColumnTypeText, 0, nil

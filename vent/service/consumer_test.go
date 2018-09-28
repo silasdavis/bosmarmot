@@ -113,12 +113,10 @@ func TestRun(t *testing.T) {
 
 	tblData := eventData.Tables[strings.ToLower(eventName)]
 	require.Equal(t, 1, len(tblData))
-	require.Equal(t, "0", tblData[0]["_index"])
-	require.Equal(t, "2", tblData[0]["_height"])
-	require.Equal(t, "LogEvent", tblData[0]["_eventtype"])
-	require.Equal(t, "UpdateTestEvents", tblData[0]["_eventname"])
-	require.Equal(t, "TestEvent1", tblData[0]["testname"])
-	require.Equal(t, "Description of TestEvent1", tblData[0]["testdescription"])
+	require.Equal(t, "0", tblData[0]["_index"].(string))
+	require.Equal(t, "2", tblData[0]["_height"].(string))
+	require.Equal(t, "LogEvent", tblData[0]["_eventtype"].(string))
+	require.Equal(t, "UpdateTestEvents", tblData[0]["_eventname"].(string))
 
 	blockID = "5"
 	eventData, err = db.GetBlock(filter, blockID)
@@ -128,10 +126,8 @@ func TestRun(t *testing.T) {
 
 	tblData = eventData.Tables[strings.ToLower(eventName)]
 	require.Equal(t, 1, len(tblData))
-	require.Equal(t, "0", tblData[0]["_index"])
-	require.Equal(t, "5", tblData[0]["_height"])
-	require.Equal(t, "LogEvent", tblData[0]["_eventtype"])
-	require.Equal(t, "UpdateTestEvents", tblData[0]["_eventname"])
-	require.Equal(t, "TestEvent4", tblData[0]["testname"])
-	require.Equal(t, "Description of TestEvent4", tblData[0]["testdescription"])
+	require.Equal(t, "0", tblData[0]["_index"].(string))
+	require.Equal(t, "5", tblData[0]["_height"].(string))
+	require.Equal(t, "LogEvent", tblData[0]["_eventtype"].(string))
+	require.Equal(t, "UpdateTestEvents", tblData[0]["_eventname"].(string))
 }

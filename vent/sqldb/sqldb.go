@@ -130,10 +130,11 @@ func (db *SQLDB) SynchronizeDB(eventTables types.EventTables) error {
 
 // SetBlock inserts or updates multiple rows and stores log info in SQL tables
 func (db *SQLDB) SetBlock(eventTables types.EventTables, eventData types.EventData) error {
-	var pointers []interface{}
-	var value string
+	db.Log.Debug("msg", "Set Block..........")
+
 	var safeTable string
 	var logStmt *sql.Stmt
+	var err error
 
 	// begin tx
 	tx, err := db.DB.Begin()
@@ -166,24 +167,22 @@ loop:
 			return err
 		}
 
-		// get row upsert query
-		uQuery := db.DBAdapter.UpsertQuery(table)
-		query := clean(uQuery.Query)
 
 		// for Each Row
 		for _, row := range dataRows {
-			// get parameter interface
-			pointers, value, err = getUpsertParams(uQuery, row)
-			if err != nil {
-				db.Log.Debug("msg", "Error building parameters", "err", err, "value", fmt.Sprintf("%v", row))
+			query,values,pointers,errQuery:=db.DBAdapter.UpsertQuery(table,row)
+			query=clean(query)
+
+			if errQuery != nil {
+				db.Log.Debug("msg", "Error building query", "err", errQuery, "value", fmt.Sprintf("%v %v", table,row))
 				return err
 			}
 
 			// upsert row data
-			db.Log.Debug("msg", "UPSERT", "query", query, "value", value)
+			db.Log.Debug("msg", "UPSERT", "query", query, "value", values)
 			_, err = tx.Exec(query, pointers...)
 			if err != nil {
-				db.Log.Debug("msg", "Error Upserting row", "err", err, "value", value)
+				db.Log.Debug("msg", "Error upserting row", "err", err, "value", values)
 				// exits from all loops -> continue in close log stmt
 				break loop
 			}
