@@ -23,8 +23,9 @@ var cfg = config.DefaultFlags()
 func init() {
 	ventCmd.Flags().StringVar(&cfg.DBAdapter, "db-adapter", cfg.DBAdapter, "Database adapter, 'postgres' or 'sqlite' are fully supported")
 	ventCmd.Flags().StringVar(&cfg.DBURL, "db-url", cfg.DBURL, "PostgreSQL database URL or SQLite db file path")
-	ventCmd.Flags().StringVar(&cfg.DBSchema, "db-schema", cfg.DBSchema, "PostgreSQL database schema or empty for SQLite")
-	ventCmd.Flags().StringVar(&cfg.GRPCAddr, "grpc-addr", cfg.GRPCAddr, "Address to listen to gRPC Hyperledger Burrow server")
+	ventCmd.Flags().StringVar(&cfg.DBSchema, "db-schema", cfg.DBSchema, "PostgreSQL database schema (empty for SQLite)")
+	ventCmd.Flags().StringVar(&cfg.GRPCAddr, "grpc-addr", cfg.GRPCAddr, "Address to connect to the Hyperledger Burrow gRPC server")
+	ventCmd.Flags().StringVar(&cfg.HTTPAddr, "http-addr", cfg.HTTPAddr, "Address to bind the HTTP server")
 	ventCmd.Flags().StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "Logging level (error, warn, info, debug)")
 	ventCmd.Flags().StringVar(&cfg.SpecFile, "spec-file", cfg.SpecFile, "SQLSol json specification file full path")
 }
@@ -37,9 +38,11 @@ func Execute() {
 }
 
 func runVentCmd(cmd *cobra.Command, args []string) {
-	// create the events consumer
 	log := logger.NewLogger(cfg.LogLevel)
 	consumer := service.NewConsumer(cfg, log)
+	server := service.NewServer(cfg, log, consumer)
+
+	var wg sync.WaitGroup
 
 	// setup channel for termination signals
 	ch := make(chan os.Signal)
@@ -48,7 +51,6 @@ func runVentCmd(cmd *cobra.Command, args []string) {
 	signal.Notify(ch, syscall.SIGINT)
 
 	// start the events consumer
-	var wg sync.WaitGroup
 	wg.Add(1)
 
 	go func() {
@@ -60,14 +62,23 @@ func runVentCmd(cmd *cobra.Command, args []string) {
 		wg.Done()
 	}()
 
+	// start the http server
+	wg.Add(1)
+
+	go func() {
+		server.Run()
+		wg.Done()
+	}()
+
 	// wait for a termination signal from the OS and
-	// gracefully shutdown the events consumer in that case
+	// gracefully shutdown the events consumer and the http server
 	go func() {
 		<-ch
 		consumer.Shutdown()
+		server.Shutdown()
 	}()
 
-	// wait until the events consumer is done
+	// wait until the events consumer and the http server are done
 	wg.Wait()
 	os.Exit(0)
 }

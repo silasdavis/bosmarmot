@@ -23,6 +23,7 @@ import (
 	"github.com/monax/bosmarmot/vent/types"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/connectivity"
 )
 
 const (
@@ -35,9 +36,11 @@ const (
 
 // Consumer contains basic configuration for consumer to run
 type Consumer struct {
-	Config  *config.Flags
-	Log     *logger.Logger
-	Closing bool
+	Config         *config.Flags
+	Log            *logger.Logger
+	Closing        bool
+	DB             *sqldb.SQLDB
+	GRPCConnection *grpc.ClientConn
 }
 
 // NewConsumer constructs a new consumer configuration
@@ -79,26 +82,26 @@ func (c *Consumer) Run() error {
 
 	c.Log.Info("msg", "Connecting to SQL database")
 
-	db, err := sqldb.NewSQLDB(c.Config.DBAdapter, c.Config.DBURL, c.Config.DBSchema, c.Log)
+	c.DB, err = sqldb.NewSQLDB(c.Config.DBAdapter, c.Config.DBURL, c.Config.DBSchema, c.Log)
 	if err != nil {
 		return errors.Wrap(err, "Error connecting to SQL")
 	}
-	defer db.Close()
+	defer c.DB.Close()
 
 	c.Log.Info("msg", "Synchronizing config and database parser structures")
 
-	err = db.SynchronizeDB(tables)
+	err = c.DB.SynchronizeDB(tables)
 	if err != nil {
 		return errors.Wrap(err, "Error trying to synchronize database")
 	}
 
 	c.Log.Info("msg", "Connecting to Burrow gRPC server")
 
-	conn, err := grpc.Dial(c.Config.GRPCAddr, grpc.WithInsecure())
+	c.GRPCConnection, err = grpc.Dial(c.Config.GRPCAddr, grpc.WithInsecure())
 	if err != nil {
 		return errors.Wrapf(err, "Error connecting to Burrow gRPC server at %s", c.Config.GRPCAddr)
 	}
-	defer conn.Close()
+	defer c.GRPCConnection.Close()
 
 	// start a goroutine to listen to events for each event definition in the spec
 	// doneCh is used for sending a "done" signal from each goroutine to the main thread
@@ -120,7 +123,7 @@ func (c *Consumer) Run() error {
 			// right now there is no way to know if the last block of events was completely read
 			// so we have to begin processing from the last block number stored in database
 			// for the given event filter and update event data if already present
-			fromBlock, err := db.GetLastBlockID(spec.Filter)
+			fromBlock, err := c.DB.GetLastBlockID(spec.Filter)
 			if err != nil {
 				doneCh <- errors.Wrapf(err, "Error trying to get last processed block number from SQL log table (filter: %s)", spec.Filter)
 				return
@@ -134,7 +137,7 @@ func (c *Consumer) Run() error {
 			}
 
 			// setup the execution events client for this spec
-			cli := rpcevents.NewExecutionEventsClient(conn)
+			cli := rpcevents.NewExecutionEventsClient(c.GRPCConnection)
 
 			request := &rpcevents.BlocksRequest{
 				Query:      spec.Filter,
@@ -271,13 +274,36 @@ loop:
 			break loop
 		case blk := <-eventCh:
 			// upsert rows in specific SQL event tables and update block number
-			if err := db.SetBlock(tables, blk); err != nil {
+			if err := c.DB.SetBlock(tables, blk); err != nil {
 				return errors.Wrap(err, "Error upserting rows in SQL event tables")
 			}
 		}
 	}
 
 	c.Log.Info("msg", "Done!")
+	return nil
+}
+
+// Health returns the health status for the consumer
+func (c *Consumer) Health() error {
+	// check db status
+	if c.DB == nil {
+		return errors.New("database disconnected")
+	}
+
+	if err := c.DB.Ping(); err != nil {
+		return errors.New("database unavailable")
+	}
+
+	// check grpc connection status
+	if c.GRPCConnection == nil {
+		return errors.New("grpc disconnected")
+	}
+
+	if grpcState := c.GRPCConnection.GetState(); grpcState != connectivity.Ready {
+		return errors.New("grpc connection not ready")
+	}
+
 	return nil
 }
 

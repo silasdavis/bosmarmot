@@ -10,6 +10,7 @@ type Flags struct {
 	DBURL     string
 	DBSchema  string
 	GRPCAddr  string
+	HTTPAddr  string
 	LogLevel  string
 	SpecFile  string
 }
@@ -21,6 +22,7 @@ func DefaultFlags() *Flags {
 		DBURL:     "postgres://user:pass@localhost:5432/vent?sslmode=disable",
 		DBSchema:  "vent",
 		GRPCAddr:  "localhost:10997",
+		HTTPAddr:  "0.0.0.0:8080",
 		LogLevel:  "debug",
 		SpecFile:  "",
 	}
