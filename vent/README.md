@@ -120,5 +120,6 @@ Configuration Flags:
 NOTES:
 
 One of `spec-file` or `spec-dir` must be provided.
-If `spec-dir` is provided, Vent will search for all `.json` spec files in given directory.
-It can be checked that Vent is connected and ready sending a request to `http://<http-addr>/health` which will return a `200` OK response in case everything's fine.
+If `spec-dir` is given, vent will search for all `.json` spec files in given directory.
+
+It can be checked that vent is connected and ready sending a request to `http://<http-addr>/health` which will return a `200` OK response in case everything's fine.
