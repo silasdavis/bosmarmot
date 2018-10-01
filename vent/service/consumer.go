@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/big"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -23,6 +21,7 @@ import (
 	"github.com/monax/bosmarmot/vent/types"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/connectivity"
 )
 
 const (
@@ -35,9 +34,11 @@ const (
 
 // Consumer contains basic configuration for consumer to run
 type Consumer struct {
-	Config  *config.Flags
-	Log     *logger.Logger
-	Closing bool
+	Config         *config.Flags
+	Log            *logger.Logger
+	Closing        bool
+	DB             *sqldb.SQLDB
+	GRPCConnection *grpc.ClientConn
 }
 
 // NewConsumer constructs a new consumer configuration
@@ -55,16 +56,23 @@ func NewConsumer(cfg *config.Flags, log *logger.Logger) *Consumer {
 func (c *Consumer) Run() error {
 	c.Log.Info("msg", "Reading events config file")
 
-	byteValue, err := readFile(c.Config.SpecFile)
-	if err != nil {
-		return errors.Wrap(err, "Error reading events config file")
+	if c.Config.SpecDir == "" && c.Config.SpecFile == "" {
+		return errors.New("One of SpecDir or SpecFile must be provided")
 	}
 
-	c.Log.Info("msg", "Parsing and mapping events config stream")
+	var parser *sqlsol.Parser
+	var err error
 
-	parser, err := sqlsol.NewParser(byteValue)
-	if err != nil {
-		return errors.Wrap(err, "Error mapping events config stream")
+	if c.Config.SpecDir != "" {
+		parser, err = sqlsol.NewParserFromFolder(c.Config.SpecDir)
+		if err != nil {
+			return errors.Wrap(err, "Error parsing spec config folder")
+		}
+	} else {
+		parser, err = sqlsol.NewParserFromFile(c.Config.SpecFile)
+		if err != nil {
+			return errors.Wrap(err, "Error parsing spec config file")
+		}
 	}
 
 	// obtain tables structures, event & abi specifications
@@ -79,26 +87,26 @@ func (c *Consumer) Run() error {
 
 	c.Log.Info("msg", "Connecting to SQL database")
 
-	db, err := sqldb.NewSQLDB(c.Config.DBAdapter, c.Config.DBURL, c.Config.DBSchema, c.Log)
+	c.DB, err = sqldb.NewSQLDB(c.Config.DBAdapter, c.Config.DBURL, c.Config.DBSchema, c.Log)
 	if err != nil {
 		return errors.Wrap(err, "Error connecting to SQL")
 	}
-	defer db.Close()
+	defer c.DB.Close()
 
 	c.Log.Info("msg", "Synchronizing config and database parser structures")
 
-	err = db.SynchronizeDB(tables)
+	err = c.DB.SynchronizeDB(tables)
 	if err != nil {
 		return errors.Wrap(err, "Error trying to synchronize database")
 	}
 
 	c.Log.Info("msg", "Connecting to Burrow gRPC server")
 
-	conn, err := grpc.Dial(c.Config.GRPCAddr, grpc.WithInsecure())
+	c.GRPCConnection, err = grpc.Dial(c.Config.GRPCAddr, grpc.WithInsecure())
 	if err != nil {
 		return errors.Wrapf(err, "Error connecting to Burrow gRPC server at %s", c.Config.GRPCAddr)
 	}
-	defer conn.Close()
+	defer c.GRPCConnection.Close()
 
 	// start a goroutine to listen to events for each event definition in the spec
 	// doneCh is used for sending a "done" signal from each goroutine to the main thread
@@ -120,7 +128,7 @@ func (c *Consumer) Run() error {
 			// right now there is no way to know if the last block of events was completely read
 			// so we have to begin processing from the last block number stored in database
 			// for the given event filter and update event data if already present
-			fromBlock, err := db.GetLastBlockID(spec.Filter)
+			fromBlock, err := c.DB.GetLastBlockID(spec.Filter)
 			if err != nil {
 				doneCh <- errors.Wrapf(err, "Error trying to get last processed block number from SQL log table (filter: %s)", spec.Filter)
 				return
@@ -134,7 +142,7 @@ func (c *Consumer) Run() error {
 			}
 
 			// setup the execution events client for this spec
-			cli := rpcevents.NewExecutionEventsClient(conn)
+			cli := rpcevents.NewExecutionEventsClient(c.GRPCConnection)
 
 			request := &rpcevents.BlocksRequest{
 				Query:      spec.Filter,
@@ -176,7 +184,6 @@ func (c *Consumer) Run() error {
 
 				// get event data
 				for _, event := range resp.Events {
-
 					// a fresh new row to store column/value data
 					row := make(types.EventDataRow)
 
@@ -198,7 +205,6 @@ func (c *Consumer) Run() error {
 					eventBlockID := fmt.Sprintf("%v", eventHeader.GetHeight())
 
 					if strings.TrimSpace(fromBlock) != strings.TrimSpace(eventBlockID) {
-
 						// store block data in SQL tables (if any)
 						if blockData.PendingRows(fromBlock) {
 
@@ -219,6 +225,7 @@ func (c *Consumer) Run() error {
 
 					// get eventName to map to SQL tableName
 					eventName := eventData[eventNameLabel]
+
 					tableName, err := parser.GetTableName(eventName.(string))
 					if err != nil {
 						doneCh <- errors.Wrapf(err, "Error getting table name for event (filter: %s)", spec.Filter)
@@ -249,9 +256,7 @@ func (c *Consumer) Run() error {
 
 					eventCh <- blk
 				}
-
 			}
-
 		}()
 	}
 
@@ -271,13 +276,40 @@ loop:
 			break loop
 		case blk := <-eventCh:
 			// upsert rows in specific SQL event tables and update block number
-			if err := db.SetBlock(tables, blk); err != nil {
+			if err := c.DB.SetBlock(tables, blk); err != nil {
 				return errors.Wrap(err, "Error upserting rows in SQL event tables")
 			}
 		}
 	}
 
 	c.Log.Info("msg", "Done!")
+	return nil
+}
+
+// Health returns the health status for the consumer
+func (c *Consumer) Health() error {
+	if c.Closing {
+		return errors.New("closing service")
+	}
+
+	// check db status
+	if c.DB == nil {
+		return errors.New("database disconnected")
+	}
+
+	if err := c.DB.Ping(); err != nil {
+		return errors.New("database unavailable")
+	}
+
+	// check grpc connection status
+	if c.GRPCConnection == nil {
+		return errors.New("grpc disconnected")
+	}
+
+	if grpcState := c.GRPCConnection.GetState(); grpcState != connectivity.Ready {
+		return errors.New("grpc connection not ready")
+	}
+
 	return nil
 }
 
@@ -317,7 +349,6 @@ func decodeEvent(eventName string, header *exec.Header, log *exec.LogEvent, abiS
 
 	// for each decoded item value, stores it in given item name
 	for i, input := range eventAbiSpec.Inputs {
-
 		switch v := unpackedData[i].(type) {
 		case *crypto.Address:
 			data[input.Name] = v.Bytes()
@@ -329,21 +360,6 @@ func decodeEvent(eventName string, header *exec.Header, log *exec.LogEvent, abiS
 
 		l.Debug("msg", fmt.Sprintf("Unpacked data items: data[%v] = %v", input.Name, data[input.Name]), "eventName", eventName)
 	}
+
 	return data, nil
-}
-
-// readFile opens a given file and reads it contents into a stream of bytes
-func readFile(file string) ([]byte, error) {
-	theFile, err := os.Open(file)
-	if err != nil {
-		return nil, err
-	}
-	defer theFile.Close()
-
-	byteValue, err := ioutil.ReadAll(theFile)
-	if err != nil {
-		return nil, err
-	}
-
-	return byteValue, nil
 }
