@@ -98,11 +98,11 @@ go install ./vent
 # Print command help:
 vent --help
 
-# Run vent command with postgres adapter:
-vent --db-adapter="postgres" --db-url="postgres://user:pass@localhost:5432/vent?sslmode=disable" --db-schema="vent" --grpc-addr="localhost:10997" --log-level="debug" --spec-file="<sqlsol specification file path>"
+# Run vent command with postgres adapter and spec file path:
+vent --db-adapter="postgres" --db-url="postgres://user:pass@localhost:5432/vent?sslmode=disable" --db-schema="vent" --grpc-addr="localhost:10997" --http-addr="0.0.0.0:8080" --log-level="debug" --spec-file="<sqlsol specification file path>"
 
-# Run vent command with sqlite adapter:
-vent --db-adapter="sqlite" --db-url="./vent.sqlite" --grpc-addr="localhost:10997" --log-level="debug" --spec-file="<sqlsol specification file path>"
+# Run vent command with sqlite adapter and spec directory path:
+vent --db-adapter="sqlite" --db-url="./vent.sqlite" --grpc-addr="localhost:10997" --http-addr="0.0.0.0:8080" --log-level="debug" --spec-dir="<sqlsol specification directory path>"
 ```
 
 Configuration Flags:
@@ -110,6 +110,15 @@ Configuration Flags:
 + `db-adapter`: Database adapter, 'postgres' or 'sqlite' are fully supported
 + `db-url`: PostgreSQL database URL or SQLite db file path
 + `db-schema`: PostgreSQL database schema or empty for SQLite
++ `http-addr`: Address to bind the HTTP server
 + `grpc-addr`: Address to listen to gRPC Hyperledger Burrow server
 + `log-level`: Logging level (error, warn, info, debug)
 + `spec-file`: SQLSol specification json file (full path)
++ `spec-dir`: Path of a folder to look for SQLSol json specification files
+
+
+NOTES:
+
+One of `spec-file` or `spec-dir` must be provided.
+If `spec-dir` is provided, Vent will search for all `.json` spec files in given directory.
+It can be checked that Vent is connected and ready sending a request to `http://<http-addr>/health` which will return a `200` OK response in case everything's fine.

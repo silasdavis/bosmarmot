@@ -54,21 +54,28 @@ func NewConsumer(cfg *config.Flags, log *logger.Logger) *Consumer {
 // then gets tables structures, maps them & parse event data.
 // Store data in SQL event tables, it runs forever
 func (c *Consumer) Run() error {
-	c.Log.Info("msg", "Reading events config file")
 
 	if c.Config.SpecDir == "" && c.Config.SpecFile == "" {
 		return errors.New("One of SpecDir or SpecFile must be provided")
+	}
+
+	if c.Config.SpecDir != "" && c.Config.SpecFile != "" {
+		return errors.New("SpecDir or SpecFile must be provided, but not both")
 	}
 
 	var parser *sqlsol.Parser
 	var err error
 
 	if c.Config.SpecDir != "" {
+		c.Log.Info("msg", "Reading spec files from directory", "dir", c.Config.SpecDir)
+
 		parser, err = sqlsol.NewParserFromFolder(c.Config.SpecDir)
 		if err != nil {
 			return errors.Wrap(err, "Error parsing spec config folder")
 		}
 	} else {
+		c.Log.Info("msg", "Reading spec from file", "file", c.Config.SpecFile)
+
 		parser, err = sqlsol.NewParserFromFile(c.Config.SpecFile)
 		if err != nil {
 			return errors.Wrap(err, "Error parsing spec config file")
