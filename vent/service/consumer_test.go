@@ -59,7 +59,7 @@ func TestConsumer(t *testing.T) {
 
 	wg.Add(1)
 	go func() {
-		err := consumer.Run()
+		err := consumer.Run(false)
 		require.NoError(t, err)
 
 		wg.Done()

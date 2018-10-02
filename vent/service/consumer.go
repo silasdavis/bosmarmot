@@ -53,7 +53,7 @@ func NewConsumer(cfg *config.Flags, log *logger.Logger) *Consumer {
 // Run connects to a grpc service and subscribes to log events,
 // then gets tables structures, maps them & parse event data.
 // Store data in SQL event tables, it runs forever
-func (c *Consumer) Run() error {
+func (c *Consumer) Run(stream bool) error {
 
 	if c.Config.SpecDir == "" && c.Config.SpecFile == "" {
 		return errors.New("One of SpecDir or SpecFile must be provided")
@@ -150,10 +150,16 @@ func (c *Consumer) Run() error {
 
 			// setup the execution events client for this spec
 			cli := rpcevents.NewExecutionEventsClient(c.GRPCConnection)
+			var end *rpcevents.Bound
+			if stream {
+				end = rpcevents.StreamBound()
+			} else {
+				end = rpcevents.LatestBound()
+			}
 
 			request := &rpcevents.BlocksRequest{
 				Query:      spec.Filter,
-				BlockRange: rpcevents.NewBlockRange(rpcevents.AbsoluteBound(startingBlock), rpcevents.LatestBound()),
+				BlockRange: rpcevents.NewBlockRange(rpcevents.AbsoluteBound(startingBlock), end),
 			}
 
 			// gets events with given filter & block range based on last processed block taken from database
@@ -182,8 +188,13 @@ func (c *Consumer) Run() error {
 						c.Log.Info("msg", "EOF received", "filter", spec.Filter)
 						continue
 					} else {
-						doneCh <- errors.Wrapf(err, "Error receiving events (filter: %s)", spec.Filter)
-						return
+						if c.Closing {
+							c.Log.Info("msg", "GRPC connection closed", "filter", spec.Filter)
+							break
+						} else {
+							doneCh <- errors.Wrapf(err, "Error receiving events (filter: %s)", spec.Filter)
+							return
+						}
 					}
 				}
 
@@ -322,8 +333,9 @@ func (c *Consumer) Health() error {
 
 // Shutdown gracefully shuts down the events consumer
 func (c *Consumer) Shutdown() {
-	c.Log.Info("msg", "Shutting down...")
+	c.Log.Info("msg", "Shutting down vent consumer...")
 	c.Closing = true
+	c.GRPCConnection.Close()
 }
 
 // decodeEvent unpacks & decodes event data
