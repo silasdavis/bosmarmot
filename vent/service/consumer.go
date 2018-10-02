@@ -267,7 +267,7 @@ func (c *Consumer) Run(stream bool) error {
 
 				// store pending block data in SQL tables (if any)
 				if blockData.PendingRows(fromBlock) {
-          
+
 					// gets block data to upsert
 					blk := blockData.GetBlockData()
 
