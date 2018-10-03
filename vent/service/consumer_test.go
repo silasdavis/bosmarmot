@@ -3,14 +3,12 @@
 package service_test
 
 import (
-	"context"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
-	"github.com/hyperledger/burrow/core"
-	"github.com/hyperledger/burrow/integration"
 	"github.com/monax/bosmarmot/vent/config"
 	"github.com/monax/bosmarmot/vent/logger"
 	"github.com/monax/bosmarmot/vent/service"
@@ -19,34 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var privateAccounts = integration.MakePrivateAccounts(5) // make keys
-var genesisDoc = integration.TestGenesisDoc(privateAccounts)
-var inputAccount = privateAccounts[0]
-var testConfig = integration.NewTestConfig(genesisDoc)
-var kern *core.Kernel
-
-func TestMain(m *testing.M) {
-	cleanup := integration.EnterTestDirectory()
-	defer cleanup()
-
-	kern = integration.TestKernel(inputAccount, privateAccounts, testConfig, nil)
-
-	err := kern.Boot()
-	if err != nil {
-		panic(err)
-	}
-	// Sometimes better to not shutdown as logging errors on shutdown may obscure real issue
-	defer func() {
-		kern.Shutdown(context.Background())
-	}()
-
-	returnValue := m.Run()
-
-	time.Sleep(3 * time.Second)
-	os.Exit(returnValue)
-}
-
-func TestRun(t *testing.T) {
+func TestConsumer(t *testing.T) {
 	tCli := test.NewTransactClient(t, testConfig.RPC.GRPC.ListenAddress)
 	create := test.CreateContract(t, tCli, inputAccount.Address())
 
@@ -84,8 +55,21 @@ func TestRun(t *testing.T) {
 	log := logger.NewLogger(cfg.LogLevel)
 	consumer := service.NewConsumer(cfg, log)
 
-	err := consumer.Run(false)
-	require.NoError(t, err)
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go func() {
+		err := consumer.Run(false)
+		require.NoError(t, err)
+
+		wg.Done()
+	}()
+
+	// shutdown consumer in a few secs and wait for its end
+	time.Sleep(time.Second * 2)
+	consumer.Shutdown()
+
+	wg.Wait()
 
 	// test data stored in database for two different block ids
 	eventName := "EventTest"
@@ -99,12 +83,10 @@ func TestRun(t *testing.T) {
 
 	tblData := eventData.Tables[strings.ToLower(eventName)]
 	require.Equal(t, 1, len(tblData))
-	require.Equal(t, "0", tblData[0]["_index"])
-	require.Equal(t, "2", tblData[0]["_height"])
-	require.Equal(t, "LogEvent", tblData[0]["_eventtype"])
-	require.Equal(t, "UpdateTestEvents", tblData[0]["_eventname"])
-	require.Equal(t, "TestEvent1", tblData[0]["testname"])
-	require.Equal(t, "Description of TestEvent1", tblData[0]["testdescription"])
+	require.Equal(t, "0", tblData[0]["_index"].(string))
+	require.Equal(t, "2", tblData[0]["_height"].(string))
+	require.Equal(t, "LogEvent", tblData[0]["_eventtype"].(string))
+	require.Equal(t, "UpdateTestEvents", tblData[0]["_eventname"].(string))
 
 	blockID = "5"
 	eventData, err = db.GetBlock(filter, blockID)
@@ -114,10 +96,8 @@ func TestRun(t *testing.T) {
 
 	tblData = eventData.Tables[strings.ToLower(eventName)]
 	require.Equal(t, 1, len(tblData))
-	require.Equal(t, "0", tblData[0]["_index"])
-	require.Equal(t, "5", tblData[0]["_height"])
-	require.Equal(t, "LogEvent", tblData[0]["_eventtype"])
-	require.Equal(t, "UpdateTestEvents", tblData[0]["_eventname"])
-	require.Equal(t, "TestEvent4", tblData[0]["testname"])
-	require.Equal(t, "Description of TestEvent4", tblData[0]["testdescription"])
+	require.Equal(t, "0", tblData[0]["_index"].(string))
+	require.Equal(t, "5", tblData[0]["_height"].(string))
+	require.Equal(t, "LogEvent", tblData[0]["_eventtype"].(string))
+	require.Equal(t, "UpdateTestEvents", tblData[0]["_eventname"].(string))
 }

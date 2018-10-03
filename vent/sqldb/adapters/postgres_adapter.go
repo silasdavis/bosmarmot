@@ -149,69 +149,6 @@ func (adapter *PostgresAdapter) CreateTableQuery(tableName string, columns []typ
 	return query, dictionaryQuery
 }
 
-// UpsertQuery builds a query for row upsert
-func (adapter *PostgresAdapter) UpsertQuery(table types.SQLTable) types.UpsertQuery {
-	columns := ""
-	insValues := ""
-	updValues := ""
-	cols := len(table.Columns)
-	nKeys := 0
-	cKey := 0
-
-	upsertQuery := types.UpsertQuery{
-		Query:   "",
-		Length:  0,
-		Columns: make(map[string]types.UpsertColumn),
-	}
-
-	i := 0
-
-	for _, tableColumn := range table.Columns {
-		secureColumn := adapter.SecureColumnName(tableColumn.Name)
-		cKey = 0
-		i++
-
-		// INSERT INTO TABLE (*columns).........
-		if columns != "" {
-			columns += ", "
-			insValues += ", "
-		}
-		columns += secureColumn
-		insValues += "$" + fmt.Sprintf("%d", i)
-
-		if !tableColumn.Primary {
-			cKey = cols + nKeys
-			nKeys++
-
-			// INSERT........... ON CONFLICT......DO UPDATE (*updValues)
-			if updValues != "" {
-				updValues += ", "
-			}
-			updValues += secureColumn + " = $" + fmt.Sprintf("%d", cKey+1)
-		}
-
-		upsertQuery.Columns[tableColumn.Name] = types.UpsertColumn{
-			IsNumeric:   tableColumn.Type.IsNumeric(),
-			InsPosition: i - 1,
-			UpdPosition: cKey,
-		}
-	}
-	upsertQuery.Length = cols + nKeys
-
-	query := fmt.Sprintf("INSERT INTO %s.%s (%s) VALUES (%s) ", adapter.Schema, table.Name, columns, insValues)
-
-	if nKeys != 0 {
-		query += fmt.Sprintf("ON CONFLICT ON CONSTRAINT %s_pkey DO UPDATE SET ", table.Name)
-		query += updValues
-	} else {
-		query += fmt.Sprintf("ON CONFLICT ON CONSTRAINT %s_pkey DO NOTHING", table.Name)
-	}
-	query += ";"
-
-	upsertQuery.Query = query
-	return upsertQuery
-}
-
 // LastBlockIDQuery returns a query for last inserted blockId in log table
 func (adapter *PostgresAdapter) LastBlockIDQuery() string {
 	query := `
@@ -341,4 +278,69 @@ func (adapter *PostgresAdapter) ErrorEquals(err error, sqlErrorType types.SQLErr
 	}
 
 	return false
+}
+
+func (adapter *PostgresAdapter) UpsertQuery(table types.SQLTable, row types.EventDataRow) (string, string, []interface{}, error) {
+
+	pointers := make([]interface{}, 0)
+	null := sql.NullString{Valid: false}
+
+	columns := ""
+	insValues := ""
+	updValues := ""
+	values := ""
+
+	i := 0
+
+	// for each column in table
+	for _, tableColumn := range table.Columns {
+		secureColumn := adapter.SecureColumnName(tableColumn.Name)
+
+		i++
+
+		// INSERT INTO TABLE (*columns).........
+		if columns != "" {
+			columns += ", "
+			insValues += ", "
+			values += ", "
+		}
+		columns += secureColumn
+		insValues += "$" + fmt.Sprintf("%d", i)
+
+		//find data for column
+		if value, ok := row[tableColumn.Name]; ok {
+			// column found (not null)
+			// load values
+			pointers = append(pointers, &value)
+			values += fmt.Sprint(value)
+
+			if !tableColumn.Primary {
+				// column is no PK
+				// add to update list
+				// INSERT........... ON CONFLICT......DO UPDATE (*updValues)
+				if updValues != "" {
+					updValues += ", "
+				}
+				updValues += secureColumn + " = $" + fmt.Sprintf("%d", i)
+			}
+		} else if tableColumn.Primary {
+			// column NOT found (is null) and is PK
+			return "", "", nil, fmt.Errorf("error null primary key for column %s", secureColumn)
+		} else {
+			// column NOT found (is null) and is NOT PK
+			pointers = append(pointers, &null)
+			values += "null"
+		}
+	}
+
+	query := fmt.Sprintf("INSERT INTO %s.%s (%s) VALUES (%s) ", adapter.Schema, table.Name, columns, insValues)
+
+	if updValues != "" {
+		query += fmt.Sprintf("ON CONFLICT ON CONSTRAINT %s_pkey DO UPDATE SET %s", table.Name, updValues)
+	} else {
+		query += fmt.Sprintf("ON CONFLICT ON CONSTRAINT %s_pkey DO NOTHING", table.Name)
+	}
+	query += ";"
+
+	return query, values, pointers, nil
 }
