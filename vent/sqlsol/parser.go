@@ -142,17 +142,10 @@ func NewParserFromEventSpec(eventSpec types.EventSpec) (*Parser, error) {
 		}
 	}
 
-	// check if there are duplicated table names in structure or
-	// duplicated column names (for a given table)
-	tblName := make(map[string]int)
+	// check if there are duplicated duplicated column names (for a given table)
 	colName := make(map[string]int)
 
 	for _, tbls := range tables {
-		tblName[tbls.Name]++
-		if tblName[tbls.Name] > 1 {
-			return nil, fmt.Errorf("Duplicated table name: %s ", tbls.Name)
-		}
-
 		for _, cols := range tbls.Columns {
 			colName[tbls.Name+cols.Name]++
 			if colName[tbls.Name+cols.Name] > 1 {

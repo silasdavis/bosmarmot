@@ -74,14 +74,6 @@ func TestNewParser(t *testing.T) {
 		require.Error(t, err)
 	})
 
-	t.Run("returns an error if there are duplicated table names in json file", func(t *testing.T) {
-		duplicatedTableNameJSON := test.DuplicatedTableNameJSONConfFile(t)
-
-		byteValue := []byte(duplicatedTableNameJSON)
-		_, err := sqlsol.NewParserFromBytes(byteValue)
-		require.Error(t, err)
-	})
-
 	t.Run("returns an error if there are duplicated column names for a given table in json file", func(t *testing.T) {
 		duplicatedColNameJSON := test.DuplicatedColNameJSONConfFile(t)
 
