@@ -48,7 +48,7 @@ func TestNewParser(t *testing.T) {
 		col, err = tableStruct.GetColumn("UpdateUserAccount", "userAddress")
 		require.NoError(t, err)
 		require.Equal(t, true, col.Primary)
-		require.Equal(t, types.SQLColumnTypeByteA, col.Type)
+		require.Equal(t, types.SQLColumnTypeVarchar, col.Type)
 		require.Equal(t, "address", col.Name)
 
 		col, err = tableStruct.GetColumn("UpdateUserAccount", "index")
@@ -70,14 +70,6 @@ func TestNewParser(t *testing.T) {
 		typeUnknownJSON := test.UnknownTypeJSONConfFile(t)
 
 		byteValue := []byte(typeUnknownJSON)
-		_, err := sqlsol.NewParserFromBytes(byteValue)
-		require.Error(t, err)
-	})
-
-	t.Run("returns an error if there are duplicated table names in json file", func(t *testing.T) {
-		duplicatedTableNameJSON := test.DuplicatedTableNameJSONConfFile(t)
-
-		byteValue := []byte(duplicatedTableNameJSON)
 		_, err := sqlsol.NewParserFromBytes(byteValue)
 		require.Error(t, err)
 	})
