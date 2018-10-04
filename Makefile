@@ -132,6 +132,13 @@ bin/burrow: ./tests/scripts/deps/burrow.sh
 
 # Build all the things
 
+.PHONY: solidity
+solidity: vent/test/EventsTest.sol.go
+
+# Solidity fixtures
+%.sol.go: %.sol
+	@go run ./vendor/github.com/hyperledger/burrow/deploy/compile/solgo/main.go $^
+
 # Build binaries for all architectures
 .PHONY: build_dist
 build_dist:
