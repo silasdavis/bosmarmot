@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"math/big"
@@ -212,7 +213,7 @@ func (c *Consumer) Run(stream bool) error {
 					c.Log.Info("msg", fmt.Sprintf("Event Header: %v", eventHeader), "filter", spec.Filter)
 
 					// decode event data using the provided abi specification
-					eventData, err := decodeEvent(spec.Event.Name, eventHeader, eventLog, abiSpec, c.Log)
+					eventData, err := decodeEvent(spec.Event.Name, spec.Event.Inputs, eventHeader, eventLog, abiSpec, c.Log)
 					if err != nil {
 						doneCh <- errors.Wrapf(err, "Error decoding event (filter: %s)", spec.Filter)
 						return
@@ -340,7 +341,7 @@ func (c *Consumer) Shutdown() {
 }
 
 // decodeEvent unpacks & decodes event data
-func decodeEvent(eventName string, header *exec.Header, log *exec.LogEvent, abiSpec *abi.AbiSpec, l *logger.Logger) (map[string]interface{}, error) {
+func decodeEvent(eventName string, specEventInputs []types.EventInput, header *exec.Header, log *exec.LogEvent, abiSpec *abi.AbiSpec, l *logger.Logger) (map[string]interface{}, error) {
 	// to prepare decoded data and map to event item name
 	data := make(map[string]interface{})
 
@@ -360,6 +361,14 @@ func decodeEvent(eventName string, header *exec.Header, log *exec.LogEvent, abiS
 	// build expected interface type array to get log event values
 	unpackedData := abi.GetPackingTypes(eventAbiSpec.Inputs)
 
+	// if it is a bytes32 and HexToSring is true
+	// that has to be converted to string (so let's store it in a string)
+	for i, a := range eventAbiSpec.Inputs {
+		if specEventInputs[i].HexToString && !a.Hashed && a.EVM.GetSignature() == "bytes32" {
+			unpackedData[i] = new(string)
+		}
+	}
+
 	// unpack event data (topics & data part)
 	if err := abi.UnpackEvent(eventAbiSpec, log.Topics, log.Data, unpackedData...); err != nil {
 		return nil, errors.Wrap(err, "Could not unpack event data")
@@ -371,11 +380,22 @@ func decodeEvent(eventName string, header *exec.Header, log *exec.LogEvent, abiS
 	for i, input := range eventAbiSpec.Inputs {
 		switch v := unpackedData[i].(type) {
 		case *crypto.Address:
-			data[input.Name] = v.Bytes()
+			data[input.Name] = v.String()
 		case *big.Int:
 			data[input.Name] = v.String()
 		default:
 			data[input.Name] = v
+		}
+
+		// if is bytes32 & hexToString is true and not hashed
+		// a string is encoded in hexa, so convert it to string
+		if specEventInputs[i].HexToString && !input.Hashed && input.EVM.GetSignature() == "bytes32" {
+			theString := *data[input.Name].(*string)
+			if toBytes, err := hex.DecodeString(theString); err != nil {
+				data[input.Name] = theString
+			} else {
+				data[input.Name] = string(toBytes)
+			}
 		}
 
 		l.Debug("msg", fmt.Sprintf("Unpacked data items: data[%v] = %v", input.Name, data[input.Name]), "eventName", eventName)

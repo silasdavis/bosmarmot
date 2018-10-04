@@ -48,7 +48,7 @@ func TestNewParser(t *testing.T) {
 		col, err = tableStruct.GetColumn("UpdateUserAccount", "userAddress")
 		require.NoError(t, err)
 		require.Equal(t, true, col.Primary)
-		require.Equal(t, types.SQLColumnTypeByteA, col.Type)
+		require.Equal(t, types.SQLColumnTypeVarchar, col.Type)
 		require.Equal(t, "address", col.Name)
 
 		col, err = tableStruct.GetColumn("UpdateUserAccount", "index")

@@ -19,6 +19,7 @@ type EventDefinition struct {
 func (evDef EventDefinition) Validate() error {
 	return validation.ValidateStruct(&evDef,
 		validation.Field(&evDef.TableName, validation.Required, validation.Length(1, 60)),
+		validation.Field(&evDef.Filter, validation.Required),
 		validation.Field(&evDef.Event, validation.Required),
 		validation.Field(&evDef.Columns, validation.Required, validation.Length(1, 0)),
 	)
@@ -37,14 +38,16 @@ func (ev Event) Validate() error {
 	return validation.ValidateStruct(&ev,
 		validation.Field(&ev.Inputs, validation.Required, validation.Length(1, 0)),
 		validation.Field(&ev.Name, validation.Required, validation.Length(1, 0)),
+		validation.Field(&ev.Type, validation.Required, validation.Length(1, 0)),
 	)
 }
 
 // EventInput struct (each event input)
 type EventInput struct {
-	Indexed bool   `json:"indexed"`
-	Name    string `json:"name"`
-	Type    string `json:"type"`
+	Indexed     bool   `json:"indexed"`
+	Name        string `json:"name"`
+	Type        string `json:"type"`
+	HexToString bool   `json:"hexToString"`
 }
 
 // Validate checks the structure of an EventInput

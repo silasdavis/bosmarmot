@@ -110,9 +110,9 @@ func NewParserFromEventSpec(eventSpec types.EventSpec) (*Parser, error) {
 		j := 0
 
 		if abiEvent, ok := abiSpec.Events[eventDef.Event.Name]; ok {
-			for _, eventInput := range abiEvent.Inputs {
+			for i, eventInput := range abiEvent.Inputs {
 				if col, ok := eventDef.Columns[eventInput.Name]; ok {
-					sqlType, sqlTypeLength, err := getSQLType(eventInput)
+					sqlType, sqlTypeLength, err := getSQLType(strings.ToLower(eventInput.EVM.GetSignature()), eventInput.IsArray, eventDef.Event.Inputs[i].HexToString)
 					if err != nil {
 						return nil, err
 					}
@@ -247,27 +247,31 @@ func readFile(file string) ([]byte, error) {
 
 // getSQLType maps event input types with corresponding SQL column types
 // takes into account related solidity types info and element indexed or hashed
-func getSQLType(abiInputInfo abi.Argument) (types.SQLColumnType, int, error) {
-	evmSignature := strings.ToLower(abiInputInfo.EVM.GetSignature())
+func getSQLType(evmSignature string, isArray bool, hexToString bool) (types.SQLColumnType, int, error) {
 
 	re := regexp.MustCompile("[0-9]+")
 	typeSize, _ := strconv.Atoi(re.FindString(evmSignature))
 
 	// solidity arrays => sql bytes
-	if abiInputInfo.IsArray {
+	if isArray {
 		return types.SQLColumnTypeByteA, 0, nil
 	}
 
 	switch {
-	// solidity address => sql bytes
+	// solidity address => sql varchar
 	case evmSignature == types.EventInputTypeAddress:
-		return types.SQLColumnTypeByteA, 0, nil
+		return types.SQLColumnTypeVarchar, 40, nil
 		// solidity bool => sql bool
 	case evmSignature == types.EventInputTypeBool:
 		return types.SQLColumnTypeBool, 0, nil
 		// solidity bytes => sql bytes
+		// hexToString == true means there is a string in there so => sql varchar
 	case strings.HasPrefix(evmSignature, types.EventInputTypeBytes):
-		return types.SQLColumnTypeByteA, 0, nil
+		if hexToString {
+			return types.SQLColumnTypeVarchar, 40, nil
+		} else {
+			return types.SQLColumnTypeByteA, 0, nil
+		}
 		// solidity string => sql text
 	case evmSignature == types.EventInputTypeString:
 		return types.SQLColumnTypeText, 0, nil
@@ -307,7 +311,8 @@ func getGlobalColumns() map[string]types.SQLTableColumn {
 
 	globalColumns["txHash"] = types.SQLTableColumn{
 		Name:    types.SQLColumnNameTxHash,
-		Type:    types.SQLColumnTypeByteA,
+		Type:    types.SQLColumnTypeVarchar,
+		Length:  40,
 		Primary: false,
 		Order:   2,
 	}
