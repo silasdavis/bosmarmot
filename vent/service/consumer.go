@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -64,8 +66,17 @@ func (c *Consumer) Run(stream bool) error {
 		return errors.New("SpecDir or SpecFile must be provided, but not both")
 	}
 
+	if c.Config.AbiDir == "" && c.Config.AbiFile == "" {
+		return errors.New("One of AbiDir or AbiFile must be provided")
+	}
+
+	if c.Config.AbiDir != "" && c.Config.AbiFile != "" {
+		return errors.New("AbiDir or AbiFile must be provided, but not both")
+	}
+
 	var parser *sqlsol.Parser
 	var err error
+	var abiSpec *abi.AbiSpec
 
 	if c.Config.SpecDir != "" {
 		c.Log.Info("msg", "Reading spec files from directory", "dir", c.Config.SpecDir)
@@ -83,10 +94,41 @@ func (c *Consumer) Run(stream bool) error {
 		}
 	}
 
+	if c.Config.AbiDir != "" {
+		c.Log.Info("msg", "Reading abi files from directory", "dir", c.Config.SpecDir)
+
+		err := filepath.Walk(c.Config.AbiDir, func(path string, _ os.FileInfo, err error) error {
+			if err == nil {
+				abi, err := abi.ReadAbiSpecFile(path)
+				if err != nil {
+					return errors.Wrap(err, "Error parsing abi file "+path)
+				}
+				if abiSpec == nil {
+					abiSpec = abi
+				} else {
+					for evName, evAbi := range abi.Events {
+						abiSpec.Events[evName] = evAbi
+						abiSpec.EventsById[evAbi.EventID] = evAbi
+					}
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+	} else {
+		c.Log.Info("msg", "Reading abi from file", "file", c.Config.SpecFile)
+
+		abiSpec, err = abi.ReadAbiSpecFile(c.Config.AbiFile)
+		if err != nil {
+			return errors.Wrap(err, "Error parsing abi file")
+		}
+	}
+
 	// obtain tables structures, event & abi specifications
 	tables := parser.GetTables()
 	eventSpec := parser.GetEventSpec()
-	abiSpec := parser.GetAbiSpec()
 
 	if len(eventSpec) == 0 {
 		c.Log.Info("msg", "No events specifications found")
@@ -172,6 +214,7 @@ func (c *Consumer) Run(stream bool) error {
 
 			// create a fresh new structure to store block data
 			blockData := sqlsol.NewBlockData()
+			tableName := strings.ToLower(spec.TableName)
 
 			// getting events
 			for {
@@ -213,7 +256,7 @@ func (c *Consumer) Run(stream bool) error {
 					c.Log.Info("msg", fmt.Sprintf("Event Header: %v", eventHeader), "filter", spec.Filter)
 
 					// decode event data using the provided abi specification
-					eventData, err := decodeEvent(spec.Event.Name, spec.Event.Inputs, eventHeader, eventLog, abiSpec, c.Log)
+					eventData, err := decodeEvent(eventHeader, eventLog, abiSpec, c.Log)
 					if err != nil {
 						doneCh <- errors.Wrapf(err, "Error decoding event (filter: %s)", spec.Filter)
 						return
@@ -242,20 +285,15 @@ func (c *Consumer) Run(stream bool) error {
 						fromBlock = eventBlockID
 					}
 
-					// get eventName to map to SQL tableName
-					eventName := eventData[eventNameLabel]
-
-					tableName, err := parser.GetTableName(eventName.(string))
-					if err != nil {
-						doneCh <- errors.Wrapf(err, "Error getting table name for event (filter: %s)", spec.Filter)
-						return
-					}
-
 					// for each data element, maps to SQL columnName and gets its value
 					// if there is no matching column for the item, it doesn't need to be store in db
 					for k, v := range eventData {
-						if columnName, err := parser.GetColumnName(eventName.(string), k); err == nil {
-							row[columnName] = v
+						if column, err := parser.GetColumn(spec.TableName, k); err == nil {
+							if column.HexToString && column.EVMType == "bytes32" {
+								row[column.Name] = hex.EncodeToString(v.([]byte))
+							} else {
+								row[column.Name] = v
+							}
 						}
 					}
 
@@ -341,43 +379,38 @@ func (c *Consumer) Shutdown() {
 }
 
 // decodeEvent unpacks & decodes event data
-func decodeEvent(eventName string, specEventInputs []types.EventInput, header *exec.Header, log *exec.LogEvent, abiSpec *abi.AbiSpec, l *logger.Logger) (map[string]interface{}, error) {
+func decodeEvent(header *exec.Header, log *exec.LogEvent, abiSpec *abi.AbiSpec, l *logger.Logger) (map[string]interface{}, error) {
 	// to prepare decoded data and map to event item name
 	data := make(map[string]interface{})
 
-	data[eventNameLabel] = eventName
+	var eventID abi.EventID
+	var evAbi abi.EventSpec
+	copy(eventID[:], log.Topics[0].Bytes())
 
-	eventAbiSpec, ok := abiSpec.Events[eventName]
+	evAbi, ok := abiSpec.EventsById[eventID]
 	if !ok {
-		return nil, fmt.Errorf("Abi spec not found for event %s", eventName)
+		return nil, fmt.Errorf("Abi spec not found for event %x", eventID)
 	}
 
 	// decode header to get context data for each event
+	data[eventNameLabel] = evAbi.Name
 	data[eventIndexLabel] = fmt.Sprintf("%v", header.GetIndex())
 	data[eventHeightLabel] = fmt.Sprintf("%v", header.GetHeight())
 	data[eventTypeLabel] = header.GetEventType().String()
 	data[eventTxHashLabel] = header.TxHash.String()
 
 	// build expected interface type array to get log event values
-	unpackedData := abi.GetPackingTypes(eventAbiSpec.Inputs)
-
-	// if it is a bytes32 and HexToSring is true
-	// that has to be converted to string (so let's store it in a string)
-	for i, a := range eventAbiSpec.Inputs {
-		if specEventInputs[i].HexToString && !a.Hashed && a.EVM.GetSignature() == "bytes32" {
-			unpackedData[i] = new(string)
-		}
-	}
+	unpackedData := abi.GetPackingTypes(evAbi.Inputs)
 
 	// unpack event data (topics & data part)
-	if err := abi.UnpackEvent(eventAbiSpec, log.Topics, log.Data, unpackedData...); err != nil {
+	if err := abi.UnpackEvent(evAbi, log.Topics, log.Data, unpackedData...); err != nil {
 		return nil, errors.Wrap(err, "Could not unpack event data")
 	}
 
-	l.Debug("msg", fmt.Sprintf("Unpacked event data %v", unpackedData), "eventName", eventName)
+	l.Debug("msg", fmt.Sprintf("Unpacked event data %v", unpackedData), "eventName", evAbi.Name)
 
 	// for each decoded item value, stores it in given item name
-	for i, input := range eventAbiSpec.Inputs {
+	for i, input := range evAbi.Inputs {
 		switch v := unpackedData[i].(type) {
 		case *crypto.Address:
 			data[input.Name] = v.String()
@@ -387,18 +420,7 @@ func decodeEvent(eventName string, specEventInputs []types.EventInput, header *e
 			data[input.Name] = v
 		}
 
-		// if is bytes32 & hexToString is true and not hashed
-		// a string is encoded in hexa, so convert it to string
-		if specEventInputs[i].HexToString && !input.Hashed && input.EVM.GetSignature() == "bytes32" {
-			theString := *data[input.Name].(*string)
-			if toBytes, err := hex.DecodeString(theString); err != nil {
-				data[input.Name] = theString
-			} else {
-				data[input.Name] = string(toBytes)
-			}
-		}
-
-		l.Debug("msg", fmt.Sprintf("Unpacked data items: data[%v] = %v", input.Name, data[input.Name]), "eventName", eventName)
+		l.Debug("msg", fmt.Sprintf("Unpacked data items: data[%v] = %v", input.Name, data[input.Name]), "eventName", evAbi.Name)
 	}
 
 	return data, nil

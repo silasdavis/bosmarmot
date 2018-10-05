@@ -14,6 +14,8 @@ type Flags struct {
 	LogLevel  string
 	SpecFile  string
 	SpecDir   string
+	AbiFile   string
+	AbiDir    string
 }
 
 // DefaultFlags returns a configuration with default values
@@ -27,5 +29,7 @@ func DefaultFlags() *Flags {
 		LogLevel:  "debug",
 		SpecFile:  "",
 		SpecDir:   "",
+		AbiFile:   "",
+		AbiDir:    "",
 	}
 }
