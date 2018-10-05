@@ -2,53 +2,17 @@
   {
     "TableName" : "EventTest",
     "Filter" : "EventType = 'LogEvent'",
-    "Event"  : {
-      "anonymous": false,
-      "inputs": [{
-        "indexed": true,
-        "name": "name",
-        "type": "bytes32"
-      }, {
-        "indexed": true,
-        "name": "key",
-        "type": "bytes32"
-      }, {
-        "indexed": true,
-        "name": "description",
-        "type": "bytes32"
-      }],
-      "name": "UpdateTestEvents",
-      "type": "event"
-    },
     "Columns"  : {
-      "key" : {"name" : "testname", "primary" : true},
-      "description": {"name" : "testdescription", "primary" : false}
+      "key" : {"name" : "testname", "type": "bytes32", "primary" : true},
+      "description": {"name" : "testdescription", "type": "bytes32", "primary" : false}
     }
   },
   {
     "TableName" : "UserAccounts",
-    "Filter" : "LOG0 = 'UserAccounts'",
-    "Event"  : {
-      "anonymous": false,
-      "inputs": [{
-        "indexed": false,
-        "name": "userName",
-        "type": "string"
-      }, {
-        "indexed": false,
-        "name": "userAddress",
-        "type": "address"
-      }, {
-        "indexed": false,
-        "name": "UnimportantInfo",
-        "type": "uint"
-      }],
-      "name": "UpdateUserAccount",
-      "type": "event"
-    },
+    "Filter" : "LOG1 = 'UserAccounts'",
     "Columns"  : {
-      "userAddress" : {"name" : "address", "primary" : true},
-      "userName": {"name" : "username", "primary" : false}
+      "userAddress" : {"name" : "address", "type": "address", "primary" : true},
+      "userName": {"name" : "username", "type": "string", "primary" : false}
     }
   }
 ]

@@ -35,30 +35,30 @@ func TestNewParser(t *testing.T) {
 		require.NoError(t, err)
 
 		// table structure contents
-		table, _ := tableStruct.GetTableName("UpdateUserAccount")
+		table, _ := tableStruct.GetTableName("UserAccounts")
 		require.Equal(t, "useraccounts", table)
 
 		// columns map
-		col, err := tableStruct.GetColumn("UpdateUserAccount", "userName")
+		col, err := tableStruct.GetColumn("UserAccounts", "userName")
 		require.NoError(t, err)
 		require.Equal(t, false, col.Primary)
 		require.Equal(t, types.SQLColumnTypeText, col.Type)
 		require.Equal(t, "username", col.Name)
 
-		col, err = tableStruct.GetColumn("UpdateUserAccount", "userAddress")
+		col, err = tableStruct.GetColumn("UserAccounts", "userAddress")
 		require.NoError(t, err)
 		require.Equal(t, true, col.Primary)
 		require.Equal(t, types.SQLColumnTypeVarchar, col.Type)
 		require.Equal(t, "address", col.Name)
 
-		col, err = tableStruct.GetColumn("UpdateUserAccount", "index")
+		col, err = tableStruct.GetColumn("UserAccounts", "index")
 		require.NoError(t, err)
 		require.Equal(t, false, col.Primary)
 		require.Equal(t, types.SQLColumnTypeNumeric, col.Type)
 		require.Equal(t, "_index", col.Name)
 		require.Equal(t, 3, col.Order)
 
-		col, err = tableStruct.GetColumn("UpdateUserAccount", "height")
+		col, err = tableStruct.GetColumn("UserAccounts", "height")
 		require.NoError(t, err)
 		require.Equal(t, false, col.Primary)
 		require.Equal(t, types.SQLColumnTypeVarchar, col.Type)
@@ -91,7 +91,7 @@ func TestGetTableName(t *testing.T) {
 	tableStruct, _ := sqlsol.NewParserFromBytes(byteValue)
 
 	t.Run("successfully gets the mapping table name for a given event name", func(t *testing.T) {
-		tableName, err := tableStruct.GetTableName("UpdateTable")
+		tableName, err := tableStruct.GetTableName("TEST_TABLE")
 		require.NoError(t, err)
 		require.Equal(t, strings.ToLower("TEST_TABLE"), tableName)
 	})
@@ -110,7 +110,7 @@ func TestGetColumnName(t *testing.T) {
 	tableStruct, _ := sqlsol.NewParserFromBytes(byteValue)
 
 	t.Run("successfully gets the mapping column name for a given event name/item", func(t *testing.T) {
-		columnName, err := tableStruct.GetColumnName("UpdateTable", "blocknum")
+		columnName, err := tableStruct.GetColumnName("TEST_TABLE", "blocknum")
 		require.NoError(t, err)
 		require.Equal(t, strings.ToLower("Block"), columnName)
 	})
@@ -122,7 +122,7 @@ func TestGetColumnName(t *testing.T) {
 	})
 
 	t.Run("unsuccessfully gets the mapping column name for a non existent event item", func(t *testing.T) {
-		columnName, err := tableStruct.GetColumnName("UpdateUserAccount", "NOT_EXISTS")
+		columnName, err := tableStruct.GetColumnName("UserAccounts", "NOT_EXISTS")
 		require.Error(t, err)
 		require.Equal(t, "", columnName)
 	})
@@ -135,7 +135,7 @@ func TestGetColumn(t *testing.T) {
 	tableStruct, _ := sqlsol.NewParserFromBytes(byteValue)
 
 	t.Run("successfully gets the mapping column info for a given event name/item", func(t *testing.T) {
-		column, err := tableStruct.GetColumn("UpdateTable", "blocknum")
+		column, err := tableStruct.GetColumn("TEST_TABLE", "blocknum")
 		require.NoError(t, err)
 		require.Equal(t, strings.ToLower("block"), column.Name)
 		require.Equal(t, types.SQLColumnTypeNumeric, column.Type)
@@ -160,11 +160,11 @@ func TestSetTableName(t *testing.T) {
 	tableStruct, _ := sqlsol.NewParserFromBytes(byteValue)
 
 	t.Run("successfully updates table name for a given event name", func(t *testing.T) {
-		err := tableStruct.SetTableName("UpdateTable", "TEST_TABLE")
+		err := tableStruct.SetTableName("TEST_TABLE", "UpdateTable")
 
-		tableName, _ := tableStruct.GetTableName("UpdateTable")
+		tableName, _ := tableStruct.GetTableName("TEST_TABLE")
 		require.NoError(t, err)
-		require.Equal(t, strings.ToLower("TEST_TABLE"), tableName)
+		require.Equal(t, strings.ToLower("UpdateTable"), tableName)
 	})
 }
 
@@ -177,8 +177,8 @@ func TestGetTables(t *testing.T) {
 	t.Run("successfully returns event tables structures", func(t *testing.T) {
 		tables := tableStruct.GetTables()
 		require.Equal(t, 2, len(tables))
-		require.Equal(t, "useraccounts", tables["UpdateUserAccount"].Name)
-		require.Equal(t, "LOG0 = 'UserAccounts'", tables["UpdateUserAccount"].Filter)
+		require.Equal(t, "useraccounts", tables["UserAccounts"].Name)
+		require.Equal(t, "LOG0 = 'UserAccounts'", tables["UserAccounts"].Filter)
 
 	})
 }
@@ -194,10 +194,8 @@ func TestGetEventSpec(t *testing.T) {
 		require.Equal(t, 2, len(eventSpec))
 		require.Equal(t, "LOG0 = 'UserAccounts'", eventSpec[0].Filter)
 		require.Equal(t, "UserAccounts", eventSpec[0].TableName)
-		require.Equal(t, "UpdateUserAccount", eventSpec[0].Event.Name)
 
 		require.Equal(t, "Log1Text = 'EVENT_TEST'", eventSpec[1].Filter)
 		require.Equal(t, "TEST_TABLE", eventSpec[1].TableName)
-		require.Equal(t, "UpdateTable", eventSpec[1].Event.Name)
 	})
 }

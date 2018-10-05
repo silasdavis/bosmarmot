@@ -50,6 +50,7 @@ func TestConsumer(t *testing.T) {
 
 	cfg.DBSchema = db.Schema
 	cfg.SpecFile = os.Getenv("GOPATH") + "/src/github.com/monax/bosmarmot/vent/test/sqlsol_example.json"
+	cfg.AbiFile = os.Getenv("GOPATH") + "/src/github.com/monax/bosmarmot/vent/test/EventsTest.abi"
 	cfg.GRPCAddr = testConfig.RPC.GRPC.ListenAddress
 
 	log := logger.NewLogger(cfg.LogLevel)

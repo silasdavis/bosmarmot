@@ -12,73 +12,21 @@ func GoodJSONConfFile(t *testing.T) string {
 		{
 			"TableName" : "UserAccounts",
 			"Filter" : "LOG0 = 'UserAccounts'",
-			"Event"  : {
-				"anonymous": false,
-				"inputs": [{
-					"indexed": false,
-					"name": "userName",
-					"type": "string"
-				}, {
-					"indexed": false,
-					"name": "userAddress",
-					"type": "address"
-				}, {
-					"indexed": false,
-					"name": "userBool",
-					"type": "bool"
-				}, {
-					"indexed": false,
-					"name": "userId",
-					"type": "uint"
-				}],
-				"name": "UpdateUserAccount",
-				"type": "event"
-			},
 			"Columns"  : {
-				"userAddress" : {"name" : "address", "primary" : true},
-				"userName": {"name" : "username", "primary" : false},
-				"userId": {"name" : "userid", "primary" : false},
-				"userBool": {"name" : "userbool", "primary" : false}
+				"userAddress" : {"name" : "address", "type": "address", "primary" : true},
+				"userName": {"name" : "username", "type": "string", "primary" : false},
+				"userId": {"name" : "userid", "type": "uint256", "primary" : false},
+				"userBool": {"name" : "userbool", "type": "bool", "primary" : false}
 			}
 		},
 		{
 		"TableName" : "TEST_TABLE",
 		"Filter" : "Log1Text = 'EVENT_TEST'",
-		"Event"  : {
-			"anonymous": false,
-			"inputs": [{
-				"indexed": true,
-				"name": "name",
-				"type": "string"
-			}, {
-				"indexed": false,
-				"name": "key",
-				"type": "uint256"
-			}, {
-				"indexed": false,
-				"name": "blocknum",
-				"type": "uint256"
-			}, {
-				"indexed": false,
-				"name": "somestr",
-				"type": "string"
-			}, {
-				"indexed": false,
-				"name": "this",
-				"type": "address"
-			}, {
-				"indexed": false,
-				"name": "instance",
-				"type": "uint256"
-			}],
-			"name": "UpdateTable",
-			"type": "event"
-		},
 		"Columns"  : {
-			"key"		: {"name" : "Index",    "primary" : true},
-			"blocknum"  : {"name" : "Block",    "primary" : false},
-			"somestr"	: {"name" : "String",   "primary" : false},
-			"instance" 	: {"name" : "Instance", "primary" : false}
+			"key"		: {"name" : "Index",    "type": "uint256", "primary" : true},
+			"blocknum"  : {"name" : "Block",    "type": "uint256", "primary" : false},
+			"somestr"	: {"name" : "String",   "type": "string", "primary" : false},
+			"instance" 	: {"name" : "Instance", "type": "uint256", "primary" : false}
 		}
 	}
 	]`
@@ -93,23 +41,6 @@ func MissingFieldsJSONConfFile(t *testing.T) string {
 	missingFieldsJSONConfFile := `[
 		{
 			"TableName" : "UserAccounts",
-			"Event"  : {
-				"anonymous": false,
-				"inputs": [{
-					"indexed": false,
-					"name": "userName",
-					"type": "string"
-				}, {
-					"indexed": false,
-					"name": "userAddress",
-					"type": "address"
-				}, {
-					"indexed": false,
-					"name": "UnimportantInfo",
-					"type": "uint"
-				}],
-				"type": "event"
-			},
 			"Columns"  : {
 				"userAddress" : {"name" : "address", "primary" : true},
 				"userName": {"name" : "username", "primary" : false}
