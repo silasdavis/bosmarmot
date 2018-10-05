@@ -159,7 +159,7 @@
 
 [[projects]]
   branch = "develop"
-  digest = "1:d57a26de272fa98e0053f99e220175834cd7b16910c6547ed49a2064a5a6e1fb"
+  digest = "1:8ef69d32f7656dc1330c420f5688a5cf0cdbc09a4bb132711f7fc9b6c32d2e4e"
   name = "github.com/hyperledger/burrow"
   packages = [
     "acm",
@@ -218,7 +218,7 @@
     "txs/payload",
   ]
   pruneopts = "T"
-  revision = "766102c2b0a3061efa344f13081caa7804f2ee1f"
+  revision = "bff9a968897299a00ee509ab458b799c506ea033"
 
 [[projects]]
   digest = "1:9a52adf44086cead3b384e5d0dbf7a1c1cce65e67552ee3383a8561c42a18cd3"
@@ -245,12 +245,12 @@
   revision = "c42d9e0ca023e2198120196f842701bb4c55d7b9"
 
 [[projects]]
-  branch = "master"
-  digest = "1:c8a452cc8dd4ef9f857570ce2be31ca257a0928bf3c2b08cd7e11972b985c6d7"
+  digest = "1:4059c14e87a2de3a434430340521b5feece186c1469eff0834c29a63870de3ed"
   name = "github.com/konsorten/go-windows-terminal-sequences"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "b729f2633dfe35f4d1d8a32385f6685610ce1cb5"
+  revision = "5c8c8bd35d3832f5d134ae1e1e375b69a4d25242"
+  version = "v1.0.1"
 
 [[projects]]
   branch = "master"
@@ -343,7 +343,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:26a2f5e891cc4d2321f18a0caa84c8e788663c17bed6a487f3cbe2c4295292d0"
+  digest = "1:102dea0c03a915acfc634b7c67f2662012b5483b56d9025e33f5188e112759b6"
   name = "github.com/prometheus/procfs"
   packages = [
     ".",
@@ -352,7 +352,7 @@
     "xfs",
   ]
   pruneopts = "NUT"
-  revision = "418d78d0b9a7b7de3a6bbc8a23def624cc977bb2"
+  revision = "185b4288413d2a0dd0806f78c90dde719829e5ae"
 
 [[projects]]
   digest = "1:01252cd79aac70f16cac02a72a1067dd136e0ad6d5b597d0129cf74c739fd8d1"
@@ -567,7 +567,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:7c375e1e75f149f0d2cd6b00fe421d3e0ee11c44ed398553a27d097beec8d84b"
+  digest = "1:1b43e20bd17b39ab446107f91fadc62e5abd7b4210d6331d10571621706f5cdc"
   name = "golang.org/x/sys"
   packages = [
     "cpu",
@@ -575,7 +575,7 @@
     "windows",
   ]
   pruneopts = "NUT"
-  revision = "e4b3c5e9061176387e7cea65e4dc5853801f3fb7"
+  revision = "4497e2df6f9e69048a54498c7affbbec3294ad47"
 
 [[projects]]
   digest = "1:e7071ed636b5422cc51c0e3a6cebc229d6c9fffc528814b519a980641422d619"
@@ -602,11 +602,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:1e6b0176e8c5dd8ff551af65c76f8b73a99bcf4d812cedff1b91711b7df4804c"
+  digest = "1:56b0bca90b7e5d1facf5fbdacba23e4e0ce069d25381b8e2f70ef1e7ebfb9c1a"
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "NUT"
-  revision = "c7e5094acea1ca1b899e2259d80a6b0f882f81f8"
+  revision = "af9cb2a35e7f169ec875002c1829c9b315cddc04"
 
 [[projects]]
   digest = "1:d0e5846da58e4e20d1bbd7502b24f31d37e3ac1e02a9042d95bd93c2d0c139dd"
