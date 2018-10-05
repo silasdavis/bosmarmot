@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hyperledger/burrow/execution/evm/abi"
 	"github.com/monax/bosmarmot/vent/types"
 	"github.com/pkg/errors"
 )
@@ -19,7 +18,6 @@ import (
 type Parser struct {
 	Tables    types.EventTables
 	EventSpec types.EventSpec
-	AbiSpec   *abi.AbiSpec
 }
 
 // NewParserFromBytes creates a Parser from a stream of bytes
@@ -79,21 +77,6 @@ func NewParserFromFolder(folder string) (*Parser, error) {
 func NewParserFromEventSpec(eventSpec types.EventSpec) (*Parser, error) {
 	// builds abi information from specification
 	tables := make(types.EventTables)
-	abiSpecInput := []types.Event{}
-
-	for _, spec := range eventSpec {
-		abiSpecInput = append(abiSpecInput, spec.Event)
-	}
-
-	abiSpecInputBytes, err := json.Marshal(abiSpecInput)
-	if err != nil {
-		return nil, errors.Wrap(err, "Error generating abi spec input")
-	}
-
-	abiSpec, err := abi.ReadAbiSpec(abiSpecInputBytes)
-	if err != nil {
-		return nil, errors.Wrap(err, "Error creating abi spec")
-	}
 
 	// obtain global SQL table columns to add to columns definition map
 	globalColumns := getGlobalColumns()
@@ -108,37 +91,34 @@ func NewParserFromEventSpec(eventSpec types.EventSpec) (*Parser, error) {
 		// build columns mapping
 		columns := make(map[string]types.SQLTableColumn)
 		j := 0
-
-		if abiEvent, ok := abiSpec.Events[eventDef.Event.Name]; ok {
-			for i, eventInput := range abiEvent.Inputs {
-				if col, ok := eventDef.Columns[eventInput.Name]; ok {
-					sqlType, sqlTypeLength, err := getSQLType(strings.ToLower(eventInput.EVM.GetSignature()), eventInput.IsArray, eventDef.Event.Inputs[i].HexToString)
-					if err != nil {
-						return nil, err
-					}
-
-					j++
-
-					columns[eventInput.Name] = types.SQLTableColumn{
-						Name:    strings.ToLower(col.Name),
-						Type:    sqlType,
-						Length:  sqlTypeLength,
-						Primary: col.Primary,
-						Order:   j + globalColumnsLength,
-					}
-				}
+		for colName, col := range eventDef.Columns {
+			sqlType, sqlTypeLength, err := getSQLType(strings.ToLower(col.Type), false, col.HexToString)
+			if err != nil {
+				return nil, err
 			}
 
-			// add global columns to columns definition
-			for k, v := range globalColumns {
-				columns[k] = v
-			}
+			j++
 
-			tables[eventDef.Event.Name] = types.SQLTable{
-				Name:    strings.ToLower(eventDef.TableName),
-				Filter:  eventDef.Filter,
-				Columns: columns,
+			columns[colName] = types.SQLTableColumn{
+				Name:        strings.ToLower(col.Name),
+				Type:        sqlType,
+				EVMType:     col.Type,
+				Length:      sqlTypeLength,
+				Primary:     col.Primary,
+				HexToString: col.HexToString,
+				Order:       j + globalColumnsLength,
 			}
+		}
+
+		// add global columns to columns definition
+		for k, v := range globalColumns {
+			columns[k] = v
+		}
+
+		tables[eventDef.TableName] = types.SQLTable{
+			Name:    strings.ToLower(eventDef.TableName),
+			Filter:  eventDef.Filter,
+			Columns: columns,
 		}
 	}
 
@@ -157,13 +137,7 @@ func NewParserFromEventSpec(eventSpec types.EventSpec) (*Parser, error) {
 	return &Parser{
 		Tables:    tables,
 		EventSpec: eventSpec,
-		AbiSpec:   abiSpec,
 	}, nil
-}
-
-// GetAbiSpec returns the abi specification
-func (p *Parser) GetAbiSpec() *abi.AbiSpec {
-	return p.AbiSpec
 }
 
 // GetEventSpec returns the event specification
@@ -244,11 +218,6 @@ func getSQLType(evmSignature string, isArray bool, hexToString bool) (types.SQLC
 
 	re := regexp.MustCompile("[0-9]+")
 	typeSize, _ := strconv.Atoi(re.FindString(evmSignature))
-
-	// solidity arrays => sql bytes
-	if isArray {
-		return types.SQLColumnTypeByteA, 0, nil
-	}
 
 	switch {
 	// solidity address => sql varchar
