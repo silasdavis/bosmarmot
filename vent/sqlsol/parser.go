@@ -150,50 +150,18 @@ func (p *Parser) GetTables() types.EventTables {
 	return p.Tables
 }
 
-// GetTableName receives an eventName and returns the mapping tableName
-func (p *Parser) GetTableName(eventName string) (string, error) {
-	if table, ok := p.Tables[eventName]; ok {
-		return table.Name, nil
-	}
-
-	return "", fmt.Errorf("GetTableName: eventName does not exists as a table in SQL table structure: %s ", eventName)
-}
-
-// GetColumnName receives an event Name and item and returns the mapping columnName
-func (p *Parser) GetColumnName(eventName, eventItem string) (string, error) {
-	if table, ok := p.Tables[eventName]; ok {
-		if column, ok := table.Columns[eventItem]; ok {
-			return column.Name, nil
-		}
-		return "", fmt.Errorf("GetColumnName: eventItem does not exists as a column in SQL table structure: %s ", eventItem)
-	}
-
-	return "", fmt.Errorf("GetColumnName: eventName does not exists as a table in SQL table structure: %s ", eventName)
-}
-
-// GetColumn receives an event Name and item and returns the mapping column with associated info
-func (p *Parser) GetColumn(eventName, eventItem string) (types.SQLTableColumn, error) {
+// GetColumn receives a table & column name and returns column info
+func (p *Parser) GetColumn(tableName, columnName string) (types.SQLTableColumn, error) {
 	column := types.SQLTableColumn{}
 
-	if table, ok := p.Tables[eventName]; ok {
-		if column, ok = table.Columns[eventItem]; ok {
+	if table, ok := p.Tables[tableName]; ok {
+		if column, ok = table.Columns[columnName]; ok {
 			return column, nil
 		}
-		return column, fmt.Errorf("GetColumn: eventItem does not exists as a column in SQL table structure: %s ", eventItem)
+		return column, fmt.Errorf("GetColumn: columnName does not exists as a column in SQL table structure: %s ", columnName)
 	}
 
-	return column, fmt.Errorf("GetColumn: eventName does not exists as a table in SQL table structure: %s ", eventName)
-}
-
-// SetTableName updates TableName element in structure
-func (p *Parser) SetTableName(eventName, tableName string) error {
-	if table, ok := p.Tables[eventName]; ok {
-		table.Name = strings.ToLower(tableName)
-		p.Tables[eventName] = table
-		return nil
-	}
-
-	return fmt.Errorf("SetTableName: eventName does not exists as a table in SQL table structure: %s ", eventName)
+	return column, fmt.Errorf("GetColumn: tableName does not exists as a table in SQL table structure: %s ", tableName)
 }
 
 // readFile opens a given file and reads it contents into a stream of bytes
