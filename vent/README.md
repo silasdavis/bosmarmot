@@ -12,52 +12,35 @@ Given a sqlsol specification
 
 ```json
 [
-	{
-		"TableName" : "TEST_TABLE",
-		"Filter" : "Log1Text = 'EVENT_TEST'",
-		"Event"  : {
-			"anonymous": false,
-			"inputs": [{
-				"indexed": true,
-				"name": "name",
-				"type": "bytes32"
-			}, {
-				"indexed": false,
-				"name": "key",
-				"type": "uint256"
-			}, {
-				"indexed": false,
-				"name": "blocknum",
-				"type": "uint256"
-			}, {
-				"indexed": false,
-				"name": "somestr",
-				"type": "string"
-			}, {
-				"indexed": false,
-				"name": "this",
-				"type": "address"
-			}, {
-				"indexed": false,
-				"name": "instance",
-				"type": "uint256"
-			}],
-			"name": "UpdateTable",
-			"type": "event"
-		},
-		"Columns"  : {
-			"key"		: {"name" : "Index",    "primary" : true},
-			"blocknum"  : {"name" : "Block",    "primary" : false},
-			"somestr"	: {"name" : "String",   "primary" : false},
-			"instance" 	: {"name" : "Instance", "primary" : false}
-		}
-	}
+  {
+    "TableName" : "EventTest",
+    "Filter" : "EventType = 'LogEvent'",
+    "Columns"  : {
+      "key" : {"name" : "testname", "type": "bytes32", "primary" : true},
+      "description": {"name" : "testdescription", "type": "bytes32", "primary" : false}
+    }
+  },
+  {
+    "TableName" : "UserAccounts",
+    "Filter" : "LOG1 = 'UserAccounts'",
+    "Columns"  : {
+      "userAddress" : {"name" : "address", "type": "address", "primary" : true},
+      "userName": {"name" : "username", "type": "string", "primary" : false}
+    }
+  }
 ]
+
 ```
 
 Vent builds dictionary, log and event tables for the defined tables & columns and maps input types to proper sql types.
 
 Database structures are created or altered on the fly based on specifications (just adding new columns is supported).
+
+Abi file can be generated from bin files like so:
+
+```bash
+cat *.bin | jq '.Abi[] | select(.type == "event")' > events.abi
+```
 
 
 ## Adapters:
@@ -98,11 +81,11 @@ go install ./vent
 # Print command help:
 vent --help
 
-# Run vent command with postgres adapter and spec file path:
-vent --db-adapter="postgres" --db-url="postgres://user:pass@localhost:5432/vent?sslmode=disable" --db-schema="vent" --grpc-addr="localhost:10997" --http-addr="0.0.0.0:8080" --log-level="debug" --spec-file="<sqlsol specification file path>"
+# Run vent command with postgres adapter, spec & abi files path:
+vent --db-adapter="postgres" --db-url="postgres://user:pass@localhost:5432/vent?sslmode=disable" --db-schema="vent" --grpc-addr="localhost:10997" --http-addr="0.0.0.0:8080" --log-level="debug" --spec-file="<sqlsol specification file path>" --abi-file="<abi file path>"
 
-# Run vent command with sqlite adapter and spec directory path:
-vent --db-adapter="sqlite" --db-url="./vent.sqlite" --grpc-addr="localhost:10997" --http-addr="0.0.0.0:8080" --log-level="debug" --spec-dir="<sqlsol specification directory path>"
+# Run vent command with sqlite adapter, spec & abi directories path:
+vent --db-adapter="sqlite" --db-url="./vent.sqlite" --grpc-addr="localhost:10997" --http-addr="0.0.0.0:8080" --log-level="debug" --spec-dir="<sqlsol specification directory path>" --abi-dir="<abi files directory path>"
 ```
 
 Configuration Flags:
@@ -115,11 +98,16 @@ Configuration Flags:
 + `log-level`: Logging level (error, warn, info, debug)
 + `spec-file`: SQLSol specification json file (full path)
 + `spec-dir`: Path of a folder to look for SQLSol json specification files
++ `abi-file`: Event Abi specification file full path
++ `abi-dir`: Path of a folder to look for event Abi specification files
 
 
 NOTES:
 
 One of `spec-file` or `spec-dir` must be provided.
 If `spec-dir` is given, vent will search for all `.json` spec files in given directory.
+
+Also one of `abi-file` or `abi-dir` must be provided.
+If `abi-dir` is given, vent will search for all `.abi` spec files in given directory.
 
 It can be checked that vent is connected and ready sending a request to `http://<http-addr>/health` which will return a `200` OK response in case everything's fine.

@@ -34,10 +34,6 @@ func TestNewParser(t *testing.T) {
 		tableStruct, err := sqlsol.NewParserFromBytes(byteValue)
 		require.NoError(t, err)
 
-		// table structure contents
-		table, _ := tableStruct.GetTableName("UserAccounts")
-		require.Equal(t, "useraccounts", table)
-
 		// columns map
 		col, err := tableStruct.GetColumn("UserAccounts", "userName")
 		require.NoError(t, err)
@@ -84,57 +80,13 @@ func TestNewParser(t *testing.T) {
 
 }
 
-func TestGetTableName(t *testing.T) {
-	goodJSON := test.GoodJSONConfFile(t)
-
-	byteValue := []byte(goodJSON)
-	tableStruct, _ := sqlsol.NewParserFromBytes(byteValue)
-
-	t.Run("successfully gets the mapping table name for a given event name", func(t *testing.T) {
-		tableName, err := tableStruct.GetTableName("TEST_TABLE")
-		require.NoError(t, err)
-		require.Equal(t, strings.ToLower("TEST_TABLE"), tableName)
-	})
-
-	t.Run("unsuccessfully gets the mapping table name for a non existing event name", func(t *testing.T) {
-		tableName, err := tableStruct.GetTableName("NOT_EXISTS")
-		require.Error(t, err)
-		require.Equal(t, "", tableName)
-	})
-}
-
-func TestGetColumnName(t *testing.T) {
-	goodJSON := test.GoodJSONConfFile(t)
-
-	byteValue := []byte(goodJSON)
-	tableStruct, _ := sqlsol.NewParserFromBytes(byteValue)
-
-	t.Run("successfully gets the mapping column name for a given event name/item", func(t *testing.T) {
-		columnName, err := tableStruct.GetColumnName("TEST_TABLE", "blocknum")
-		require.NoError(t, err)
-		require.Equal(t, strings.ToLower("Block"), columnName)
-	})
-
-	t.Run("unsuccessfully gets the mapping column name for a non existent event name", func(t *testing.T) {
-		columnName, err := tableStruct.GetColumnName("NOT_EXISTS", "userName")
-		require.Error(t, err)
-		require.Equal(t, "", columnName)
-	})
-
-	t.Run("unsuccessfully gets the mapping column name for a non existent event item", func(t *testing.T) {
-		columnName, err := tableStruct.GetColumnName("UserAccounts", "NOT_EXISTS")
-		require.Error(t, err)
-		require.Equal(t, "", columnName)
-	})
-}
-
 func TestGetColumn(t *testing.T) {
 	goodJSON := test.GoodJSONConfFile(t)
 
 	byteValue := []byte(goodJSON)
 	tableStruct, _ := sqlsol.NewParserFromBytes(byteValue)
 
-	t.Run("successfully gets the mapping column info for a given event name/item", func(t *testing.T) {
+	t.Run("successfully gets the mapping column info for a given table & column name", func(t *testing.T) {
 		column, err := tableStruct.GetColumn("TEST_TABLE", "blocknum")
 		require.NoError(t, err)
 		require.Equal(t, strings.ToLower("block"), column.Name)
@@ -142,29 +94,14 @@ func TestGetColumn(t *testing.T) {
 		require.Equal(t, false, column.Primary)
 	})
 
-	t.Run("unsuccessfully gets the mapping column info for a non existent event name", func(t *testing.T) {
+	t.Run("unsuccessfully gets the mapping column info for a non existent table name", func(t *testing.T) {
 		_, err := tableStruct.GetColumn("NOT_EXISTS", "userName")
 		require.Error(t, err)
 	})
 
-	t.Run("unsuccessfully gets the mapping column info for a non existent event item", func(t *testing.T) {
+	t.Run("unsuccessfully gets the mapping column info for a non existent column name", func(t *testing.T) {
 		_, err := tableStruct.GetColumn("UpdateUserAccount", "NOT_EXISTS")
 		require.Error(t, err)
-	})
-}
-
-func TestSetTableName(t *testing.T) {
-	goodJSON := test.GoodJSONConfFile(t)
-
-	byteValue := []byte(goodJSON)
-	tableStruct, _ := sqlsol.NewParserFromBytes(byteValue)
-
-	t.Run("successfully updates table name for a given event name", func(t *testing.T) {
-		err := tableStruct.SetTableName("TEST_TABLE", "UpdateTable")
-
-		tableName, _ := tableStruct.GetTableName("TEST_TABLE")
-		require.NoError(t, err)
-		require.Equal(t, strings.ToLower("UpdateTable"), tableName)
 	})
 }
 
