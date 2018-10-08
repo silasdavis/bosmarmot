@@ -96,27 +96,25 @@ func (c *Consumer) Run(stream bool) error {
 
 	if c.Config.AbiDir != "" {
 		c.Log.Info("msg", "Reading abi files from directory", "dir", c.Config.SpecDir)
+		specs := make([]*abi.AbiSpec, 0)
 
-		err := filepath.Walk(c.Config.AbiDir, func(path string, _ os.FileInfo, err error) error {
+		err := filepath.Walk(c.Config.AbiDir, func(path string, fi os.FileInfo, err error) error {
+			if fi.IsDir() {
+				return nil
+			}
 			if err == nil {
 				abi, err := abi.ReadAbiSpecFile(path)
 				if err != nil {
 					return errors.Wrap(err, "Error parsing abi file "+path)
 				}
-				if abiSpec == nil {
-					abiSpec = abi
-				} else {
-					for evName, evAbi := range abi.Events {
-						abiSpec.Events[evName] = evAbi
-						abiSpec.EventsById[evAbi.EventID] = evAbi
-					}
-				}
+				specs = append(specs, abi)
 			}
 			return nil
 		})
 		if err != nil {
 			return err
 		}
+		abiSpec = abi.MergeAbiSpec(specs)
 	} else {
 		c.Log.Info("msg", "Reading abi from file", "file", c.Config.SpecFile)
 
