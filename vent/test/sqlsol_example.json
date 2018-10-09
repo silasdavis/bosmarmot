@@ -3,7 +3,8 @@
     "TableName" : "EventTest",
     "Filter" : "EventType = 'LogEvent'",
     "Columns"  : {
-      "key" : {"name" : "testname", "type": "bytes32", "primary" : true},
+      "key" : {"name" : "testkey", "type": "bytes32", "primary" : true},
+      "name" : {"name" : "testname", "type": "bytes32", "primary" : true, "bytesToString": true},
       "description": {"name" : "testdescription", "type": "bytes32", "primary" : false}
     }
   },

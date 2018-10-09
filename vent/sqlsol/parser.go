@@ -92,7 +92,7 @@ func NewParserFromEventSpec(eventSpec types.EventSpec) (*Parser, error) {
 		columns := make(map[string]types.SQLTableColumn)
 		j := 0
 		for colName, col := range eventDef.Columns {
-			sqlType, sqlTypeLength, err := getSQLType(strings.ToLower(col.Type), false, col.HexToString)
+			sqlType, sqlTypeLength, err := getSQLType(strings.ToLower(col.Type), false, col.BytesToString)
 			if err != nil {
 				return nil, err
 			}
@@ -100,13 +100,13 @@ func NewParserFromEventSpec(eventSpec types.EventSpec) (*Parser, error) {
 			j++
 
 			columns[colName] = types.SQLTableColumn{
-				Name:        strings.ToLower(col.Name),
-				Type:        sqlType,
-				EVMType:     col.Type,
-				Length:      sqlTypeLength,
-				Primary:     col.Primary,
-				HexToString: col.HexToString,
-				Order:       j + globalColumnsLength,
+				Name:          strings.ToLower(col.Name),
+				Type:          sqlType,
+				EVMType:       col.Type,
+				Length:        sqlTypeLength,
+				Primary:       col.Primary,
+				BytesToString: col.BytesToString,
+				Order:         j + globalColumnsLength,
 			}
 		}
 
@@ -182,7 +182,7 @@ func readFile(file string) ([]byte, error) {
 
 // getSQLType maps event input types with corresponding SQL column types
 // takes into account related solidity types info and element indexed or hashed
-func getSQLType(evmSignature string, isArray bool, hexToString bool) (types.SQLColumnType, int, error) {
+func getSQLType(evmSignature string, isArray bool, bytesToString bool) (types.SQLColumnType, int, error) {
 
 	re := regexp.MustCompile("[0-9]+")
 	typeSize, _ := strconv.Atoi(re.FindString(evmSignature))
@@ -195,9 +195,9 @@ func getSQLType(evmSignature string, isArray bool, hexToString bool) (types.SQLC
 	case evmSignature == types.EventInputTypeBool:
 		return types.SQLColumnTypeBool, 0, nil
 		// solidity bytes => sql bytes
-		// hexToString == true means there is a string in there so => sql varchar
+		// bytesToString == true means there is a string in there so => sql varchar
 	case strings.HasPrefix(evmSignature, types.EventInputTypeBytes):
-		if hexToString {
+		if bytesToString {
 			return types.SQLColumnTypeVarchar, 40, nil
 		} else {
 			return types.SQLColumnTypeByteA, 0, nil
