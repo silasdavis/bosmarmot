@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"math/big"
@@ -287,11 +286,15 @@ func (c *Consumer) Run(stream bool) error {
 					// if there is no matching column for the item, it doesn't need to be store in db
 					for k, v := range eventData {
 						if column, err := parser.GetColumn(spec.TableName, k); err == nil {
-							if column.HexToString && column.EVMType == "bytes32" {
-								row[column.Name] = hex.EncodeToString(v.([]byte))
-							} else {
-								row[column.Name] = v
+							// HexToString is not a great name. It should really be BytesToString
+							if column.HexToString {
+								if bytes, ok := v.(*[]byte); ok {
+									str := strings.Trim(string(*bytes), "\x00")
+									row[column.Name] = interface{}(&str)
+									continue
+								}
 							}
+							row[column.Name] = v
 						}
 					}
 
