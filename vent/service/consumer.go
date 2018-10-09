@@ -98,7 +98,8 @@ func (c *Consumer) Run(stream bool) error {
 		specs := make([]*abi.AbiSpec, 0)
 
 		err := filepath.Walk(c.Config.AbiDir, func(path string, fi os.FileInfo, err error) error {
-			if fi.IsDir() {
+			ext := filepath.Ext(path)
+			if fi.IsDir() || !(ext == ".bin" || ext == ".abi") {
 				return nil
 			}
 			if err == nil {
