@@ -10,13 +10,13 @@ type SQLTable struct {
 // SQLTableColumn contains the definition of a SQL table column,
 // the Order is given to be able to sort the columns to be created
 type SQLTableColumn struct {
-	Name        string
-	Type        SQLColumnType
-	EVMType     string
-	Length      int
-	Primary     bool
-	HexToString bool
-	Order       int
+	Name          string
+	Type          SQLColumnType
+	EVMType       string
+	Length        int
+	Primary       bool
+	BytesToString bool
+	Order         int
 }
 
 // UpsertQuery contains generic query to upsert row data
