@@ -25,10 +25,10 @@ func (evDef EventDefinition) Validate() error {
 
 // EventColumn struct (table column definition)
 type EventColumn struct {
-	Name        string `json:"name"`
-	Type        string `json:"type"`
-	Primary     bool   `json:"primary"`
-	HexToString bool   `json:"hexToString"`
+	Name          string `json:"name"`
+	Type          string `json:"type"`
+	Primary       bool   `json:"primary"`
+	BytesToString bool   `json:"bytesToString"`
 }
 
 // Validate checks the structure of an EventColumn
