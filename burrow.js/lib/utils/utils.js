@@ -14,6 +14,10 @@ const generic = require('@nodeguy/generic')
 const _ = generic._
 const R = require('ramda')
 const is = require('@nodeguy/type').is
+
+const coder = require('web3/lib/solidity/coder')
+const sha3 = require('./sha3')
+
 // Convert Burrow types to Web3 types.
 const burrowToWeb3 = generic.function()
 
@@ -466,6 +470,25 @@ var isJson = function (str) {
   }
 }
 
+var encode = function (abi, functionName, args) {
+  var functions = abi.filter(function (json) {
+    return (json.type === 'function' && json.name === functionName)
+  })
+
+  if (functions.length === 0) {
+    throw new Error('Function name: ' + functionName + ' not found in abi')
+  } else if (functions.length > 1) {
+    throw new Error('Function name: ' + functionName + ' is overloaded, Overloading is not supported')
+  } else {
+    var name = transformToFullName(functions[0])
+    var functionSig = sha3(name).slice(0, 8)
+    var types = functions[0].inputs.map(function (arg) {
+      return arg.type
+    })
+    return functionSig + coder.encodeParams(types, args)
+  }
+}
+
 module.exports = {
   burrowToWeb3: burrowToWeb3,
   web3ToBurrow: web3ToBurrow,
@@ -492,5 +515,6 @@ module.exports = {
   isArray: isArray,
   isJson: isJson,
   fromUtf8: fromUtf8,
-  toUtf8: toUtf8
+  toUtf8: toUtf8,
+  encode: encode
 }

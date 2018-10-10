@@ -161,4 +161,40 @@ var SolidityFunction = function (abi) {
   return {displayName, typeName, call}
 }
 
-module.exports = SolidityFunction
+/**
+ * Returns an encoded string of parameters for a specific function call. Useful for forwarding contracts.
+ *
+ * @method pack
+ * @param {...Object} Contract function arguments
+ * @param {function}
+ * @return {String} output bytes
+ */
+var Encoder = function (abi) {
+  var isCon = (abi == null || abi.type === 'constructor')
+  var address = isCon ? null : ZERO_ADDRESS
+
+  var name
+  var displayName
+  var typeName
+
+  if (!isCon) {
+    name = utils.transformToFullName(abi)
+    displayName = utils.extractDisplayName(name)
+    typeName = utils.extractTypeName(name)
+  }
+
+  var encode = function () {
+    var args = Array.prototype.slice.call(arguments)
+
+    var payload = txPayload(abi, utils.burrowToWeb3(args), ZERO_ADDRESS, address, this.code)
+
+    return payload.Data
+  }
+
+  return {displayName, typeName, encode}
+}
+
+module.exports = {
+  SolidityFunction,
+  Encoder
+}
