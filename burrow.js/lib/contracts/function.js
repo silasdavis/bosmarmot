@@ -162,14 +162,14 @@ var SolidityFunction = function (abi) {
 }
 
 /**
- * Packs arguments based
+ * Returns an encoded string of parameters for a specific function call. Useful for forwarding contracts.
  *
  * @method pack
  * @param {...Object} Contract function arguments
  * @param {function}
  * @return {String} output bytes
  */
-var Packer = function (abi) {
+var Encoder = function (abi) {
   var isCon = (abi == null || abi.type === 'constructor')
   var address = isCon ? null : ZERO_ADDRESS
 
@@ -183,7 +183,7 @@ var Packer = function (abi) {
     typeName = utils.extractTypeName(name)
   }
 
-  var pack = function () {
+  var encode = function () {
     var args = Array.prototype.slice.call(arguments)
 
     var payload = txPayload(abi, utils.burrowToWeb3(args), ZERO_ADDRESS, address, this.code)
@@ -191,10 +191,10 @@ var Packer = function (abi) {
     return payload.Data
   }
 
-  return {displayName, typeName, pack}
+  return {displayName, typeName, encode}
 }
 
 module.exports = {
   SolidityFunction,
-  Packer
+  Encoder
 }

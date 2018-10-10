@@ -470,7 +470,7 @@ var isJson = function (str) {
   }
 }
 
-var pack = function (abi, functionName, args) {
+var encode = function (abi, functionName, args) {
   var functions = abi.filter(function (json) {
     return (json.type === 'function' && json.name === functionName)
   })
@@ -516,5 +516,5 @@ module.exports = {
   isJson: isJson,
   fromUtf8: fromUtf8,
   toUtf8: toUtf8,
-  pack: pack
+  encode: encode
 }
