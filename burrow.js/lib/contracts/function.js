@@ -162,7 +162,7 @@ var SolidityFunction = function (abi) {
 }
 
 /**
- * Packs arguments based
+ * Returns an encoded string of parameters for a specific function call. Useful for forwarding contracts.
  *
  * @method pack
  * @param {...Object} Contract function arguments
