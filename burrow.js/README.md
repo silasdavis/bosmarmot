@@ -248,7 +248,7 @@ All you really need to create an interface is the abi, however you can also incl
 
 #### Contract interface object
 
-The contract interface object allows for easy access of solidity contract function calls and subscription to events. When created, js functions for all functions specified in the abi are generated. All of these functions have the same form `Contract.functionname(params...[, callback])`. here params are the arguments to the contract, note that arguements of the "bytes" type should be properly hex encoded before passing to avoid improper encoding. NOTE: if the burrow object was created with {objectReturn: True} the return from these function calls is formatted as `{values:{...}, raw:[]}` otherwise an arrary of decoded values is provided. the values object names the decoded values according to the abi spec, if a return value has no name it won't be included in the values object and must be retrieved from its position on the raw array.
+The contract interface object allows for easy access of solidity contract function calls and subscription to events. When created, js functions for all functions specified in the abi are generated. All of these functions have the same form `Contract.functionname(params...[, callback])`. here params are the arguments to the contract, note that arguements of the "bytes" type should be properly hex encoded before passing to avoid improper encoding. NOTE: if the burrow object was created with {objectReturn: True} the return from these function calls is formatted as `{values:{...}, raw:[]}` otherwise an array of decoded values is provided. the values object names the decoded values according to the abi spec, if a return value has no name it won't be included in the values object and must be retrieved from its position on the raw array.
 
 If a callback is not provided a promise is returned.
 
@@ -314,6 +314,10 @@ burrow.contracts.deploy(abi, bytecode, 'contract1').then((ContractObject) => {
 })
 
 ```
+
+Encoding Params:
+
+Occassionally you may wish to encode the parameters to a function call but not actually make the call. The most common use of this is in forwarding contracts which take  pre-encoded arguments along with function signature bytes and then call another function passing that data for specifying the call. The Contract interface object supports this use case through `Contract.functionname.encode(...args)` which will return a hex string with the encoded arguments. This functionality is also available through `Monax.utils.encode(abi, functionname, ...args)`
 
 ## Fully working example
 
