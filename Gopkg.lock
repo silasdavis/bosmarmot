@@ -31,7 +31,7 @@
   name = "github.com/btcsuite/btcd"
   packages = ["btcec"]
   pruneopts = "NUT"
-  revision = "79e00513b1011888b1e675157ab89f527f901cae"
+  revision = "cff30e1d23fc9e800b2b5b4b41ef1817dda07e9f"
 
 [[projects]]
   branch = "master"
@@ -159,7 +159,7 @@
 
 [[projects]]
   branch = "develop"
-  digest = "1:9ee974741eaf414e064a0b468e59658ca718885821cdbd61328b4a7c77ddf22f"
+  digest = "1:cb8418940840002db1f5f584ab4d2d53f4fbb3a7572f0522be18b2afc845d5c5"
   name = "github.com/hyperledger/burrow"
   packages = [
     "acm",
@@ -217,7 +217,7 @@
     "txs/payload",
   ]
   pruneopts = "T"
-  revision = "a5d41863004d0cbb104e9dcb568a5c540075d84f"
+  revision = "7f1d0577cf81110e042fddf33574fd3f4a08991a"
 
 [[projects]]
   digest = "1:9a52adf44086cead3b384e5d0dbf7a1c1cce65e67552ee3383a8561c42a18cd3"
@@ -520,7 +520,7 @@
     "ssh/terminal",
   ]
   pruneopts = "NUT"
-  revision = "614d502a4dac94afa3a6ce146bd1736da82514c6"
+  revision = "0e37d006457bf46f9e6692014ba72ef82c33022c"
 
 [[projects]]
   digest = "1:15dbe437d38eb2103f6b55348758958a6f85a400ecc16fcb53b3f271d38cd8ea"
@@ -540,7 +540,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:ae13ce080264d010a1a1461878457c43bff15f762543961975dfd646e0afb19e"
+  digest = "1:b389fa0ad0fb094a38a487aa4a7030b026a5e35f77b2f90b6f1f4797b700dc53"
   name = "golang.org/x/sys"
   packages = [
     "cpu",
@@ -548,7 +548,7 @@
     "windows",
   ]
   pruneopts = "NUT"
-  revision = "49385e6e15226593f68b26af201feec29d5bba22"
+  revision = "d0be0721c37eeb5299f245a996a483160fc36940"
 
 [[projects]]
   digest = "1:a0f29009397dc27c9dc8440f0945d49e5cbb9b72d0b0fc745474d9bfdea2d9f8"
@@ -579,7 +579,7 @@
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "NUT"
-  revision = "c66870c02cf823ceb633bcd05be3c7cda29976f4"
+  revision = "36d5787dc5356b711fe8f3040271aaf51c35955b"
 
 [[projects]]
   digest = "1:f778941d5c2e46da5e0f5d553d3e80bf70eb40d2e80bb4c649b625b9133f3d5f"

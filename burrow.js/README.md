@@ -75,7 +75,10 @@ Here is an example of usage in setting and getting a name:
 
 ```javascript
 var setPayload = {
-	Input: Buffer.from(account, 'hex'),
+	Input: {
+		Address: Buffer.from(account,'hex'),
+		Amount: 50000
+ 	 },
 	Name: "DOUG",
 	Data: "Marmot",
 	Fee: 5000
