@@ -33,7 +33,7 @@ func TestServer(t *testing.T) {
 	cfg.GRPCAddr = testConfig.RPC.GRPC.ListenAddress
 
 	log := logger.NewLogger(cfg.LogLevel)
-	consumer := service.NewConsumer(cfg, log)
+	consumer := service.NewConsumer(cfg, log, make(chan types.EventData))
 
 	var wg sync.WaitGroup
 
