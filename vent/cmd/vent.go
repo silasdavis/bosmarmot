@@ -9,6 +9,7 @@ import (
 	"github.com/monax/bosmarmot/vent/config"
 	"github.com/monax/bosmarmot/vent/logger"
 	"github.com/monax/bosmarmot/vent/service"
+	"github.com/monax/bosmarmot/vent/types"
 	"github.com/spf13/cobra"
 )
 
@@ -42,7 +43,7 @@ func Execute() {
 
 func runVentCmd(cmd *cobra.Command, args []string) {
 	log := logger.NewLogger(cfg.LogLevel)
-	consumer := service.NewConsumer(cfg, log)
+	consumer := service.NewConsumer(cfg, log, make(chan types.EventData))
 	server := service.NewServer(cfg, log, consumer)
 
 	var wg sync.WaitGroup
