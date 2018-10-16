@@ -41,14 +41,17 @@ type Consumer struct {
 	Closing        bool
 	DB             *sqldb.SQLDB
 	GRPCConnection *grpc.ClientConn
+	// external events channel used for when vent is leveraged as a library
+	EventsChannel chan types.EventData
 }
 
 // NewConsumer constructs a new consumer configuration
-func NewConsumer(cfg *config.Flags, log *logger.Logger) *Consumer {
+func NewConsumer(cfg *config.Flags, log *logger.Logger, eChannel chan types.EventData) *Consumer {
 	return &Consumer{
-		Config:  cfg,
-		Log:     log,
-		Closing: false,
+		Config:        cfg,
+		Log:           log,
+		Closing:       false,
+		EventsChannel: eChannel,
 	}
 }
 
@@ -337,6 +340,12 @@ loop:
 			// upsert rows in specific SQL event tables and update block number
 			if err := c.DB.SetBlock(tables, blk); err != nil {
 				return errors.Wrap(err, "Error upserting rows in SQL event tables")
+			}
+
+			// send to the external events channel in a non-blocking manner
+			select {
+			case c.EventsChannel <- blk:
+			default:
 			}
 		}
 	}
