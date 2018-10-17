@@ -14,9 +14,9 @@ import (
 	"github.com/monax/bosmarmot/vent/config"
 	"github.com/monax/bosmarmot/vent/logger"
 	"github.com/monax/bosmarmot/vent/service"
+	"github.com/monax/bosmarmot/vent/sqlsol"
 	"github.com/monax/bosmarmot/vent/test"
 	"github.com/monax/bosmarmot/vent/types"
-	"github.com/monax/bosmarmot/vent/sqlsol"
 	"github.com/stretchr/testify/require"
 )
 
