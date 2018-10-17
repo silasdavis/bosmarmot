@@ -651,6 +651,7 @@
     "github.com/go-ozzo/ozzo-validation",
     "github.com/hyperledger/burrow/core",
     "github.com/hyperledger/burrow/crypto",
+    "github.com/hyperledger/burrow/event/query",
     "github.com/hyperledger/burrow/execution/evm/abi",
     "github.com/hyperledger/burrow/execution/exec",
     "github.com/hyperledger/burrow/integration",
