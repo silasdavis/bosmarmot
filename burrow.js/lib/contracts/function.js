@@ -102,7 +102,8 @@ var SolidityFunction = function (abi) {
   // Uses implicit attributes of this object.
   // I want to keep them separate in the case that we want to move all the functional
   // components together and maybe even... write tests for them (gasp!)
-  var encode = function (args) {
+  var encode = function () {
+    var args = Array.prototype.slice.call(arguments)
     return encodeF(abi, utils.burrowToWeb3(args), isCon ? this.code : null)
   }
 
