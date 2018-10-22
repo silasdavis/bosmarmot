@@ -12,6 +12,7 @@ import (
 	"github.com/monax/bosmarmot/vent/config"
 	"github.com/monax/bosmarmot/vent/logger"
 	"github.com/monax/bosmarmot/vent/service"
+	"github.com/monax/bosmarmot/vent/sqlsol"
 	"github.com/monax/bosmarmot/vent/test"
 	"github.com/monax/bosmarmot/vent/types"
 	"github.com/stretchr/testify/require"
@@ -56,14 +57,16 @@ func TestConsumer(t *testing.T) {
 	log := logger.NewLogger(cfg.LogLevel)
 	consumer := service.NewConsumer(cfg, log, make(chan types.EventData))
 
+	parser, err := sqlsol.SpecLoader(cfg.SpecFile, "")
+	abiSpec, err := sqlsol.AbiLoader(cfg.AbiFile, "")
+
 	var wg sync.WaitGroup
 
 	wg.Add(1)
 	go func() {
-		err := consumer.Run(false)
+		defer wg.Done()
+		err := consumer.Run(parser, abiSpec, false)
 		require.NoError(t, err)
-
-		wg.Done()
 	}()
 
 	// shutdown consumer in a few secs and wait for its end
