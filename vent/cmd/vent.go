@@ -52,7 +52,7 @@ func runVentCmd(cmd *cobra.Command, args []string) {
 		log.Error("err", err)
 		os.Exit(1)
 	}
-	abiSpec, err := sqlsol.AbiLoader(cfg.AbiFile, cfg.AbiDir)
+	abiSpec, err := sqlsol.AbiLoader(cfg.AbiDir, cfg.AbiFile)
 	if err != nil {
 		log.Error("err", err)
 		os.Exit(1)
