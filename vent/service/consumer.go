@@ -151,7 +151,7 @@ func (c *Consumer) Run(parser *sqlsol.Parser, abiSpec *abi.AbiSpec, stream bool)
 				time.Sleep(100 * time.Millisecond)
 			}
 
-			c.Log.Info("msg", "Waiting for blocks...")
+			c.Log.Debug("msg", "Waiting for blocks...")
 
 			resp, err := blocks.Recv()
 			if err != nil {
@@ -169,7 +169,7 @@ func (c *Consumer) Run(parser *sqlsol.Parser, abiSpec *abi.AbiSpec, stream bool)
 				}
 			}
 
-			c.Log.Info("msg", "Block received", "num_txs", len(resp.TxExecutions))
+			c.Log.Debug("msg", "Block received", "num_txs", len(resp.TxExecutions))
 
 			// get event data
 			for _, txe := range resp.TxExecutions {
