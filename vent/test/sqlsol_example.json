@@ -2,6 +2,7 @@
   {
     "TableName" : "EventTest",
     "Filter" : "EventType = 'LogEvent'",
+    "DeleteFilter": "CRUD_ACTION = 'delete'",
     "Columns"  : {
       "key" : {"name" : "testkey", "type": "bytes32", "primary" : true},
       "name" : {"name" : "testname", "type": "bytes32", "primary" : true, "bytesToString": true},
