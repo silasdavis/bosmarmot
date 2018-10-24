@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/monax/bosmarmot/vent/logger"
 	"github.com/monax/bosmarmot/vent/sqldb/adapters"
@@ -50,22 +51,22 @@ func NewSQLDB(dbAdapter, dbURL, schema string, log *logger.Logger) (*SQLDB, erro
 	}
 
 	db.Log.Info("msg", "Initializing DB")
-	eventTables := db.getSysTablesDefinition()
+
+	// create dictionary and log tables
+	sysTables := db.getSysTablesDefinition()
 
 	// IMPORTANT: DO NOT CHANGE TABLE CREATION ORDER (1)
-	table := eventTables[types.SQLDictionaryTableName]
-	if err = db.createTable(table); err != nil {
+	if err = db.createTable(sysTables[types.SQLDictionaryTableName]); err != nil {
 		if !db.DBAdapter.ErrorEquals(err, types.SQLErrorTypeDuplicatedTable) {
-			db.Log.Debug("msg", "Error Initializing DB", "err", err)
+			db.Log.Debug("msg", "Error creating Dictionary table", "err", err)
 			return nil, err
 		}
 	}
 
 	// IMPORTANT: DO NOT CHANGE TABLE CREATION ORDER (2)
-	table = eventTables[types.SQLLogTableName]
-	if err = db.createTable(table); err != nil {
+	if err = db.createTable(sysTables[types.SQLLogTableName]); err != nil {
 		if !db.DBAdapter.ErrorEquals(err, types.SQLErrorTypeDuplicatedTable) {
-			db.Log.Debug("msg", "Error Initializing DB", "err", err)
+			db.Log.Debug("msg", "Error creating Log table", "err", err)
 			return nil, err
 		}
 	}
@@ -130,7 +131,7 @@ func (db *SQLDB) SynchronizeDB(eventTables types.EventTables) error {
 
 // SetBlock inserts or updates multiple rows and stores log info in SQL tables
 func (db *SQLDB) SetBlock(eventTables types.EventTables, eventData types.EventData) error {
-	db.Log.Debug("msg", "Set Block..........")
+	db.Log.Debug("msg", "Sinchronize Block..........")
 
 	var safeTable string
 	var logStmt *sql.Stmt
@@ -169,19 +170,45 @@ loop:
 
 		// for Each Row
 		for _, row := range dataRows {
-			query, values, pointers, errQuery := db.DBAdapter.UpsertQuery(table, row)
-			query = clean(query)
 
-			if errQuery != nil {
-				db.Log.Debug("msg", "Error building query", "err", errQuery, "value", fmt.Sprintf("%v %v", table, row))
-				return err
+			var query string
+			var values string
+			var pointers []interface{}
+			var errQuery error
+			var action string
+
+			switch row.Action {
+			case types.ActionUpsert:
+				//prepare upsert
+				query, values, pointers, errQuery = db.DBAdapter.UpsertQuery(table, row)
+				if errQuery != nil {
+					db.Log.Debug("msg", "Error building upsert query", "err", errQuery, "value", fmt.Sprintf("%v %v", table, row))
+					return err
+				}
+				action = "UPSERT"
+
+			case types.ActionDelete:
+				//prepare delete
+				query, values, pointers, errQuery = db.DBAdapter.DeleteQuery(table, row)
+				if errQuery != nil {
+					db.Log.Debug("msg", "Error building delete query", "err", errQuery, "value", fmt.Sprintf("%v %v", table, row))
+					return err
+				}
+				action = "DELETE"
+
+			default:
+				//invalid action
+				db.Log.Debug("msg", "Error building query", "value", fmt.Sprintf("%d", row.Action))
+				return fmt.Errorf("invalid row action %d", row.Action)
 			}
 
+			query = clean(query)
+
 			// upsert row data
-			db.Log.Debug("msg", "UPSERT", "query", query, "value", values)
+			db.Log.Debug("msg", action, "query", query, "value", values)
 			_, err = tx.Exec(query, pointers...)
 			if err != nil {
-				db.Log.Debug("msg", "Error upserting row", "err", err, "value", values)
+				db.Log.Debug("msg", "Error "+strings.ToLower(action)+"ing row", "err", err, "value", values)
 				// exits from all loops -> continue in close log stmt
 				break loop
 			}
@@ -237,14 +264,14 @@ loop:
 	return nil
 }
 
-// GetBlock returns all tables structures and row data for given block & events filter
-func (db *SQLDB) GetBlock(eventFilter, block string) (types.EventData, error) {
+// GetBlock returns all tables structures and row data for given block
+func (db *SQLDB) GetBlock(block string) (types.EventData, error) {
 	var data types.EventData
 	data.Block = block
 	data.Tables = make(map[string]types.EventDataTable)
 
 	// get all table structures involved in the block
-	tables, err := db.getBlockTables(eventFilter, block)
+	tables, err := db.getBlockTables(block)
 	if err != nil {
 		return data, err
 	}
@@ -288,6 +315,7 @@ func (db *SQLDB) GetBlock(eventFilter, block string) (types.EventData, error) {
 
 		for rows.Next() {
 			row := make(map[string]interface{})
+			//var row types.EventDataRow
 
 			if err = rows.Scan(pointers...); err != nil {
 				db.Log.Debug("msg", "Error scanning data", "err", err)
@@ -303,7 +331,7 @@ func (db *SQLDB) GetBlock(eventFilter, block string) (types.EventData, error) {
 				}
 			}
 
-			dataRows = append(dataRows, row)
+			dataRows = append(dataRows, types.EventDataRow{Action: types.ActionRead, RowData: row})
 		}
 
 		if err = rows.Err(); err != nil {
