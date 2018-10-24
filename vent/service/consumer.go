@@ -236,10 +236,12 @@ func (c *Consumer) Run(parser *sqlsol.Parser, abiSpec *abi.AbiSpec, stream bool)
 							if spec.DeleteFilter != "" {
 								deleteFilter = strings.Split(replacer.Replace(spec.DeleteFilter), "=")
 							}
+							deleteFilterLength := len(deleteFilter)
+
 							// for each data element, maps to SQL columnName and gets its value
 							// if there is no matching column for the item, it doesn't need to be stored in db
 							for k, v := range eventData {
-								if len(deleteFilter) > 0 {
+								if deleteFilterLength > 0 {
 									if k == deleteFilter[0] {
 										if bytes, ok := v.(*[]byte); ok {
 											str := strings.Trim(string(*bytes), "\x00")
