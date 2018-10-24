@@ -17,16 +17,8 @@ var types = function (args) {
   })
 }
 
-var txPayload = function (abi, args, account, address, bytecode) {
+var txPayload = function (data, account, address) {
   var payload = {}
-  // Data packing is different if calling or creating
-  var data
-  if (!address) {
-    data = bytecode
-    if (abi) data += coder.encodeParams(types(abi.inputs), args)
-  } else {
-    data = functionSig(abi) + coder.encodeParams(types(abi.inputs), args)
-  }
 
   payload.Input = {Address: Buffer.from(account || ZERO_ADDRESS, 'hex'), Amount: 1}
   payload.Address = address ? Buffer.from(address, 'hex') : ''
@@ -37,7 +29,18 @@ var txPayload = function (abi, args, account, address, bytecode) {
   return payload
 }
 
-var unpackOutput = function (output, abi, objectReturn) {
+var encodeF = function (abi, args, bytecode) {
+  // If bytecode provided then this is a creation call, bytecode goes first
+  if (bytecode) {
+    var data = bytecode
+    if (abi) data += coder.encodeParams(types(abi.inputs), args)
+    return data
+  } else {
+    return functionSig(abi) + coder.encodeParams(types(abi.inputs), args)
+  }
+}
+
+var decodeF = function (abi, output, objectReturn) {
   if (!output) {
     return
   }
@@ -94,6 +97,20 @@ var SolidityFunction = function (abi) {
     typeName = utils.extractTypeName(name)
   }
 
+  // It might seem weird to include copies of the functions in here and above
+  // My reason is the code above can be used "functionally" whereas this version
+  // Uses implicit attributes of this object.
+  // I want to keep them separate in the case that we want to move all the functional
+  // components together and maybe even... write tests for them (gasp!)
+  var encode = function () {
+    var args = Array.prototype.slice.call(arguments)
+    return encodeF(abi, utils.burrowToWeb3(args), isCon ? this.code : null)
+  }
+
+  var decode = function (data) {
+    return utils.web3ToBurrow(decodeF(abi, data, this.objectReturn))
+  }
+
   var call = function () {
     var args = Array.prototype.slice.call(arguments)
     var isSim = args.shift()
@@ -113,14 +130,12 @@ var SolidityFunction = function (abi) {
 
         if (result.Exception && result.Exception.Code === 16) {
           // Execution was reverted
-          // Strip first 4 bytes(function signature) the decode as a string
-          var msg
-          try {
-            msg = coder.decodeParams(['string'], result.Result.Return.slice(4).toString('hex').toUpperCase())[0]
-          } catch (err) {
-            msg = result.Exception.Exception
+          if (result.Result.Return.length === 0) {
+            error = new Error('Execution Reverted')
+          } else {
+            // Strip first 4 bytes(function signature) the decode as a string
+            error = new Error(coder.decodeParams(['string'], result.Result.Return.slice(4).toString('hex').toUpperCase())[0])
           }
-          error = new Error(msg)
           error.code = 'ERR_EXECUTION_REVERT'
           return reject(error)
         }
@@ -129,19 +144,19 @@ var SolidityFunction = function (abi) {
 
         var unpacked = null
         try {
-          unpacked = unpackOutput(result.Result.Return, abi, self.objectReturn)
+          unpacked = utils.web3ToBurrow(decodeF(abi, result.Result.Return, self.objectReturn))
         } catch (e) {
           return reject(e)
         }
-        return resolve(utils.web3ToBurrow(unpacked))
+        return resolve(unpacked)
       }
 
       // Decide if to make a "call" or a "transaction"
       // For the moment we need to use the burrowtoweb3 function to prefix bytes with 0x
-      // otherwise the coder will give an error with BigNumber not a number
+      // otherwise the coder will give an error with bugnumber not a number
       // TODO investigate if other libs or an updated lib will fix this
-
-      var payload = txPayload(abi, utils.burrowToWeb3(args), self.burrow.account || ZERO_ADDRESS, address, self.code)
+      var data = encodeF(abi, utils.burrowToWeb3(args), isCon ? self.code : null)
+      var payload = txPayload(data, self.burrow.account || ZERO_ADDRESS, address)
 
       if (isSim) {
         self.burrow.pipe.call(payload, post)
@@ -158,43 +173,7 @@ var SolidityFunction = function (abi) {
     }
   }
 
-  return {displayName, typeName, call}
+  return {displayName, typeName, call, encode, decode}
 }
 
-/**
- * Returns an encoded string of parameters for a specific function call. Useful for forwarding contracts.
- *
- * @method pack
- * @param {...Object} Contract function arguments
- * @param {function}
- * @return {String} output bytes
- */
-var Encoder = function (abi) {
-  var isCon = (abi == null || abi.type === 'constructor')
-  var address = isCon ? null : ZERO_ADDRESS
-
-  var name
-  var displayName
-  var typeName
-
-  if (!isCon) {
-    name = utils.transformToFullName(abi)
-    displayName = utils.extractDisplayName(name)
-    typeName = utils.extractTypeName(name)
-  }
-
-  var encode = function () {
-    var args = Array.prototype.slice.call(arguments)
-
-    var payload = txPayload(abi, utils.burrowToWeb3(args), ZERO_ADDRESS, address, this.code)
-
-    return payload.Data
-  }
-
-  return {displayName, typeName, encode}
-}
-
-module.exports = {
-  SolidityFunction,
-  Encoder
-}
+module.exports = SolidityFunction

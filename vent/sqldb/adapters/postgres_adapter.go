@@ -74,6 +74,8 @@ func (adapter *PostgresAdapter) Open(dbURL string) (*sql.DB, error) {
 			adapter.Log.Debug("msg", "Error searching schema", "err", err)
 			return nil, err
 		}
+	} else {
+		return nil, fmt.Errorf("no schema supplied")
 	}
 
 	return db, err

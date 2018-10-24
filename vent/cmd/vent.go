@@ -47,7 +47,7 @@ func runVentCmd(cmd *cobra.Command, args []string) {
 	log := logger.NewLogger(cfg.LogLevel)
 	consumer := service.NewConsumer(cfg, log, make(chan types.EventData))
 	server := service.NewServer(cfg, log, consumer)
-
+  
 	parser, err := sqlsol.SpecLoader(cfg.SpecDir, cfg.SpecFile, cfg.DBBlockTx)
 	if err != nil {
 		log.Error("err", err)

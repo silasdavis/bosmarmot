@@ -318,9 +318,9 @@ burrow.contracts.deploy(abi, bytecode, 'contract1').then((ContractObject) => {
 
 ```
 
-Encoding Params:
+Encoding/decoding Params:
 
-Occassionally you may wish to encode the parameters to a function call but not actually make the call. The most common use of this is in forwarding contracts which take  pre-encoded arguments along with function signature bytes and then call another function passing that data for specifying the call. The Contract interface object supports this use case through `Contract.functionname.encode(...args)` which will return a hex string with the encoded arguments. This functionality is also available through `Monax.utils.encode(abi, functionname, ...args)`
+Occassionally you may wish to encode the parameters to a function call but not actually make the call. The most common use of this is in forwarding contracts which take  pre-encoded arguments along with function signature bytes and then call another function passing that data for specifying the call. The Contract interface object supports this use case through `Contract.functionname.encode(...args)` which will return a hex string with the encoded arguments. This functionality is also available through `Monax.utils.encode(abi, functionname, ...args)`. In addition the complement also exists, `Contract.functionname.decode(data)` will produce the return object as if the data was just returned from a call.
 
 ## Fully working example
 
