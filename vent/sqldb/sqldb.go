@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-
 	"strings"
 
 	"github.com/monax/bosmarmot/vent/logger"
