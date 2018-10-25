@@ -39,21 +39,21 @@ func NewPostgresAdapter(schema string, log *logger.Logger) *PostgresAdapter {
 func (adapter *PostgresAdapter) Open(dbURL string) (*sql.DB, error) {
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
-		adapter.Log.Debug("msg", "Error creating database connection", "err", err)
+		adapter.Log.Info("msg", "Error creating database connection", "err", err)
 		return nil, err
 	}
 
 	// if there is a supplied Schema
 	if adapter.Schema != "" {
 		if err = db.Ping(); err != nil {
-			adapter.Log.Debug("msg", "Error opening database connection", "err", err)
+			adapter.Log.Info("msg", "Error opening database connection", "err", err)
 			return nil, err
 		}
 
 		var found bool
 
 		query := fmt.Sprintf(`SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_namespace n WHERE n.nspname = '%s');`, adapter.Schema)
-		adapter.Log.Debug("msg", "FIND SCHEMA", "query", query)
+		adapter.Log.Info("msg", "FIND SCHEMA", "query", query)
 
 		if err := db.QueryRow(query).Scan(&found); err == nil {
 			if !found {
@@ -62,7 +62,7 @@ func (adapter *PostgresAdapter) Open(dbURL string) (*sql.DB, error) {
 			adapter.Log.Info("msg", "Creating schema")
 
 			query = fmt.Sprintf("CREATE SCHEMA %s;", adapter.Schema)
-			adapter.Log.Debug("msg", "CREATE SCHEMA", "query", query)
+			adapter.Log.Info("msg", "CREATE SCHEMA", "query", query)
 
 			if _, err = db.Exec(query); err != nil {
 				if adapter.ErrorEquals(err, types.SQLErrorTypeDuplicatedSchema) {
@@ -71,7 +71,7 @@ func (adapter *PostgresAdapter) Open(dbURL string) (*sql.DB, error) {
 				}
 			}
 		} else {
-			adapter.Log.Debug("msg", "Error searching schema", "err", err)
+			adapter.Log.Info("msg", "Error searching schema", "err", err)
 			return nil, err
 		}
 	} else {
