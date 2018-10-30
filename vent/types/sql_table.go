@@ -19,18 +19,11 @@ type SQLTableColumn struct {
 	Order         int
 }
 
-// UpsertQuery contains generic query to upsert row data
-type UpsertQuery struct {
-	Query   string
-	Length  int
-	Columns map[string]UpsertColumn
-}
-
-// UpsertColumn contains info about a specific column to be upserted
-type UpsertColumn struct {
-	IsNumeric   bool
-	InsPosition int
-	UpdPosition int
+// UpsertDeleteQuery contains query and values to upsert or delete row data
+type UpsertDeleteQuery struct {
+	Query    string
+	Values   string
+	Pointers []interface{}
 }
 
 // SQL log & dictionary tables
@@ -44,13 +37,15 @@ const (
 	// log
 	SQLColumnLabelId          = "_id"
 	SQLColumnLabelTimeStamp   = "_timestamp"
+	SQLColumnLabelTableName   = "_tablename"
 	SQLColumnLabelEventName   = "_eventname"
-	SQLColumnLabelRowCount    = "_rowcount"
 	SQLColumnLabelEventFilter = "_eventfilter"
 	SQLColumnLabelHeight      = "_height"
-
-	// common
-	SQLColumnLabelTableName = "_tablename"
+	SQLColumnLabelTxHash      = "_txhash"
+	SQLColumnLabelAction      = "_action"
+	SQLColumnLabelDataRow     = "_datarow"
+	SQLColumnLabelSqlStmt     = "_sqlstmt"
+	SQLColumnLabelSqlValues   = "_sqlvalues"
 
 	// dictionary
 	SQLColumnLabelColumnName   = "_columnname"
@@ -61,7 +56,6 @@ const (
 
 	// context
 	SQLColumnLabelIndex       = "_index"
-	SQLColumnLabelTxHash      = "_txhash"
 	SQLColumnLabelEventType   = "_eventtype"
 	SQLColumnLabelBlockHeader = "_blockheader"
 	SQLColumnLabelTxType      = "_txtype"

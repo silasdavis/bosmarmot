@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/monax/bosmarmot/vent/logger"
 	"github.com/monax/bosmarmot/vent/sqldb/adapters"
@@ -27,13 +28,16 @@ func NewSQLDB(dbAdapter, dbURL, schema string, log *logger.Logger) (*SQLDB, erro
 		Log:    log,
 	}
 
-	url := dbURL
+	var url string
 
 	switch dbAdapter {
 	case types.PostgresDB:
 		db.DBAdapter = adapters.NewPostgresAdapter(safe(schema), log)
+		url = dbURL
 	case types.SQLiteDB:
 		db.DBAdapter = adapters.NewSQLiteAdapter(log)
+		// "?_journal_mode=WAL" parameter is necessary to prevent database lock
+		url = dbURL + "?_journal_mode=WAL"
 	default:
 		return nil, errors.New("invalid database adapter")
 	}
@@ -52,11 +56,11 @@ func NewSQLDB(dbAdapter, dbURL, schema string, log *logger.Logger) (*SQLDB, erro
 
 	db.Log.Info("msg", "Initializing DB")
 
-	// create dictionary and log tables
+	// Create dictionary and log tables
 	sysTables := db.getSysTablesDefinition()
 
 	// IMPORTANT: DO NOT CHANGE TABLE CREATION ORDER (1)
-	if err = db.createTable(sysTables[types.SQLDictionaryTableName]); err != nil {
+	if err = db.createTable(sysTables[types.SQLDictionaryTableName], string(types.ActionInitialize)); err != nil {
 		if !db.DBAdapter.ErrorEquals(err, types.SQLErrorTypeDuplicatedTable) {
 			db.Log.Info("msg", "Error creating Dictionary table", "err", err)
 			return nil, err
@@ -64,7 +68,7 @@ func NewSQLDB(dbAdapter, dbURL, schema string, log *logger.Logger) (*SQLDB, erro
 	}
 
 	// IMPORTANT: DO NOT CHANGE TABLE CREATION ORDER (2)
-	if err = db.createTable(sysTables[types.SQLLogTableName]); err != nil {
+	if err = db.createTable(sysTables[types.SQLLogTableName], string(types.ActionInitialize)); err != nil {
 		if !db.DBAdapter.ErrorEquals(err, types.SQLErrorTypeDuplicatedTable) {
 			db.Log.Info("msg", "Error creating Log table", "err", err)
 			return nil, err
@@ -110,16 +114,16 @@ func (db *SQLDB) GetLastBlockID() (string, error) {
 func (db *SQLDB) SynchronizeDB(eventTables types.EventTables) error {
 	db.Log.Info("msg", "Synchronizing DB")
 
-	for _, table := range eventTables {
+	for eventName, table := range eventTables {
 		found, err := db.findTable(table.Name)
 		if err != nil {
 			return err
 		}
 
 		if found {
-			err = db.alterTable(table)
+			err = db.alterTable(table, eventName)
 		} else {
-			err = db.createTable(table)
+			err = db.createTable(table, eventName)
 		}
 		if err != nil {
 			return err
@@ -131,24 +135,31 @@ func (db *SQLDB) SynchronizeDB(eventTables types.EventTables) error {
 
 // SetBlock inserts or updates multiple rows and stores log info in SQL tables
 func (db *SQLDB) SetBlock(eventTables types.EventTables, eventData types.EventData) error {
+
 	db.Log.Info("msg", "Synchronize Block..........")
 
-	var safeTable string
+	//Declarations
 	var logStmt *sql.Stmt
+	var tx *sql.Tx
+	var safeTable string
+	var query string
+	var queryVal types.UpsertDeleteQuery
 	var err error
+	var errQuery error
+	var txHash interface{}
+	var jsonData []byte
+	var sqlValues []byte
 
-	// begin tx
-	tx, err := db.DB.Begin()
-	if err != nil {
+	// Begin tx
+	if tx, err = db.DB.Begin(); err != nil {
 		db.Log.Info("msg", "Error beginning transaction", "err", err)
 		return err
 	}
 	defer tx.Rollback()
 
-	// prepare log statement
+	// Prepare log statement
 	logQuery := clean(db.DBAdapter.InsertLogQuery())
-	logStmt, err = tx.Prepare(logQuery)
-	if err != nil {
+	if logStmt, err = tx.Prepare(logQuery); err != nil {
 		db.Log.Info("msg", "Error preparing log stmt", "err", err)
 		return err
 	}
@@ -156,101 +167,106 @@ func (db *SQLDB) SetBlock(eventTables types.EventTables, eventData types.EventDa
 loop:
 	// for each table in the block
 	for eventName, table := range eventTables {
-		safeTable = safe(table.Name)
 
-		// insert in log table
+		safeTable = safe(table.Name)
 		dataRows := eventData.Tables[table.Name]
-		length := len(dataRows)
-		db.Log.Info("msg", "INSERT LOG", "query", logQuery, "value", fmt.Sprintf("rows = %d tableName = %s eventName = %s filter = %s", length, safeTable, eventName, table.Filter))
-		_, err = logStmt.Exec(length, safeTable, eventName, table.Filter, eventData.Block)
-		if err != nil {
-			db.Log.Info("msg", "Error inserting into log", "err", err)
-			return err
-		}
 
 		// for Each Row
 		for _, row := range dataRows {
 
-			var query string
-			var values string
-			var pointers []interface{}
-			var errQuery error
-			var action string
-
 			switch row.Action {
 			case types.ActionUpsert:
-				//prepare upsert
-				query, values, pointers, errQuery = db.DBAdapter.UpsertQuery(table, row)
-				if errQuery != nil {
+				//Prepare Upsert
+				if queryVal, txHash, errQuery = db.DBAdapter.UpsertQuery(table, row); errQuery != nil {
 					db.Log.Info("msg", "Error building upsert query", "err", errQuery, "value", fmt.Sprintf("%v %v", table, row))
-					return err
+					break loop // exits from all loops -> continue in close log stmt
 				}
-				action = "UPSERT"
 
 			case types.ActionDelete:
-				//prepare delete
-				query, values, pointers, errQuery = db.DBAdapter.DeleteQuery(table, row)
-				if errQuery != nil {
+				//Prepare Delete
+				txHash = nil
+				if queryVal, errQuery = db.DBAdapter.DeleteQuery(table, row); errQuery != nil {
 					db.Log.Info("msg", "Error building delete query", "err", errQuery, "value", fmt.Sprintf("%v %v", table, row))
-					return err
+					break loop // exits from all loops -> continue in close log stmt
 				}
-				action = "DELETE"
-
 			default:
-				//invalid action
-				db.Log.Info("msg", "Error building query", "value", fmt.Sprintf("%d", row.Action))
-				return fmt.Errorf("invalid row action %d", row.Action)
+				//Invalid Action
+				db.Log.Info("msg", "invalid action", "value", row.Action)
+				err = fmt.Errorf("invalid row action %s", row.Action)
+				break loop // exits from all loops -> continue in close log stmt
 			}
 
-			query = clean(query)
+			query = clean(queryVal.Query)
 
-			// upsert row data
-			db.Log.Info("msg", action, "query", query, "value", values)
-			_, err = tx.Exec(query, pointers...)
-			if err != nil {
-				db.Log.Info("msg", "Error in row, action = "+strings.ToLower(action), "err", err, "value", values)
-				// exits from all loops -> continue in close log stmt
-				break loop
+			// Perform row action
+			db.Log.Info("msg", row.Action, "query", query, "value", queryVal.Values)
+			if _, err = tx.Exec(query, queryVal.Pointers...); err != nil {
+				db.Log.Info("msg", fmt.Sprintf("error performing %s on row", row.Action), "err", err, "value", queryVal.Values)
+				break loop // exits from all loops -> continue in close log stmt
+			}
+
+			// Marshal the rowData map
+			if jsonData, err = db.getJSON(row.RowData); err != nil {
+				db.Log.Info("msg", "error marshaling rowData", "err", err, "value", fmt.Sprintf("%v", row.RowData))
+				break loop // exits from all loops -> continue in close log stmt
+			}
+
+			// Marshal sql values
+			if sqlValues, err = db.getJSONFromValues(queryVal.Pointers); err != nil {
+				db.Log.Info("msg", "error marshaling rowdata", "err", err, "value", fmt.Sprintf("%v", row.RowData))
+				break loop // exits from all loops -> continue in close log stmt
+			}
+
+			// Insert in log
+			db.Log.Info("msg", "INSERT LOG", "query", logQuery, "value", fmt.Sprintf("tableName = %s eventName = %s filter = %s block = %s", safeTable, eventName, table.Filter, eventData.Block))
+			if _, err = logStmt.Exec(safeTable, eventName, table.Filter, eventData.Block, txHash, row.Action, jsonData, query, sqlValues); err != nil {
+				db.Log.Info("msg", "Error inserting into log", "err", err)
+				break loop // exits from all loops -> continue in close log stmt
 			}
 		}
 	}
 
-	// close log statement
+	// Close log statement
 	if err == nil {
 		if err = logStmt.Close(); err != nil {
 			db.Log.Info("msg", "Error closing log stmt", "err", err)
 		}
 	}
 
-	// error handling
+	// Error handling
 	if err != nil {
-		// rollback error
+		// Rollback error
 		if errRb := tx.Rollback(); errRb != nil {
 			db.Log.Info("msg", "Error on rollback", "err", errRb)
 			return errRb
 		}
 
+		//Is a SQL error
 		if db.DBAdapter.ErrorEquals(err, types.SQLErrorTypeGeneric) {
-			// table does not exists
+
+			// Table does not exists
 			if db.DBAdapter.ErrorEquals(err, types.SQLErrorTypeUndefinedTable) {
 				db.Log.Warn("msg", "Table not found", "value", safeTable)
+				//Synchronize DB
 				if err = db.SynchronizeDB(eventTables); err != nil {
 					return err
 				}
+				//Retry
 				return db.SetBlock(eventTables, eventData)
 			}
 
-			// columns do not match
+			// Columns do not match
 			if db.DBAdapter.ErrorEquals(err, types.SQLErrorTypeUndefinedColumn) {
 				db.Log.Warn("msg", "Column not found", "value", safeTable)
+				//Synchronize DB
 				if err = db.SynchronizeDB(eventTables); err != nil {
 					return err
 				}
+				//Retry
 				return db.SetBlock(eventTables, eventData)
 			}
 			return err
 		}
-
 		return err
 	}
 
@@ -330,7 +346,6 @@ func (db *SQLDB) GetBlock(block string) (types.EventData, error) {
 					row[col] = containers[i].String
 				}
 			}
-
 			dataRows = append(dataRows, types.EventDataRow{Action: types.ActionRead, RowData: row})
 		}
 
@@ -338,9 +353,87 @@ func (db *SQLDB) GetBlock(block string) (types.EventData, error) {
 			db.Log.Info("msg", "Error during rows iteration", "err", err)
 			return data, err
 		}
-
 		data.Tables[table.Name] = dataRows
 	}
-
 	return data, nil
+}
+
+// RestoreDB restores the DB to a given moment in time
+func (db *SQLDB) RestoreDB(time time.Time, prefix string) error {
+
+	const yymmddhhmmss = "2006-01-02 15:04:05"
+
+	var pointers []interface{}
+
+	if prefix == "" {
+		return fmt.Errorf("error prefix mus not be empty")
+	}
+
+	//Get Restore DB query
+	query := db.DBAdapter.RestoreDBQuery()
+	strTime := time.Format(yymmddhhmmss)
+
+	db.Log.Info("msg", "RESTORING DB..................................")
+
+	//Open rows
+	db.Log.Info("msg", "open log", "query", query)
+	rows, err := db.DB.Query(query, strTime)
+	if err != nil {
+		db.Log.Info("msg", "error querying log", "err", err)
+		return err
+	}
+	defer rows.Close()
+
+	//For each row returned
+	for rows.Next() {
+		var tableName, sqlSmt, sqlValues string
+		var action types.DBAction
+
+		//Exit on error
+		if err = rows.Scan(&tableName, &action, &sqlSmt, &sqlValues); err != nil {
+			db.Log.Info("msg", "error scanning table structure", "err", err)
+			return err
+		}
+
+		//Exit on error
+		if err = rows.Err(); err != nil {
+			db.Log.Info("msg", "error scanning table structure", "err", err)
+			return err
+		}
+
+		restoreTable := fmt.Sprintf("%s_%s", prefix, tableName)
+
+		switch action {
+		case types.ActionUpsert, types.ActionDelete:
+			//UnMarshal JSON
+			if pointers, err = db.getValuesFromJSON(sqlValues); err != nil {
+				db.Log.Info("msg", "error unmarshaling json", "err", err, "value", sqlValues)
+				return err
+			}
+
+			//Prepare Upsert/delete
+			query = strings.Replace(sqlSmt, tableName, restoreTable, -1)
+			//Execute SQL
+			db.Log.Info("msg", "SQL COMMAND", "sql", query)
+			if _, err = db.DB.Exec(query, pointers...); err != nil {
+				db.Log.Info("msg", "Error executing upsert/delete ", "err", err, "value", sqlSmt, "data", sqlValues)
+				return err
+			}
+
+		case types.ActionAlterTable, types.ActionCreateTable:
+			//Prepare Alter/Create Table
+			query = strings.Replace(sqlSmt, tableName, restoreTable, -1)
+			//Execute SQL
+			db.Log.Info("msg", "SQL COMMAND", "sql", query)
+			if _, err = db.DB.Exec(query); err != nil {
+				db.Log.Info("msg", "Error executing alter/create table command ", "err", err, "value", sqlSmt)
+				return err
+			}
+		default:
+			//Invalid Action
+			db.Log.Info("msg", "invalid action", "value", action)
+			return fmt.Errorf("invalid row action %s", action)
+		}
+	}
+	return nil
 }

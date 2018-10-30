@@ -20,6 +20,7 @@ var sqliteDataTypes = map[types.SQLColumnType]string{
 	types.SQLColumnTypeTimeStamp: "TIMESTAMP",
 	types.SQLColumnTypeNumeric:   "NUMERIC",
 	types.SQLColumnTypeJSON:      "TEXT",
+	types.SQLColumnTypeBigInt:    "BIGINT",
 }
 
 // SQLiteAdapter implements DBAdapter for SQLiteDB
@@ -154,7 +155,6 @@ func (adapter *SQLiteAdapter) FindTableQuery() string {
 	return fmt.Sprintf(query,
 		types.SQLDictionaryTableName,  // from
 		types.SQLColumnLabelTableName) // where
-
 }
 
 // TableDefinitionQuery returns a query with table structure
@@ -175,7 +175,6 @@ func (adapter *SQLiteAdapter) TableDefinitionQuery() string {
 		types.SQLDictionaryTableName,    // from
 		types.SQLColumnLabelTableName,   // where
 		types.SQLColumnLabelColumnOrder) // order by
-
 }
 
 // AlterColumnQuery returns a query for adding a new column to a table
@@ -224,13 +223,15 @@ func (adapter *SQLiteAdapter) SelectLogQuery() string {
 // InsertLogQuery returns a query to insert a row in log table
 func (adapter *SQLiteAdapter) InsertLogQuery() string {
 	query := `
-		INSERT INTO %s (%s,%s,%s,%s,%s,%s)
-		VALUES (CURRENT_TIMESTAMP, $1, $2, $3, $4, $5);`
+		INSERT INTO %s (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+		VALUES (CURRENT_TIMESTAMP, $1, $2, $3, $4, $5, $6 ,$7, $8, $9);`
 
 	return fmt.Sprintf(query,
-		types.SQLLogTableName,                                                                      // insert
-		types.SQLColumnLabelTimeStamp, types.SQLColumnLabelRowCount, types.SQLColumnLabelTableName, // fields
-		types.SQLColumnLabelEventName, types.SQLColumnLabelEventFilter, types.SQLColumnLabelHeight) // fields
+		types.SQLLogTableName, // insert
+		//fields
+		types.SQLColumnLabelTimeStamp, types.SQLColumnLabelTableName, types.SQLColumnLabelEventName, types.SQLColumnLabelEventFilter,
+		types.SQLColumnLabelHeight, types.SQLColumnLabelTxHash, types.SQLColumnLabelAction, types.SQLColumnLabelDataRow,
+		types.SQLColumnLabelSqlStmt, types.SQLColumnLabelSqlValues)
 }
 
 // ErrorEquals verify if an error is of a given SQL type
@@ -258,15 +259,15 @@ func (adapter *SQLiteAdapter) ErrorEquals(err error, sqlErrorType types.SQLError
 	return false
 }
 
-func (adapter *SQLiteAdapter) UpsertQuery(table types.SQLTable, row types.EventDataRow) (string, string, []interface{}, error) {
+func (adapter *SQLiteAdapter) UpsertQuery(table types.SQLTable, row types.EventDataRow) (types.UpsertDeleteQuery, interface{}, error) {
 
 	pointers := make([]interface{}, 0)
-	null := sql.NullString{Valid: false}
 	columns := ""
 	insValues := ""
 	updValues := ""
 	pkColumns := ""
 	values := ""
+	var txHash interface{} = nil
 
 	i := 0
 
@@ -287,6 +288,11 @@ func (adapter *SQLiteAdapter) UpsertQuery(table types.SQLTable, row types.EventD
 
 		//find data for column
 		if value, ok := row.RowData[tableColumn.Name]; ok {
+			//load hash value
+			if tableColumn.Name == types.SQLColumnLabelTxHash {
+				txHash = value
+			}
+
 			// column found (not null)
 			// load values
 			pointers = append(pointers, &value)
@@ -303,10 +309,10 @@ func (adapter *SQLiteAdapter) UpsertQuery(table types.SQLTable, row types.EventD
 			}
 		} else if tableColumn.Primary {
 			// column NOT found (is null) and is PK
-			return "", "", nil, fmt.Errorf("error null primary key for column %s", secureColumn)
+			return types.UpsertDeleteQuery{}, nil, fmt.Errorf("error null primary key for column %s", secureColumn)
 		} else {
 			// column NOT found (is null) and is NOT PK
-			pointers = append(pointers, &null)
+			pointers = append(pointers, nil)
 			values += "null"
 		}
 
@@ -331,10 +337,10 @@ func (adapter *SQLiteAdapter) UpsertQuery(table types.SQLTable, row types.EventD
 	}
 	query += ";"
 
-	return query, values, pointers, nil
+	return types.UpsertDeleteQuery{Query: query, Values: values, Pointers: pointers}, txHash, nil
 }
 
-func (adapter *SQLiteAdapter) DeleteQuery(table types.SQLTable, row types.EventDataRow) (string, string, []interface{}, error) {
+func (adapter *SQLiteAdapter) DeleteQuery(table types.SQLTable, row types.EventDataRow) (types.UpsertDeleteQuery, error) {
 
 	pointers := make([]interface{}, 0)
 	columns := ""
@@ -367,16 +373,31 @@ func (adapter *SQLiteAdapter) DeleteQuery(table types.SQLTable, row types.EventD
 
 			} else {
 				// column NOT found (is null) and is PK
-				return "", "", nil, fmt.Errorf("error null primary key for column %s", secureColumn)
+				return types.UpsertDeleteQuery{}, fmt.Errorf("error null primary key for column %s", secureColumn)
 			}
 		}
 	}
 
 	if columns == "" {
-		return "", "", nil, fmt.Errorf("error primary key not found for deletion")
+		return types.UpsertDeleteQuery{}, fmt.Errorf("error primary key not found for deletion")
 	}
 
 	query := fmt.Sprintf("DELETE FROM %s WHERE %s;", table.Name, columns)
 
-	return query, values, pointers, nil
+	return types.UpsertDeleteQuery{Query: query, Values: values, Pointers: pointers}, nil
+}
+
+func (adapter *SQLiteAdapter) RestoreDBQuery() string {
+
+	query := fmt.Sprintf("SELECT %s, %s, %s, %s FROM %s",
+		types.SQLColumnLabelTableName, types.SQLColumnLabelAction, types.SQLColumnLabelSqlStmt, types.SQLColumnLabelSqlValues,
+		types.SQLLogTableName)
+
+	query += " WHERE strftime('%Y-%m-%d %H:%M:%S',"
+
+	query += fmt.Sprintf("%s)<=$1 ORDER BY %s;",
+		types.SQLColumnLabelTimeStamp, types.SQLColumnLabelId)
+
+	return query
+
 }
