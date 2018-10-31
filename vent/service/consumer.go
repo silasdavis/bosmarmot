@@ -190,33 +190,38 @@ func (c *Consumer) Run(parser *sqlsol.Parser, abiSpec *abi.AbiSpec, stream bool)
 					blockData.AddRow(types.SQLTxTableName, txRawData)
 				}
 
-				// get events for a given transaction
-				for _, event := range txe.Events {
+				// reverted transactions don't have to update event data tables
+				// so check that condition to filter them
+				if txe.Exception == nil {
 
-					taggedEvent := event.Tagged()
+					// get events for a given transaction
+					for _, event := range txe.Events {
 
-					// see which spec filter matches with the one in event data
-					for _, spec := range eventSpec {
-						qry, err := spec.Query()
+						taggedEvent := event.Tagged()
 
-						if err != nil {
-							doneCh <- errors.Wrapf(err, "Error parsing query from filter string")
-							return
-						}
+						// see which spec filter matches with the one in event data
+						for _, spec := range eventSpec {
+							qry, err := spec.Query()
 
-						// there's a matching filter, add data to the rows
-						if qry.Matches(taggedEvent) {
-
-							c.Log.Info("msg", fmt.Sprintf("Matched event header: %v", event.Header), "filter", spec.Filter)
-
-							// unpack, decode & build event data
-							eventData, err := buildEventData(spec, parser, event, abiSpec, c.Log)
 							if err != nil {
-								doneCh <- errors.Wrapf(err, "Error building event data")
+								doneCh <- errors.Wrapf(err, "Error parsing query from filter string")
+								return
 							}
 
-							// set row in structure
-							blockData.AddRow(strings.ToLower(spec.TableName), eventData)
+							// there's a matching filter, add data to the rows
+							if qry.Matches(taggedEvent) {
+
+								c.Log.Info("msg", fmt.Sprintf("Matched event header: %v", event.Header), "filter", spec.Filter)
+
+								// unpack, decode & build event data
+								eventData, err := buildEventData(spec, parser, event, abiSpec, c.Log)
+								if err != nil {
+									doneCh <- errors.Wrapf(err, "Error building event data")
+								}
+
+								// set row in structure
+								blockData.AddRow(strings.ToLower(spec.TableName), eventData)
+							}
 						}
 					}
 				}
