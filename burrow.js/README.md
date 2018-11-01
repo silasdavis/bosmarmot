@@ -149,47 +149,17 @@ burrow.transact.NameTxSync(setPayload, function(error, data){
 | burrow.executionEvents.GetEvents | [BlocksRequest](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpcevents.proto#L51-L89) | [GetEventsResponse](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpcevents.proto#L91-L94) | STREAM |
 
 
+***
 
 ### High-Level Components
 
-In addition to direct access to the grpc services, the burrow object also provides access to three higher level components which wrap the low level access for convenience. These are ```.namereg```, ```.events```, and ```.contracts```. All high level components use the account provided during creation of the burrow instance for constructing transactions. Component ```contracts``` is the most important of the three, as events and namereg are really just helpful wrappers.
-
-An example of using the ```.namereg``` component:
-
-```javascript
-// Using a callback
-burrow.namereg.set("DOUG", "Marmot", 5000, function(error, data){
-	if (error) throw error; // or something more sensible
-	// data object contains detailed information of the transaction execution.
-
-	// Get a name this time using a promise
-	burrow.namereg.get("DOUG")
-		.then((data) => {console.log(data);}) // Should print "Marmot"
-		.catch((error)=> {throw error;})
-})
-
-```
-
-> Note: this example is nearly identical to the example above except that the objects are not explicitly constructed by you.
+In addition to direct access to the grpc services, the burrow object also provides access to *three* higher level components which wrap the low level access for convenience. These are ```.namereg```, ```.events```, and ```.contracts```. All high level components use the account provided during creation of the burrow instance for constructing transactions. Component ```contracts``` is the most important of the three, as events and namereg are really just helpful wrappers.
 
 
-#### Namereg
+#### 1. Namereg
 
 `burrow.namereg` is a convenience wrapper for setting and getting entries from the name registry. 
  
-##### burrow.namereg.set
-```burrow.namereg.set(name, data, lease[, callback])```
-
-Sets an entry in the namereg. It returns a promise if callback not provided.
-###### Parameters
-1. `String` - The name you wish to register
-2. `String` - The string data you wish to store at the registered name (longer string = larger fee)
-3. `int` - The number of blocks to register the name for (more blocks = larger fee)
-4. `function` - (optional) Function to call upon completion of form `function(error, data)`.
-###### Returns
-`TxExecution` - The return data object is a [TxExecution](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/exec.proto#L34-L56).
-
-
 ##### burrow.namereg.get
 ```burrow.namereg.get(name[,callback])```
 
@@ -209,8 +179,37 @@ Gets an entry stored at the name. It returns a promise if callback not provided.
 } 
 ```
 
+##### burrow.namereg.set
+```burrow.namereg.set(name, data, lease[, callback])```
 
-#### Events
+Sets an entry in the namereg. It returns a promise if callback not provided.
+###### Parameters
+1. `String` - The name you wish to register
+2. `String` - The string data you wish to store at the registered name (longer string = larger fee)
+3. `int` - The number of blocks to register the name for (more blocks = larger fee)
+4. `function` - (optional) Function to call upon completion of form `function(error, data)`.
+###### Returns
+`TxExecution` - The return data object is a [TxExecution](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/exec.proto#L34-L56).
+###### Example
+
+```javascript
+// Using a callback
+burrow.namereg.set("DOUG", "Marmot", 5000, function(error, data){
+	if (error) throw error; // or something more sensible
+	// data object contains detailed information of the transaction execution.
+
+	// Get a name this time using a promise
+	burrow.namereg.get("DOUG")
+		.then((data) => {console.log(data);}) // Should print "Marmot"
+		.catch((error)=> {throw error;})
+})
+```
+
+> Note: this example is nearly identical to the example above except that the objects are not explicitly constructed by you.
+
+
+
+#### 2. Events
 
 `burrow.events` contains convenience wrappers for streaming executionEvents.
 
@@ -241,7 +240,7 @@ Listens to EVM event executions from specific contract.
 
 
 
-#### Contracts
+#### 3. Contracts
 
 `burrow.contracts` is arguably the most important component of the burrow it exposes two functions, `.deploy` and `.new` both of which return a Contract interface object (sometimes refered to as contract object). The difference between them is that `new` simply creates an interface to a contract and `deploy` will first create an instance and then deploy a copy of it to the blockchain.
 
@@ -274,7 +273,7 @@ Returns a new contract interface object. All you really need to create an interf
 `Object` - The return data object is a contract interface.
 
 
-#### Contract interface object
+#### 3.1. Contract interface object
 
 The contract interface object allows for easy access of solidity contract function calls and subscription to events. When created, javascript functions for all functions specified in the abi are generated. All of these functions have the same form `Contract.functionname(params...[, callback])`, where `params` are the arguments to the contract constructor. Arguments of the "bytes" type should be properly hex encoded before passing, to avoid improper encoding. If a callback is not provided a promise is returned.
 
@@ -290,8 +289,6 @@ In addition to the standard function call, there are three other forms: `contrac
 ```contract.functionname.sim(params... [, callback])```
 
 The "Sim" forms will force a simulated call so that does not change state. Although, the data returned is identical to what would have been returned if the call had been submitted. Useful for querying data or checking if a transaction passes some tests.
-
-
 ###### Parameters
 1. `params` - the arguments to the function (if there are any)
 2. `function`- (optional) Function to call upon completion of form `function(error, data)`.
@@ -302,12 +299,12 @@ The "Sim" forms will force a simulated call so that does not change state. Altho
 ```contract.functionname.at(address, params... [, callback])```
 
 The "at" forms allow you to specify which contract you wish to submit the transaction to. This allows you to use a single contract interface instance to access any contract with the same abi. Useful if for example there is a factory contract on the chain and you wish to connect to any of its children. The at forms MUST be used if a default address was not provided or created.
-
-
 ###### Parameters
 1. `String` - Hex encoded address of the default contract you want the interface to access
 2. `params` - the arguments to the function (if there are any)
 3. `function`- (optional) Function to call upon completion of form `function(error, data)`.
+
+
 
 ##### contract.functionname.atSim
 ```contract.functionname.at(address, params... [, callback])```
@@ -332,24 +329,49 @@ Deploys a new contract from the same interface (no need to create a new interfac
 `String` - The return data String is the created contract's address.
 
 
-#### Encoding/decoding Params:
+#### 3.2. Encoding and Decoding Params
 
-Occassionally you may wish to encode the parameters to a function call but not actually make the call. The most common use of this is in forwarding contracts which take  pre-encoded arguments along with function signature bytes and then call another function passing that data for specifying the call. The Contract interface object supports this use case through `Contract.functionname.encode(...args)` which will return a hex string with the encoded arguments. This functionality is also available through `Monax.utils.encode(abi, functionname, ...args)`. In addition the complement also exists, `Contract.functionname.decode(data)` will produce the return object as if the data was just returned from a call.
+Occassionally you may wish to encode the parameters to a function call but not actually make the call. The most common use of this is in forwarding contracts which take pre-encoded arguments along with function signature bytes and then call another function passing that data for specifying the call. 
+
+The Contract interface object supports this use case through `Contract.functionname.encode(...args)` which will return a hex string with the encoded arguments. This functionality is also available through `Monax.utils.encode(abi, functionname, ...args)`. In addition the complement also exists, `Contract.functionname.decode(data)` will produce the return object as if the data was just returned from a call.
 
 
-### Events:
+#### 3.3. Contract Events
 
-The contract interface object also exposes subscription to solidity events under eventname as `Contract.eventname(callback)` where the provided callback with be passed an error and data of the form:
+##### contract.eventname
+```contract.eventname(callback)```
 
+The contract interface object exposes subscription to Solidity events under event's name.
+ where the provided callback with be passed an error and data of the form:
+
+###### Parameters
+1. `function` - Function to call upon completion of form `function(error, data)`. The data object has the following form:
 ```
 {
-	event: fulleventname,
-	address: address of contract emitting event,
+	event: [fulleventname],
+	address: [address of contract emitting event],
 	args: {argname: argvalue}
 }
 ```
 
-Similarly to functions there is also a `Contract.eventname.at(address, callback)` call which allows you to start listening to a non-default contract address. 
+
+##### contract.eventname.at
+```contract.eventname.at(address, callback)```
+
+Similarly to functions' contract it is possible to start listening to a non-default contract address. 
+
+###### Parameters
+1. `String` - hex string of the contract address of interest
+2. `function` - Function to call upon completion of form `function(error, data)`. The data object has the following form:
+```
+{
+	event: [fulleventname],
+	address: [address of contract emitting event],
+	args: {argname: argvalue}
+}
+```
+
+
 
 
 ### Example:
@@ -377,33 +399,41 @@ Here I provide an example of communicating to the contract above from start to f
 
 ```javascript
 const monax = require('@monax/burrow');
+const assert = require('assert');
+
 var burrowURL = "<IP address>:<PORT>"; // localhost:10997 if running locally on default port
 var account = 'ABCDEF01234567890123'; // address of the account to use for signing, hex string representation 
-var options = {objectReturn: true};
+var options = {objectReturn: false};
 var burrow = monax.createInstance(burrowURL, account, options);
 
+// Get the contractABIJSON from somewhere such as solc
 var abi = json.parse(contractABIJSON) // Get the contractABIJSON from somewhere such as solc
 var bytecode = contractBytecode // Get this from somewhere such as solc
 
-// I'm going to use deploy to create a first function followed by a direct call to the constructor to deploy a second contract
 
-const contract;
-let A2
 
-burrow.contracts.deploy(abi, bytecode, 'contract1').then((ContractObject) => {
-	contract = ContractObject;
-	console.log(contract.address) // address of the first deployed contract
-	return contract._constructor('contract2') // deploy a second contract
-}).then((address)=>{
-	A2 = address;
-	console.log(A2)
-	return Promise.all(
-      [contract.getName(), 			// Note using the default address from the deploy
-        contract.getName.at(A2)])   // Using the .at() to specify the second deployed contract
-}).then(([result1, result2])=>{
-	assert.equal(result1.values.name, "contract1")
-	assert.equal(result2.values.name, "contract2")
-})
+// I'm going to use new to create a contract interface followed by a double direct call to the _constructor to deploy two contracts
+const contract = burrow.contracts.new(abi, bytecode);
+return Promise.all(								// Deployment of two contracts
+	[
+		contract._constructor('contract1'),
+		contract._constructor('contract2')
+	]
+).then( ([address1, address2]) => {				// Collection of contracts' addresses
+	console.log(address1 + " - contract1");
+	console.log(address2 + " - contract2");
+	return Promise.all(							// Execution of getName functions
+		[
+			contract.getName.at(address1),  // Using the .at() to specify the second deployed contract
+			contract.getName.at(address2)
+		]
+	).then( ([name1, name2]) => {				// Collection of contracts' names
+		console.log(address1 + " - " + name1);
+		assert.equal(name1, 'contract1');
+		console.log(address2 + " - " + name2);
+		assert.equal(name2, 'contract2');
+	});
+});
 ```
 
 
