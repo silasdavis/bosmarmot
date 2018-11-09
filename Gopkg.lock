@@ -31,7 +31,7 @@
   name = "github.com/btcsuite/btcd"
   packages = ["btcec"]
   pruneopts = "NUT"
-  revision = "2a560b2036bee5e3679ec2133eb6520b2f195213"
+  revision = "67e573d211ace594f1366b4ce9d39726c4b19bd0"
 
 [[projects]]
   branch = "master"
@@ -159,7 +159,7 @@
 
 [[projects]]
   branch = "develop"
-  digest = "1:c70f747868ccbbae2be8142843e829fd1dc99c5aed0649873b75a65100722236"
+  digest = "1:4097bcb98252cc18721729c9b131c63704055dc2f7c79086cbd83efe667a05c2"
   name = "github.com/hyperledger/burrow"
   packages = [
     "acm",
@@ -189,6 +189,7 @@
     "execution/evm/sha3",
     "execution/exec",
     "execution/names",
+    "execution/proposal",
     "genesis",
     "genesis/spec",
     "integration",
@@ -218,7 +219,7 @@
     "txs/payload",
   ]
   pruneopts = "T"
-  revision = "8e5e378ff19ddb6fec5f0bd462a61aec8a739271"
+  revision = "837dd44ee30153187182e1afd5fb36eaf4505196"
 
 [[projects]]
   digest = "1:9a52adf44086cead3b384e5d0dbf7a1c1cce65e67552ee3383a8561c42a18cd3"
@@ -272,12 +273,12 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:4f0ec1ea4a854a62d163a91df5f37e98f1083974ddcc21b0b104cd3b75238789"
+  digest = "1:c9724c929d27a14475a45b17a267dbc60671c0bc2c5c05ed21f011f7b5bc9fb5"
   name = "github.com/mattn/go-sqlite3"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "25ecb14adfc7543176f7d85291ec7dba82c6f7e4"
-  version = "v1.9.0"
+  revision = "c7c4067b79cc51e6dfdcef5c702e74b1e0fa7c75"
+  version = "v1.10.0"
 
 [[projects]]
   digest = "1:5985ef4caf91ece5d54817c11ea25f182697534f8ae6521eadcd628c142ac4b6"
@@ -331,7 +332,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:fad5a35eea6a1a33d6c8f949fbc146f24275ca809ece854248187683f52cc30b"
+  digest = "1:06375f3b602de9c99fa99b8484f0e949fd5273e6e9c6592b5a0dd4cd9085f3ea"
   name = "github.com/prometheus/common"
   packages = [
     "expfmt",
@@ -339,7 +340,7 @@
     "model",
   ]
   pruneopts = "NUT"
-  revision = "c7de2306084e37d54b8be01f3541a8464345e9a5"
+  revision = "0b1957f9d949dfa3084171a6ec5642b38055276a"
 
 [[projects]]
   branch = "master"
@@ -355,12 +356,12 @@
   revision = "185b4288413d2a0dd0806f78c90dde719829e5ae"
 
 [[projects]]
-  digest = "1:01252cd79aac70f16cac02a72a1067dd136e0ad6d5b597d0129cf74c739fd8d1"
+  digest = "1:d848e2bdc690ea54c4b49894b67a05db318a97ee6561879b814c2c1f82f61406"
   name = "github.com/sirupsen/logrus"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "a67f783a3814b8729bd2dac5780b5f78f8dbd64d"
-  version = "v1.1.0"
+  revision = "bcd833dfe83d3cebad139e4a29ed79cb2318bf95"
+  version = "v1.2.0"
 
 [[projects]]
   digest = "1:343d44e06621142ab09ae0c76c1799104cdfddd3ffb445d78b1adf8dc3ffaf3d"
@@ -399,7 +400,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f2ffd421680b0a3f7887501b3c6974bcf19217ecd301d0e2c9b681940ec363d5"
+  digest = "1:9ff9e1808adfc43f788f1c1e9fd2660c285b522243da985a4c043ec6f2a2d736"
   name = "github.com/syndtr/goleveldb"
   packages = [
     "leveldb",
@@ -416,7 +417,7 @@
     "leveldb/util",
   ]
   pruneopts = "NUT"
-  revision = "ae2bd5eed72d46b28834ec3f60db3a3ebedd8dbd"
+  revision = "f9080354173f192dfc8821931eacf9cfd6819253"
 
 [[projects]]
   digest = "1:0f300196893c040e7a5c6025051a696c068392fe2f836f2a7e8ab35d0af9cafa"
@@ -519,15 +520,15 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:acef19f6a48ca48abc8c7213ebcdcccd98e644114ad644a4b91b9134fdbc3b41"
+  digest = "1:1c470465fb009d034f2cd68b1fb03e8e4c80696c4eb7437c3e7877cbc515db75"
   name = "github.com/tmthrgd/go-hex"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "d1fb3dbb16a1d00be1dec2027f83714c7bd920f1"
+  revision = "14226a535f434c12dbb6c0a0a59e40716f1534b4"
 
 [[projects]]
   branch = "master"
-  digest = "1:23cfdc365552dca2692bdf285caec6938ca6d53277b07567ea5809ab490b3d25"
+  digest = "1:95da60183886ee206cccb731ca3e66aa4731e3aac52f257fcf3e7049a63792fe"
   name = "golang.org/x/crypto"
   packages = [
     "chacha20poly1305",
@@ -547,7 +548,7 @@
     "ssh/terminal",
   ]
   pruneopts = "NUT"
-  revision = "e3636079e1a4c1f337f212cc5cd2aca108f6c900"
+  revision = "e4dc69e5b2fd71dcaf8bd5d054eb936deb78d1fa"
 
 [[projects]]
   digest = "1:2822b75330f8a787dca2f7d861788811676b2c50cea125851bbe32e9fd31624c"
@@ -567,7 +568,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:1b43e20bd17b39ab446107f91fadc62e5abd7b4210d6331d10571621706f5cdc"
+  digest = "1:4c46842d393569b51df36be861807153176337a2f38790615906f2eee86ce98c"
   name = "golang.org/x/sys"
   packages = [
     "cpu",
@@ -575,7 +576,7 @@
     "windows",
   ]
   pruneopts = "NUT"
-  revision = "4497e2df6f9e69048a54498c7affbbec3294ad47"
+  revision = "66b7b1311ac80bbafcd2daeef9a5e6e2cd1e2399"
 
 [[projects]]
   digest = "1:e7071ed636b5422cc51c0e3a6cebc229d6c9fffc528814b519a980641422d619"
@@ -606,7 +607,7 @@
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "NUT"
-  revision = "af9cb2a35e7f169ec875002c1829c9b315cddc04"
+  revision = "5fc9ac5403620be16bcdb0c8e7644b1178472c3b"
 
 [[projects]]
   digest = "1:d0e5846da58e4e20d1bbd7502b24f31d37e3ac1e02a9042d95bd93c2d0c139dd"
