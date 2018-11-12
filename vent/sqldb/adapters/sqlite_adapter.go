@@ -401,3 +401,63 @@ func (adapter *SQLiteAdapter) RestoreDBQuery() string {
 	return query
 
 }
+
+func (adapter *SQLiteAdapter) CleanDBQueries() types.SQLCleanDBQuery {
+
+	// Chain info
+	selectChainIDQry := fmt.Sprintf(`
+		SELECT 
+		COUNT(*) REGISTERS,
+		COALESCE(MAX(%s),'') CHAINID,
+		COALESCE(MAX(%s),'') BVERSION 
+		FROM %s;`,
+		types.SQLColumnLabelChainID, types.SQLColumnLabelBurrowVer,
+		types.SQLChainInfoTableName)
+
+	deleteChainIDQry := fmt.Sprintf(`
+		DELETE FROM %s;`,
+		types.SQLChainInfoTableName)
+
+	insertChainIDQry := fmt.Sprintf(`
+		INSERT INTO %s (%s,%s) VALUES($1,$2)`,
+		types.SQLChainInfoTableName,
+		types.SQLColumnLabelChainID, types.SQLColumnLabelBurrowVer)
+
+	// Dictionary
+	selectDictionaryQry := fmt.Sprintf(`
+		SELECT DISTINCT %s 
+		FROM %s 
+ 		WHERE %s
+		NOT IN ('%s','%s','%s');`,
+		types.SQLColumnLabelTableName,
+		types.SQLDictionaryTableName,
+		types.SQLColumnLabelTableName,
+		types.SQLLogTableName, types.SQLDictionaryTableName, types.SQLChainInfoTableName)
+
+	deleteDictionaryQry := fmt.Sprintf(`
+		DELETE FROM %s 
+		WHERE %s 
+		NOT IN ('%s','%s','%s');`,
+		types.SQLDictionaryTableName,
+		types.SQLColumnLabelTableName,
+		types.SQLLogTableName, types.SQLDictionaryTableName, types.SQLChainInfoTableName)
+
+	// log
+	deleteLogQry := fmt.Sprintf(`
+		DELETE FROM %s;`,
+		types.SQLLogTableName)
+
+	return types.SQLCleanDBQuery{
+		SelectChainIDQry:    selectChainIDQry,
+		DeleteChainIDQry:    deleteChainIDQry,
+		InsertChainIDQry:    insertChainIDQry,
+		SelectDictionaryQry: selectDictionaryQry,
+		DeleteDictionaryQry: deleteDictionaryQry,
+		DeleteLogQry:        deleteLogQry,
+	}
+}
+
+func (adapter *SQLiteAdapter) DropTableQuery(tableName string) string {
+	//drop tables
+	return fmt.Sprintf(`DROP TABLE %s;`, tableName)
+}

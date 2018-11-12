@@ -412,3 +412,63 @@ func (adapter *PostgresAdapter) RestoreDBQuery() string {
 		types.SQLColumnLabelTimeStamp,
 		types.SQLColumnLabelId)
 }
+
+func (adapter *PostgresAdapter) CleanDBQueries() types.SQLCleanDBQuery {
+
+	// Chain info
+	selectChainIDQry := fmt.Sprintf(`
+		SELECT 
+		COUNT(*) REGISTERS,
+		COALESCE(MAX(%s),'') CHAINID,
+		COALESCE(MAX(%s),'') BVERSION 
+		FROM %s.%s;`,
+		types.SQLColumnLabelChainID, types.SQLColumnLabelBurrowVer,
+		adapter.Schema, types.SQLChainInfoTableName)
+
+	deleteChainIDQry := fmt.Sprintf(`
+		DELETE FROM %s.%s;`,
+		adapter.Schema, types.SQLChainInfoTableName)
+
+	insertChainIDQry := fmt.Sprintf(`
+		INSERT INTO %s.%s (%s,%s) VALUES($1,$2)`,
+		adapter.Schema, types.SQLChainInfoTableName,
+		types.SQLColumnLabelChainID, types.SQLColumnLabelBurrowVer)
+
+	// Dictionary
+	selectDictionaryQry := fmt.Sprintf(`
+		SELECT DISTINCT %s 
+		FROM %s.%s 
+ 		WHERE %s
+		NOT IN ('%s','%s','%s');`,
+		types.SQLColumnLabelTableName,
+		adapter.Schema, types.SQLDictionaryTableName,
+		types.SQLColumnLabelTableName,
+		types.SQLLogTableName, types.SQLDictionaryTableName, types.SQLChainInfoTableName)
+
+	deleteDictionaryQry := fmt.Sprintf(`
+		DELETE FROM %s.%s 
+		WHERE %s 
+		NOT IN ('%s','%s','%s');`,
+		adapter.Schema, types.SQLDictionaryTableName,
+		types.SQLColumnLabelTableName,
+		types.SQLLogTableName, types.SQLDictionaryTableName, types.SQLChainInfoTableName)
+
+	// log
+	deleteLogQry := fmt.Sprintf(`
+		DELETE FROM %s.%s;`,
+		adapter.Schema, types.SQLLogTableName)
+
+	return types.SQLCleanDBQuery{
+		SelectChainIDQry:    selectChainIDQry,
+		DeleteChainIDQry:    deleteChainIDQry,
+		InsertChainIDQry:    insertChainIDQry,
+		SelectDictionaryQry: selectDictionaryQry,
+		DeleteDictionaryQry: deleteDictionaryQry,
+		DeleteLogQry:        deleteLogQry,
+	}
+}
+
+func (adapter *PostgresAdapter) DropTableQuery(tableName string) string {
+	//drop tables
+	return fmt.Sprintf(`DROP TABLE %s.%s;`, adapter.Schema, tableName)
+}

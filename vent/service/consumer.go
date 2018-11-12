@@ -11,6 +11,7 @@ import (
 
 	"github.com/hyperledger/burrow/execution/evm/abi"
 	"github.com/hyperledger/burrow/rpc/rpcevents"
+	"github.com/hyperledger/burrow/rpc/rpcquery"
 	"github.com/monax/bosmarmot/vent/config"
 	"github.com/monax/bosmarmot/vent/logger"
 	"github.com/monax/bosmarmot/vent/sqldb"
@@ -49,6 +50,21 @@ func (c *Consumer) Run(parser *sqlsol.Parser, abiSpec *abi.AbiSpec, stream bool)
 
 	var err error
 
+	c.Log.Info("msg", "Connecting to Burrow gRPC server")
+
+	c.GRPCConnection, err = grpc.Dial(c.Config.GRPCAddr, grpc.WithInsecure())
+	if err != nil {
+		return errors.Wrapf(err, "Error connecting to Burrow gRPC server at %s", c.Config.GRPCAddr)
+	}
+	defer c.GRPCConnection.Close()
+
+	// get the chain ID to compare with the one stored in the db
+	qCli := rpcquery.NewQueryClient(c.GRPCConnection)
+	chainStatus, err := qCli.Status(context.Background(), &rpcquery.StatusParam{})
+	if err != nil {
+		return errors.Wrapf(err, "Error getting chain status")
+	}
+
 	// obtain tables structures, event & abi specifications
 	tables := parser.GetTables()
 	eventSpec := parser.GetEventSpec()
@@ -60,7 +76,16 @@ func (c *Consumer) Run(parser *sqlsol.Parser, abiSpec *abi.AbiSpec, stream bool)
 
 	c.Log.Info("msg", "Connecting to SQL database")
 
-	c.DB, err = sqldb.NewSQLDB(c.Config.DBAdapter, c.Config.DBURL, c.Config.DBSchema, c.Log)
+	connection := types.SQLConnection{
+		DBAdapter:     c.Config.DBAdapter,
+		DBURL:         c.Config.DBURL,
+		DBSchema:      c.Config.DBSchema,
+		Log:           c.Log,
+		ChainID:       chainStatus.ChainID,
+		BurrowVersion: chainStatus.BurrowVersion,
+	}
+
+	c.DB, err = sqldb.NewSQLDB(connection)
 	if err != nil {
 		return errors.Wrap(err, "Error connecting to SQL")
 	}
@@ -72,14 +97,6 @@ func (c *Consumer) Run(parser *sqlsol.Parser, abiSpec *abi.AbiSpec, stream bool)
 	if err != nil {
 		return errors.Wrap(err, "Error trying to synchronize database")
 	}
-
-	c.Log.Info("msg", "Connecting to Burrow gRPC server")
-
-	c.GRPCConnection, err = grpc.Dial(c.Config.GRPCAddr, grpc.WithInsecure())
-	if err != nil {
-		return errors.Wrapf(err, "Error connecting to Burrow gRPC server at %s", c.Config.GRPCAddr)
-	}
-	defer c.GRPCConnection.Close()
 
 	// doneCh is used for sending a "done" signal from each goroutine to the main thread
 	// eventCh is used for sending received events to the main thread to be stored in the db
