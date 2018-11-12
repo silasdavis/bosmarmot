@@ -657,6 +657,7 @@
     "github.com/hyperledger/burrow/execution/exec",
     "github.com/hyperledger/burrow/integration",
     "github.com/hyperledger/burrow/rpc/rpcevents",
+    "github.com/hyperledger/burrow/rpc/rpcquery",
     "github.com/hyperledger/burrow/rpc/rpctransact",
     "github.com/hyperledger/burrow/txs/payload",
     "github.com/lib/pq",
