@@ -68,6 +68,7 @@ type Kernel struct {
 	State      *execution.State
 	Blockchain *bcm.Blockchain
 	Node       *tendermint.Node
+	Transactor *execution.Transactor
 	// Time-based UUID randomly generated each time Burrow is started
 	RunID          simpleuuid.UUID
 	Logger         *logging.Logger
@@ -133,10 +134,11 @@ func NewKernel(ctx context.Context, keyClient keys.KeyClient, privValidator tmTy
 		return nil, err
 	}
 
-	transactor := execution.NewTransactor(kern.Blockchain, kern.Emitter, execution.NewAccounts(checker, keyClient, AccountsRingMutexCount),
+	kern.Transactor = execution.NewTransactor(kern.Blockchain, kern.Emitter, execution.NewAccounts(checker, keyClient, AccountsRingMutexCount),
 		kern.Node.MempoolReactor().BroadcastTx, txCodec, kern.Logger)
 
 	nameRegState := kern.State
+	proposalRegState := kern.State
 	accountState := kern.State
 	nodeView, err := tendermint.NewNodeView(kern.Node, txCodec, kern.RunID)
 	if err != nil {
@@ -243,10 +245,10 @@ func NewKernel(ctx context.Context, keyClient keys.KeyClient, privValidator tmTy
 					keys.RegisterKeysServer(grpcServer, ks)
 				}
 
-				rpcquery.RegisterQueryServer(grpcServer, rpcquery.NewQueryServer(kern.State, nameRegState,
+				rpcquery.RegisterQueryServer(grpcServer, rpcquery.NewQueryServer(kern.State, nameRegState, proposalRegState,
 					kern.Blockchain, nodeView, kern.Logger))
 
-				rpctransact.RegisterTransactServer(grpcServer, rpctransact.NewTransactServer(transactor, txCodec))
+				rpctransact.RegisterTransactServer(grpcServer, rpctransact.NewTransactServer(kern.Transactor, txCodec))
 
 				rpcevents.RegisterExecutionEventsServer(grpcServer, rpcevents.NewExecutionEventsServer(kern.State,
 					kern.Emitter, kern.Blockchain, kern.Logger))

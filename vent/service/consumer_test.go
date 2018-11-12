@@ -20,24 +20,24 @@ import (
 
 func TestConsumer(t *testing.T) {
 	tCli := test.NewTransactClient(t, testConfig.RPC.GRPC.ListenAddress)
-	create := test.CreateContract(t, tCli, inputAccount.Address())
+	create := test.CreateContract(t, tCli, inputAccount.GetAddress())
 
 	// generate events
 	name := "TestEvent1"
 	description := "Description of TestEvent1"
-	test.CallAddEvent(t, tCli, inputAccount.Address(), create.Receipt.ContractAddress, name, description)
+	test.CallAddEvent(t, tCli, inputAccount.GetAddress(), create.Receipt.ContractAddress, name, description)
 
 	name = "TestEvent2"
 	description = "Description of TestEvent2"
-	test.CallAddEvent(t, tCli, inputAccount.Address(), create.Receipt.ContractAddress, name, description)
+	test.CallAddEvent(t, tCli, inputAccount.GetAddress(), create.Receipt.ContractAddress, name, description)
 
 	name = "TestEvent3"
 	description = "Description of TestEvent3"
-	test.CallAddEvent(t, tCli, inputAccount.Address(), create.Receipt.ContractAddress, name, description)
+	test.CallAddEvent(t, tCli, inputAccount.GetAddress(), create.Receipt.ContractAddress, name, description)
 
 	name = "TestEvent4"
 	description = "Description of TestEvent4"
-	test.CallAddEvent(t, tCli, inputAccount.Address(), create.Receipt.ContractAddress, name, description)
+	test.CallAddEvent(t, tCli, inputAccount.GetAddress(), create.Receipt.ContractAddress, name, description)
 
 	// workaround for off-by-one on latest bound fixed in burrow
 	time.Sleep(time.Second * 2)
@@ -108,7 +108,7 @@ func TestConsumer(t *testing.T) {
 
 		tblData = eventData.Tables[types.SQLTxTableName]
 		require.Equal(t, 1, len(tblData))
-		require.Equal(t, "E7D6153490DF530A2083466BDED7A8F0D8212E39", tblData[0].RowData["_txhash"].(string))
+		require.Equal(t, "B216CCD3919E82BE7206DFDFF08D3625E1F9E6B9", tblData[0].RowData["_txhash"].(string))
 	}
 
 	//Restore
