@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Test</title>
+    <link rel="stylesheet" type="text/css" href="/css/style.css">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:300' rel='stylesheet' type='text/css'>
+  </head>
+  <body>
+    <div class="container">
+      <fieldset>
+        <form action="/" method="post">
+                    <input name="voteNum" type="number" class="ghost-input" placeholder="Enter a vote number" required>
+          <input type="submit" class="ghost-button" value="Place Vote">
+        </form>
+      </fieldset>
+      <fieldset>
+        <form action="/getVote" method="get">
+          <input type="submit" class="ghost-button" value="Get Vote">
+        </form>
+        <% if(voteIs !== null){ %>
+          <p><%= voteIs %></p>
+        <% } %>
+
+        <% if(voteIs !== null){ %>
+          <p><%= error %></p>
+        <% } %>
+      </fieldset>
+    </div>
+  </body>
+</html>
