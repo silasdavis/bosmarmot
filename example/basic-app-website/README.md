@@ -46,13 +46,12 @@ This will deploy the contract if necessary, install any node dependencies, and t
 Open a web browser and type:
 
 ```shell
-# Inspect current value
-  $ http://localhost:3000/
+  http://localhost:3000/
 ```
 
 You will see two buttons:
 * Set Value - that allows you to change the value stored in the associated smart contract
-* Get Value - that allows you to retrieve the value stored in the associated smart contract
+* Get Value - that allows you to retrieve the value stored in the associated smart contract, which will be displayed underneath the button
 ```shell
 # Inspect current value
   $ http 127.0.0.1:3000
