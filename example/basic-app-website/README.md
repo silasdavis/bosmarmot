@@ -1,4 +1,6 @@
-# Example basic-app
+# Example basic-app (with website)
+
+Note that this example is the same as the the basic-app example, apart from step 3.
 
 This example contains an example solidity contract [simplestorage](simplestorage.sol) and a [node.js application](app.js) that interacts with the contract using [burrow.js](../../burrow.js/README.md). It also contains a [makefile](makefile) that will set up a single node chain, deploy the contract using `burrow deploy`. The node app configures itself to use the the single node chain my looking for [account.json](account.json) and [deploy.output.json](deploy.output.json) files that are emitted by `burrow deploy` and the makefile.
 
@@ -41,25 +43,16 @@ make start_app
 This will deploy the contract if necessary, install any node dependencies, and then start an expressjs server, which will run until interrupted.
 
 ### Step three
-In a third terminal you may run the following commands that will call the Solidity smart contract using Javascript and burrow.js:
+Open a web browser and type:
 
 ```shell
 # Inspect current value
-  $ curl http://127.0.0.1:3000
-  
-# Set the value to 2000
-  $ curl -d '{"value": 2000}' -H "Content-Type: application/json" -X POST http://127.0.0.1:3000
-  
-# Set the value via a testAndSet operation
-  $ curl -d '{"value": 30}' -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/2000
-  
-# Attempt the same testAndSet which now fails since the value stored is no longer '2000'
-  $ curl -d '{"value": 30}' -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/2000
-  $ curl http://127.0.0.1:3000
+  $ http://localhost:3000/
 ```
 
-Note: [httpie](https://httpie.org/) is a useful tool that makes POSTing to JSON endpoints more succinct:
-
+You will see two buttons:
+* Set Value - that allows you to change the value stored in the associated smart contract
+* Get Value - that allows you to retrieve the value stored in the associated smart contract
 ```shell
 # Inspect current value
   $ http 127.0.0.1:3000
