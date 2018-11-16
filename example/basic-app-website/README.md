@@ -52,17 +52,4 @@ Open a web browser and type:
 You will see two buttons:
 * Set Value - that allows you to change the value stored in the associated smart contract
 * Get Value - that allows you to retrieve the value stored in the associated smart contract, which will be displayed underneath the button
-```shell
-# Inspect current value
-  $ http 127.0.0.1:3000
-  
-# Set the value to 2000
-  $ http 127.0.0.1:3000 value=2000
-  
-# Set the value via a testAndSet operation
-  $ http 127.0.0.1:3000/2000 value=30
-  
-# Attempt the same testAndSet which now fails since the value stored is no longer '2000'
-  $ http 127.0.0.1:3000/2000 value=30
-  $ http 127.0.0.1:3000
-```
+
