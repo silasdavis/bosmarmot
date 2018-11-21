@@ -19,38 +19,36 @@ type SQLTableColumn struct {
 	Order         int
 }
 
-// UpsertQuery contains generic query to upsert row data
-type UpsertQuery struct {
-	Query   string
-	Length  int
-	Columns map[string]UpsertColumn
-}
-
-// UpsertColumn contains info about a specific column to be upserted
-type UpsertColumn struct {
-	IsNumeric   bool
-	InsPosition int
-	UpdPosition int
+// UpsertDeleteQuery contains query and values to upsert or delete row data
+type UpsertDeleteQuery struct {
+	Query    string
+	Values   string
+	Pointers []interface{}
 }
 
 // SQL log & dictionary tables
-const SQLLogTableName = "_vent_log"
-const SQLDictionaryTableName = "_vent_dictionary"
-const SQLBlockTableName = "_vent_block"
-const SQLTxTableName = "_vent_tx"
+const (
+	SQLLogTableName        = "_vent_log"
+	SQLDictionaryTableName = "_vent_dictionary"
+	SQLBlockTableName      = "_vent_block"
+	SQLTxTableName         = "_vent_tx"
+	SQLChainInfoTableName  = "_vent_chain"
+)
 
 // fixed sql column names in tables
 const (
 	// log
 	SQLColumnLabelId          = "_id"
 	SQLColumnLabelTimeStamp   = "_timestamp"
+	SQLColumnLabelTableName   = "_tablename"
 	SQLColumnLabelEventName   = "_eventname"
-	SQLColumnLabelRowCount    = "_rowcount"
 	SQLColumnLabelEventFilter = "_eventfilter"
 	SQLColumnLabelHeight      = "_height"
-
-	// common
-	SQLColumnLabelTableName = "_tablename"
+	SQLColumnLabelTxHash      = "_txhash"
+	SQLColumnLabelAction      = "_action"
+	SQLColumnLabelDataRow     = "_datarow"
+	SQLColumnLabelSqlStmt     = "_sqlstmt"
+	SQLColumnLabelSqlValues   = "_sqlvalues"
 
 	// dictionary
 	SQLColumnLabelColumnName   = "_columnname"
@@ -59,9 +57,12 @@ const (
 	SQLColumnLabelPrimaryKey   = "_primarykey"
 	SQLColumnLabelColumnOrder  = "_columnorder"
 
+	// chain info
+	SQLColumnLabelBurrowVer = "_burrowversion"
+	SQLColumnLabelChainID   = "_chainid"
+
 	// context
 	SQLColumnLabelIndex       = "_index"
-	SQLColumnLabelTxHash      = "_txhash"
 	SQLColumnLabelEventType   = "_eventtype"
 	SQLColumnLabelBlockHeader = "_blockheader"
 	SQLColumnLabelTxType      = "_txtype"

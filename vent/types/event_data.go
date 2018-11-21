@@ -1,12 +1,15 @@
 package types
 
-// CRUDAction generic type
-type CRUDAction int
+// DBAction generic type
+type DBAction string
 
 const (
-	ActionDelete CRUDAction = iota
-	ActionUpsert
-	ActionRead
+	ActionDelete      DBAction = "DELETE"
+	ActionUpsert      DBAction = "UPSERT"
+	ActionRead        DBAction = "READ"
+	ActionCreateTable DBAction = "CREATE"
+	ActionAlterTable  DBAction = "ALTER"
+	ActionInitialize  DBAction = "_INITIALIZE_VENT"
 )
 
 // EventData contains data for each block of events
@@ -24,6 +27,6 @@ type EventDataTable []EventDataRow
 // map key is the column name and map value is the given column value
 // if Action == 'delete' then the row has to be deleted
 type EventDataRow struct {
-	Action  CRUDAction
+	Action  DBAction
 	RowData map[string]interface{}
 }

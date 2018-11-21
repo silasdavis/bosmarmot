@@ -3,7 +3,9 @@
 package sqldb_test
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/monax/bosmarmot/vent/sqlsol"
 	"github.com/monax/bosmarmot/vent/test"
@@ -45,6 +47,47 @@ func TestSynchronizeDB(t *testing.T) {
 	})
 }
 
+func TestCleanDB(t *testing.T) {
+	t.Run("POSTGRES: successfully creates tables, updates chainID and drops all tables", func(t *testing.T) {
+		goodJSON := test.GoodJSONConfFile(t)
+
+		byteValue := []byte(goodJSON)
+		tableStructure, _ := sqlsol.NewParserFromBytes(byteValue)
+
+		db, cleanUpDB := test.NewTestDB(t, types.PostgresDB)
+		defer cleanUpDB()
+
+		err := db.Ping()
+		require.NoError(t, err)
+
+		err = db.SynchronizeDB(tableStructure.GetTables())
+		require.NoError(t, err)
+
+		err = db.CleanTables("NEW_ID", "Version 1.0")
+		require.NoError(t, err)
+	})
+
+	t.Run("SQLITE: successfully creates tables, updates chainID and drops all tables", func(t *testing.T) {
+		goodJSON := test.GoodJSONConfFile(t)
+
+		byteValue := []byte(goodJSON)
+		tableStructure, _ := sqlsol.NewParserFromBytes(byteValue)
+
+		db, closeDB := test.NewTestDB(t, types.SQLiteDB)
+		defer closeDB()
+
+		err := db.Ping()
+		require.NoError(t, err)
+
+		err = db.SynchronizeDB(tableStructure.GetTables())
+		require.NoError(t, err)
+
+		err = db.CleanTables("NEW_ID", "Version 1.0")
+		require.NoError(t, err)
+
+	})
+}
+
 func TestSetBlock(t *testing.T) {
 	t.Run("POSTGRES: successfully inserts a block", func(t *testing.T) {
 		db, closeDB := test.NewTestDB(t, types.PostgresDB)
@@ -69,6 +112,12 @@ func TestSetBlock(t *testing.T) {
 		str, dat = getAlterBlock()
 		err = db.SetBlock(str, dat)
 		require.NoError(t, err)
+
+		//restore
+		ti := time.Now().Local().AddDate(10, 0, 0)
+		err = db.RestoreDB(ti, "RESTORED")
+		require.NoError(t, err)
+
 	})
 
 	t.Run("SQLITE: successfully inserts a block", func(t *testing.T) {
@@ -86,7 +135,6 @@ func TestSetBlock(t *testing.T) {
 		// read
 		_, err = db.GetLastBlockID()
 		require.NoError(t, err)
-
 		_, err = db.GetBlock(dat.Block)
 		require.NoError(t, err)
 
@@ -94,6 +142,12 @@ func TestSetBlock(t *testing.T) {
 		str, dat = getAlterBlock()
 		err = db.SetBlock(str, dat)
 		require.NoError(t, err)
+
+		//restore
+		ti := time.Now().Local().AddDate(10, 0, 0)
+		err = db.RestoreDB(ti, "RESTORED")
+		require.NoError(t, err)
+
 	})
 
 	t.Run("POSTGRES: successfully creates an empty table", func(t *testing.T) {
@@ -146,6 +200,9 @@ func TestSetBlock(t *testing.T) {
 }
 
 func getBlock() (types.EventTables, types.EventData) {
+	longtext := "qwertyuiopasdfghjklzxcvbnm1234567890QWERTYUIOPASDFGHJKLZXCVBNM"
+	longtext = fmt.Sprintf("%s %s %s %s %s", longtext, longtext, longtext, longtext, longtext)
+
 	//table 1
 	cols1 := make(map[string]types.SQLTableColumn)
 	cols1["ID"] = types.SQLTableColumn{Name: "test_id", Type: types.SQLColumnTypeInt, Primary: true, Order: 1}
@@ -153,6 +210,9 @@ func getBlock() (types.EventTables, types.EventData) {
 	cols1["Column2"] = types.SQLTableColumn{Name: "col2", Type: types.SQLColumnTypeVarchar, Length: 100, Primary: false, Order: 3}
 	cols1["Column3"] = types.SQLTableColumn{Name: "_height", Type: types.SQLColumnTypeVarchar, Length: 100, Primary: false, Order: 4}
 	cols1["Column4"] = types.SQLTableColumn{Name: "col4", Type: types.SQLColumnTypeText, Primary: false, Order: 5}
+
+	cols1["ColumnV"] = types.SQLTableColumn{Name: "colV", Type: types.SQLColumnTypeVarchar, Length: 400, Primary: false, Order: 6}
+	cols1["ColumnT"] = types.SQLTableColumn{Name: "colT", Type: types.SQLColumnTypeText, Length: 0, Primary: false, Order: 7}
 	table1 := types.SQLTable{Name: "test_table1", Filter: "TEST", Columns: cols1}
 
 	//table 2
@@ -188,11 +248,11 @@ func getBlock() (types.EventTables, types.EventData) {
 	dat.Tables = make(map[string]types.EventDataTable)
 
 	var rows1 []types.EventDataRow
-	rows1 = append(rows1, types.EventDataRow{Action: types.ActionUpsert, RowData: map[string]interface{}{"test_id": "1", "col1": "text11", "col2": "text12", "_height": "0123456789ABCDEF0", "col4": "14"}})
-	rows1 = append(rows1, types.EventDataRow{Action: types.ActionUpsert, RowData: map[string]interface{}{"test_id": "2", "col1": "text21", "col2": "text22", "_height": "0123456789ABCDEF0", "col4": "24"}})
-	rows1 = append(rows1, types.EventDataRow{Action: types.ActionUpsert, RowData: map[string]interface{}{"test_id": "3", "col1": "text31", "col2": "text32", "_height": "0123456789ABCDEF0", "col4": "34"}})
-	rows1 = append(rows1, types.EventDataRow{Action: types.ActionUpsert, RowData: map[string]interface{}{"test_id": "4", "col1": "text41", "col3": "text43", "_height": "0123456789ABCDEF0"}})
-	rows1 = append(rows1, types.EventDataRow{Action: types.ActionUpsert, RowData: map[string]interface{}{"test_id": "1", "col1": "upd", "col2": "upd", "_height": "0123456789ABCDEF0", "col4": "upd"}})
+	rows1 = append(rows1, types.EventDataRow{Action: types.ActionUpsert, RowData: map[string]interface{}{"test_id": "1", "col1": "text11", "col2": "text12", "_height": "0123456789ABCDEF0", "col4": "14", "colV": longtext, "colT": longtext}})
+	rows1 = append(rows1, types.EventDataRow{Action: types.ActionUpsert, RowData: map[string]interface{}{"test_id": "2", "col1": "text21", "col2": "text22", "_height": "0123456789ABCDEF0", "col4": "24", "colV": longtext, "colT": longtext}})
+	rows1 = append(rows1, types.EventDataRow{Action: types.ActionUpsert, RowData: map[string]interface{}{"test_id": "3", "col1": "text31", "col2": "text32", "_height": "0123456789ABCDEF0", "col4": "34", "colV": longtext, "colT": longtext}})
+	rows1 = append(rows1, types.EventDataRow{Action: types.ActionUpsert, RowData: map[string]interface{}{"test_id": "4", "col1": "text41", "col3": "text43", "_height": "0123456789ABCDEF0", "colV": longtext, "colT": longtext}})
+	rows1 = append(rows1, types.EventDataRow{Action: types.ActionUpsert, RowData: map[string]interface{}{"test_id": "1", "col1": "upd", "col2": "upd", "_height": "0123456789ABCDEF0", "col4": "upd", "colV": longtext, "colT": longtext}})
 	dat.Tables["test_table1"] = rows1
 
 	var rows2 []types.EventDataRow
