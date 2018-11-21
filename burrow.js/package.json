@@ -15,7 +15,7 @@
     "bignumber.js": "github:debris/bignumber.js#94d7146671b9719e00a09c29b01a691bc85048c2",
     "crypto-js": "3.1.4",
     "g-functions": "0.3.0",
-    "grpc": "^1.12.2",
+    "grpc": "^1.16.1",
     "protobufjs": "^6.8.6",
     "ramda": "0.23.0",
     "utf8": "2.1.2",
