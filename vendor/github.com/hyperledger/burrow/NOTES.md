@@ -1,11 +1,8 @@
-### Changed
-- Upgraded to Tendermint 0.24.0
-- Upgraded to IAVL 0.11.0
-
 ### Fixed
-- Fixed non-determinism in Governance Tx
-- Fixed various abi issues
+- [EVM] state/Cache no longer allows SetStorage on accounts that do not exist
+- [GRPC] GetAccount on unknown account no longer causes a panic
 
 ### Added
-- burrow deploy displays revert reason when available
-- burrow deploy compiles contracts concurrently
+- [Docker] Added solc 0.4.25 binary to docker container so that burrow deploy has what it needs to function
+- [Execution] panics from executors are captured and pushed to error sink of TxExecution
+
