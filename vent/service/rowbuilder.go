@@ -61,7 +61,7 @@ func buildEventData(spec types.EventDefinition, parser *sqlsol.Parser, event *ex
 			if column.BytesToString {
 				if bytes, ok := v.(*[]byte); ok {
 					str := strings.Trim(string(*bytes), "\x00")
-					row[column.Name] = interface{}(&str)
+					row[column.Name] = interface{}(str)
 					continue
 				}
 			}

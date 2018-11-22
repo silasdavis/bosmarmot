@@ -46,6 +46,8 @@ func decodeEvent(header *exec.Header, log *exec.LogEvent, abiSpec *abi.AbiSpec) 
 			data[input.Name] = v.String()
 		case *big.Int:
 			data[input.Name] = v.String()
+		case *string:
+			data[input.Name] = *v
 		default:
 			data[input.Name] = v
 		}
