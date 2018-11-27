@@ -65,6 +65,8 @@ The structure of the library is such that there are lower-level access to the GR
 
 ### Burrow
 
+The table below links to the reference schema for either the protobuf files governing the component or the Javascript interface.
+
 | Component Name | Accessor |
 | :----------- | :--------------- |
 | Transactions | [Burrow.transact](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpctransact.proto) |
@@ -76,7 +78,60 @@ The structure of the library is such that there are lower-level access to the GR
 
 ### GRPC Access Components
 
-Burrow provides access to the three grpc services in the form of automatically generated code endpoints. Below details how to access these methods and links to the request and return objects defined in the protobuf specs. The format for all calls is `function(object[, callback])` The callback is optional for non-streaming endpoints in which case a promise will be returned. 
+Burrow provides access to three GRPC services; Transactions, Queries, and ExecutionEvents in the form of automatically generated code endpoints. Below details how to access these methods and links to the request and return objects defined in the protobuf specs. The format for all calls is `function(object[, callback])` The callback is optional for non-streaming endpoints in which case a promise will be returned. 
+
+#### Sending Funds and Creating Accounts
+
+In Burrow an account must already exist in order to be used as a input account (the sender of a transaction). An account can be created once the chain is running (accounts at genesis can be described in the genesis document in the accounts section) in the following ways:
+
+1. Issuing a `SendTx` to the address to be created (see below) - where the input account must have both the `Send` and `CreateAccount` permission.
+2. Sending value to the address to created from a smart contract using the CALL opcode - where the caller contract must have the `CreateAccount` permission.
+3. Issuing a `GovTx` where accounts can be created/updated in bulk provided the input has the `Root` permission.
+
+The conventional way to create an new account to use as an input for transactions is the following:
+
+First create a key - you will want to create an account for which you have access to the private key controlling that account (as defined by the address of the public key):
+
+```shell
+# Create a new key against the key store of a locally running Burrow (or burrow keys standalone server):
+$ address=$(burrow keys gen -n --name NewKey)
+
+# The address will be printed to stdout so the above captures it in $address, you can also list named keys:
+$ burrow keys list
+Address:"6075EADD0C7A33EE6153F3FA1B21E4D80045FCE2" KeyName:"NewKey"
+```
+
+Note creating the key _does not_ create the account - it just generates a key pair in your local key store (it is not in anyway known the blockchain network).
+
+Now we would like to use a `SendTx` to create the address, here's how to do that in Javscript:
+
+```javascript
+// Using account and burrow defined in snippet from [Usage](#usage)
+
+// Address we want to create
+var addressToCreate = "6075EADD0C7A33EE6153F3FA1B21E4D80045FCE2"
+
+// The amount we send is arbitrary
+var amount = 20
+
+burrow.transact.SendTxSync(
+    {
+        Inputs: [{
+            Address: Buffer.from(account, 'hex'),
+            Amount: amount
+        }],
+        Outputs: [{
+            Address: Buffer.from(addressToCreate, 'hex'),
+            Amount: amount
+        }]
+    })
+    .then(txe => console.log(txe))
+    .catch(err => console.error(err))
+```
+
+The return `txe` (short for `TxExecution`) logged to the console in the `then` block  contains the history and fingerprint of the `SendTx` execution. You can see an example of this in [basic app](../example/basic-app/app.js). 
+
+#### NameReg access
 
 Here is an example of usage in setting and getting a name:
 
@@ -108,7 +163,7 @@ burrow.transact.NameTxSync(setPayload, function(error, data){
 
 #### Transactions
 
-`burrow.transact` provides access to the burrow GRPC service `rpctransact`. As a GRPC wrapper all the endpoints take a data argument and an optional callback. The format of the data object is specified in the [protobuf files](https://github.com/monax/bosmarmot/tree/develop/burrow.js/protobuf).  A note on RPC naming, any method which ends in `Sync` will wait until the transaction generated is included in a block. Any `Async` method will return a receipt of the transaction immediately but does not guarantee it has been included. `Sim` methods request that the transaction be simulated and the result returned as if it had been executed. SIMULATED CALLS DO NOT GET COMMITTED AND DO NOT CHANGE STATE.
+`burrow.transact` provides access to the burrow GRPC service `rpctransact`. As a GRPC wrapper all the endpoints take a data argument and an optional callback. The format of the data object is specified in the [rpctransact protobuf file](./protobuf/rpctransact.proto).  A note on RPC naming, any method which ends in `Sync` will wait until the transaction generated is included in a block. Any `Async` method will return a receipt of the transaction immediately but does not guarantee it has been included. `Sim` methods request that the transaction be simulated and the result returned as if it had been executed. SIMULATED CALLS DO NOT GET COMMITTED AND DO NOT CHANGE STATE.
 
 | Method | Passed | Returns |
 | :----- | :--------- | :---- |
