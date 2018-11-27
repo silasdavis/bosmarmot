@@ -6,7 +6,7 @@
   "scripts": {
     "test": "node app.js"
   },
-  "author": "Silas Davis",
+  "author": "Silas Davis, website section added by Luke Riley",
   "license": "Apache-2.0",
   "dependencies": {
     "@monax/burrow": "^0.20.4",
