@@ -170,7 +170,7 @@ func (c *Consumer) Run(parser *sqlsol.Parser, abiSpec *abi.AbiSpec, stream bool)
 				}
 			}
 
-			c.Log.Debug("msg", "Block received", "num_txs", len(resp.TxExecutions))
+			c.Log.Debug("msg", "Block received", "height", resp.Height, "num_txs", len(resp.TxExecutions))
 
 			// set new block number
 			fromBlock = fmt.Sprintf("%v", resp.Height)
