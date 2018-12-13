@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/hyperledger/burrow/execution/evm/abi"
 	"github.com/hyperledger/burrow/rpc/rpcevents"
@@ -151,8 +150,6 @@ func (c *Consumer) Run(parser *sqlsol.Parser, abiSpec *abi.AbiSpec, stream bool)
 		for {
 			if c.Closing {
 				break
-			} else {
-				time.Sleep(100 * time.Millisecond)
 			}
 
 			c.Log.Debug("msg", "Waiting for blocks...")
