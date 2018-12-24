@@ -1,5 +1,6 @@
 var utils = require('../utils/utils')
-var coder = require('web3/lib/solidity/coder')
+var coder = require('ethereumjs-abi')
+var convert = require('../utils/convert')
 var sha3 = require('../utils/sha3')
 
 /**
@@ -21,15 +22,14 @@ var types = function (abi, indexed) {
  * @return {Object} result object with decoded indexed && not indexed params
  */
 var decode = function (abi, data) {
-  data.Data = data.Data.toString('hex').toUpperCase() || ''
-  data.Topics = data.Topics.map(x => x.toString('hex').toUpperCase()) || []
-
   var argTopics = abi.anonymous ? data.Topics : data.Topics.slice(1)
-  var indexedData = argTopics.join('')
-  var indexedParams = coder.decodeParams(types(abi, true), indexedData)
+  var ips = types(abi, true)
+  var nips = types(abi, false)
+  var indexedData = Buffer.concat(argTopics)
+  var indexedParams = convert.abiToBurrow(ips, coder.rawDecode(ips, indexedData))
 
   // var notIndexedData = data.Data.slice(2)
-  var notIndexedParams = coder.decodeParams(types(abi, false), data.Data)
+  var notIndexedParams = convert.abiToBurrow(nips, coder.rawDecode(nips, data.Data))
 
   // var result = formatters.outputLogFormatter(data);
   var result = {}

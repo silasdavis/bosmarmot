@@ -1,7 +1,8 @@
 var utils = require('../utils/utils')
+var convert = require('../utils/convert')
 // var formatters = require('./formatters');
 var sha3 = require('../utils/sha3')
-var coder = require('web3/lib/solidity/coder')
+var coder = require('ethereumjs-abi')
 
 var config = require('../utils/config')
 var ZERO_ADDRESS = Buffer.from('0000000000000000000000000000000000000000', 'hex')
@@ -33,10 +34,10 @@ var encodeF = function (abi, args, bytecode) {
   // If bytecode provided then this is a creation call, bytecode goes first
   if (bytecode) {
     var data = bytecode
-    if (abi) data += coder.encodeParams(types(abi.inputs), args)
+    if (abi) data += convert.bytesTB(coder.rawEncode(types(abi.inputs), args))
     return data
   } else {
-    return functionSig(abi) + coder.encodeParams(types(abi.inputs), args)
+    return functionSig(abi) + convert.bytesTB(coder.rawEncode(types(abi.inputs), args))
   }
 }
 
@@ -49,13 +50,8 @@ var decodeF = function (abi, output, objectReturn) {
   var outputTypes = types(outputs)
 
   // Decode raw bytes to arguments
-  var raw = coder.decodeParams(outputTypes, output.toString('hex').toUpperCase())
-
-  for (var i = 0; i < outputTypes.length; i++) {
-    if (/int/i.test(outputTypes[i])) {
-      raw[i] = raw[i].toNumber()
-    }
-  };
+  var raw = coder.rawDecode(outputTypes, output)
+  raw = convert.abiToBurrow(outputTypes, raw)
 
   if (!objectReturn) {
     return raw
@@ -134,7 +130,7 @@ var SolidityFunction = function (abi) {
             error = new Error('Execution Reverted')
           } else {
             // Strip first 4 bytes(function signature) the decode as a string
-            error = new Error(coder.decodeParams(['string'], result.Result.Return.slice(4).toString('hex').toUpperCase())[0])
+            error = new Error(coder.rawDecode(['string'], result.Result.Return.slice(4))[0])
           }
           error.code = 'ERR_EXECUTION_REVERT'
           return reject(error)
