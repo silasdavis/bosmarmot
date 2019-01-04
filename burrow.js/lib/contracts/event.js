@@ -23,13 +23,13 @@ var types = function (abi, indexed) {
  */
 var decode = function (abi, data) {
   var argTopics = abi.anonymous ? data.Topics : data.Topics.slice(1)
-  var ips = types(abi, true)
-  var nips = types(abi, false)
+  var indexedParamsABI = types(abi, true)
+  var nonIndexedParamsABI = types(abi, false)
   var indexedData = Buffer.concat(argTopics)
-  var indexedParams = convert.abiToBurrow(ips, coder.rawDecode(ips, indexedData))
+  var indexedParams = convert.abiToBurrow(indexedParamsABI, coder.rawDecode(indexedParamsABI, indexedData))
 
   // var notIndexedData = data.Data.slice(2)
-  var notIndexedParams = convert.abiToBurrow(nips, coder.rawDecode(nips, data.Data))
+  var nonIndexedParams = convert.abiToBurrow(nonIndexedParamsABI, coder.rawDecode(nonIndexedParamsABI, data.Data))
 
   // var result = formatters.outputLogFormatter(data);
   var result = {}
@@ -37,7 +37,7 @@ var decode = function (abi, data) {
   result.address = data.Address
 
   result.args = abi.inputs.reduce(function (acc, current) {
-    acc[current.name] = current.indexed ? indexedParams.shift() : notIndexedParams.shift()
+    acc[current.name] = current.indexed ? indexedParams.shift() : nonIndexedParams.shift()
     return acc
   }, {})
 
