@@ -15,7 +15,7 @@ const _ = generic._
 const R = require('ramda')
 const is = require('@nodeguy/type').is
 
-const coder = require('web3/lib/solidity/coder')
+const coder = require('ethereumjs-abi')
 const sha3 = require('./sha3')
 
 // Convert Burrow types to Web3 types.
@@ -485,7 +485,7 @@ var encode = function (abi, functionName, args) {
     var types = functions[0].inputs.map(function (arg) {
       return arg.type
     })
-    return functionSig + coder.encodeParams(types, args)
+    return functionSig + coder.rawEncode(types, args)
   }
 }
 
