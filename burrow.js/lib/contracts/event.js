@@ -66,7 +66,7 @@ var SolidityEvent = function (abi) {
       const converted = Object.assign(
         {},
         decoded,
-        {args: utils.web3ToBurrow(decoded.args)}
+        {args: decoded.args}
       )
 
       return callback(null, converted)

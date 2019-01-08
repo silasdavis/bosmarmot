@@ -31,13 +31,18 @@ var txPayload = function (data, account, address) {
 }
 
 var encodeF = function (abi, args, bytecode) {
+  if (abi) {
+    var abiInputs = types(abi.inputs)
+    args = convert.burrowToAbi(abiInputs, args) // If abi is passed, convert values accordingly
+  }
+
   // If bytecode provided then this is a creation call, bytecode goes first
   if (bytecode) {
     var data = bytecode
-    if (abi) data += convert.bytesTB(coder.rawEncode(types(abi.inputs), args))
+    if (abi) data += convert.bytesTB(coder.rawEncode(abiInputs, args))
     return data
   } else {
-    return functionSig(abi) + convert.bytesTB(coder.rawEncode(types(abi.inputs), args))
+    return functionSig(abi) + convert.bytesTB(coder.rawEncode(abiInputs, args))
   }
 }
 
@@ -50,8 +55,7 @@ var decodeF = function (abi, output, objectReturn) {
   var outputTypes = types(outputs)
 
   // Decode raw bytes to arguments
-  var raw = coder.rawDecode(outputTypes, output)
-  raw = convert.abiToBurrow(outputTypes, raw)
+  var raw = convert.abiToBurrow(outputTypes, coder.rawDecode(outputTypes, output))
 
   if (!objectReturn) {
     return raw
@@ -100,7 +104,8 @@ var SolidityFunction = function (abi) {
   // components together and maybe even... write tests for them (gasp!)
   var encode = function () {
     var args = Array.prototype.slice.call(arguments)
-    return encodeF(abi, utils.burrowToWeb3(args), isCon ? this.code : null)
+    return encodeF(abi, args, isCon ? this.code : null)
+    // return encodeF(abi, utils.burrowToWeb3(args), isCon ? this.code : null)
   }
 
   var decode = function (data) {
@@ -140,7 +145,8 @@ var SolidityFunction = function (abi) {
 
         var unpacked = null
         try {
-          unpacked = utils.web3ToBurrow(decodeF(abi, result.Result.Return, self.objectReturn))
+          unpacked = decodeF(abi, result.Result.Return, self.objectReturn)
+          // unpacked = utils.web3ToBurrow(decodeF(abi, result.Result.Return, self.objectReturn))
         } catch (e) {
           return reject(e)
         }
@@ -151,7 +157,8 @@ var SolidityFunction = function (abi) {
       // For the moment we need to use the burrowtoweb3 function to prefix bytes with 0x
       // otherwise the coder will give an error with bugnumber not a number
       // TODO investigate if other libs or an updated lib will fix this
-      var data = encodeF(abi, utils.burrowToWeb3(args), isCon ? self.code : null)
+      // var data = encodeF(abi, utils.burrowToWeb3(args), isCon ? self.code : null)
+      var data = encodeF(abi, args, isCon ? self.code : null)
       var payload = txPayload(data, self.burrow.account || ZERO_ADDRESS, address)
 
       if (isSim) {
