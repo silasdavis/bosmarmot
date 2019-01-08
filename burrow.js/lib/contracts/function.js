@@ -116,6 +116,7 @@ var SolidityFunction = function (abi) {
     var args = Array.prototype.slice.call(arguments)
     var isSim = args.shift()
     var address = args.shift() || this.address
+    if (isCon) { address = null }
 
     var callback
     if (utils.isFunction(args[args.length - 1])) { callback = args.pop() };
