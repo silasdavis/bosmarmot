@@ -50,8 +50,7 @@ var decodeF = function (abi, output, objectReturn) {
   var outputTypes = types(outputs)
 
   // Decode raw bytes to arguments
-  var raw = coder.rawDecode(outputTypes, output)
-  raw = convert.abiToBurrow(outputTypes, raw)
+  var raw = convert.abiToBurrow(outputTypes, coder.rawDecode(outputTypes, output))
 
   if (!objectReturn) {
     return raw
