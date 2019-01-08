@@ -23,11 +23,13 @@ var types = function (abi, indexed) {
  */
 var decode = function (abi, data) {
   var argTopics = abi.anonymous ? data.Topics : data.Topics.slice(1)
+  var indexedParamsABI = types(abi, true)
+  var nonIndexedParamsABI = types(abi, false)
   var indexedData = Buffer.concat(argTopics)
-  var indexedParams = convert.abiToBurrow(types(abi, true), coder.rawDecode(types(abi, true), indexedData))
+  var indexedParams = convert.abiToBurrow(indexedParamsABI, coder.rawDecode(indexedParamsABI, indexedData))
 
   // var notIndexedData = data.Data.slice(2)
-  var nonIndexedParams = convert.abiToBurrow(types(abi, false), coder.rawDecode(types(abi, false), data.Data))
+  var nonIndexedParams = convert.abiToBurrow(nonIndexedParamsABI, coder.rawDecode(nonIndexedParamsABI, data.Data))
 
   // var result = formatters.outputLogFormatter(data);
   var result = {}
@@ -64,7 +66,7 @@ var SolidityEvent = function (abi) {
       const converted = Object.assign(
         {},
         decoded,
-        {args: utils.web3ToBurrow(decoded.args)}
+        {args: decoded.args}
       )
 
       return callback(null, converted)
