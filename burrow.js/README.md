@@ -182,16 +182,18 @@ burrow.transact.NameTxSync(setPayload, function(error, data){
 
 #### Queries
 
-`Burrow.query` provides access to the burrow GRPC service `rpcquery`. As a GRPC wrapper all the endpoints take a data argument and an optional callback. The format of the data object is specified in the [protobuf files](https://github.com/monax/bosmarmot/tree/develop/burrow.js/protobuf). Note that "STREAM" functions take a callback `function(error, data)` which is mandatory and is called any time data is returned.
+`Burrow.query` provides access to the burrow GRPC service `rpcquery`. As a GRPC wrapper all the endpoints take a data argument and an optional callback. The format of the data object is specified in the [protobuf files](https://github.com/monax/bosmarmot/tree/develop/burrow.js/protobuf). Note that "STREAM" functions take a callback `function(error, data)` which is mandatory and is called any time data is returned. For list Accounts the queryable tags are Address, PublicKey, Sequence, Balance, Code, Permissions (Case sensitive). As an example you can get all accounts with a balance greater than 1000 by `burrow.query.ListAccounts('Balance > 1000', callback)`. Multiple tag criteria can be combined using 'AND' and 'OR' for an example of a combined query see [here](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpcevents.proto#L87). Similarly for ListNames, the avaible tags are Name, Data, Owner and Exires (once again case sensitive) use is identical to List accounts.
 
 | Method | Passed | Returns | Notes |
 | :----- | :--------- | :---- | :------- |
 | burrow.query.GetAccount | [GetAccountParam](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpcquery.proto#L25-L27) | [ConcreteAccount](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/acm.proto#L23-L31) | |
-| burrow.query.ListAccounts | [ListAccountsParam](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpcquery.proto#L29-L31) | [ConcreteAccount](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/acm.proto#L23-L31) | STREAMING |
+| burrow.query.ListAccounts | [ListAccountsParam](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpcquery.proto#L29-L31) | [ConcreteAccount](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/acm.proto#L23-L31) | STREAM |
 | burrow.query.GetNameParam | [GetNameParam](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpcquery.proto#L33-L35) | [Entry](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/names.proto#L22-L32) | |
 | burrow.query.ListNames | [ListNamesParam](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/rpcquery.proto#L37-L39) | [Entry](https://github.com/monax/bosmarmot/blob/develop/burrow.js/protobuf/names.proto#L22-L32) | STREAM|
 
 #### EventStream
+
+NB: When listening to contract events it is easier to use the contract interface (described below)
 
 `Burrow.executionEvents` provides access to the burrow GRPC service `ExecutionEvents`. As a GRPC wrapper all the endpoints take a data argument and an optional callback. The format of the data object is specified in the [protobuf files](https://github.com/monax/bosmarmot/tree/develop/burrow.js/protobuf). Note that "STREAM" functions take a callback `function(error, data)` which is mandatory and is called any time data is returned.
 
