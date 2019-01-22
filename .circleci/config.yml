@@ -28,10 +28,6 @@ jobs:
     docker:
     - image: quay.io/monax/bosmarmot:ci
     - image: circleci/postgres:11-alpine-ram
-      environment:
-        POSTGRES_USER: user
-        POSTGRES_PASSWORD: pass
-        POSTGRES_DB: vent
 
     steps:
       - checkout
