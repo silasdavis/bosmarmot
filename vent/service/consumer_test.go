@@ -11,8 +11,6 @@ import (
 
 	"github.com/monax/bosmarmot/vent/sqldb"
 
-	hex "github.com/tmthrgd/go-hex"
-
 	"github.com/monax/bosmarmot/vent/config"
 	"github.com/monax/bosmarmot/vent/logger"
 	"github.com/monax/bosmarmot/vent/service"
@@ -98,26 +96,29 @@ func TestConsumer(t *testing.T) {
 }
 
 func TestInvalidUTF8(t *testing.T) {
-	// real life example from an asciiToHex function
-	badString := string(hex.MustDecodeString("436c69656e7465202d20446f632e206964656e7469666963616369f36e"))
-
 	tCli := test.NewTransactClient(t, testConfig.RPC.GRPC.ListenAddress)
 	create := test.CreateContract(t, tCli, inputAccount.GetAddress())
 
+	// The code point for ó is less than 255 but needs two unicode bytes - it's value expressed as a single byte
+	// is in the private use area so is invalid.
+	goodString := "Cliente - Doc. identificación"
+
 	// generate events
-	name := badString
+	name := service.BadStringToHexFunction(goodString)
 	description := "Description of TestEvent1"
 	test.CallAddEvent(t, tCli, inputAccount.GetAddress(), create.Receipt.ContractAddress, name, description)
 
-	cfg := config.DefaultFlags()
 	// create test db
 	db, closeDB := test.NewTestDB(t, types.PostgresDB)
 	defer closeDB()
 
-	// expect UTF8 error
-	err := runConsumer(db, cfg)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "pq: invalid byte sequence for encoding \"UTF8\": 0xf3 0x6e")
+	// Run the consumer with this event - this used to create an error on UPSERT
+	err := runConsumer(db, config.DefaultFlags())
+	require.NoError(t, err)
+
+	// Error we used to get before fixing this test case:
+	//require.Error(t, err)
+	//require.Contains(t, err.Error(), "pq: invalid byte sequence for encoding \"UTF8\": 0xf3 0x6e")
 }
 
 func runConsumer(db *sqldb.SQLDB, cfg *config.Flags) (err error) {
