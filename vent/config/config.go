@@ -4,6 +4,8 @@ import (
 	"github.com/monax/bosmarmot/vent/types"
 )
 
+const DefaultPostgresDBURL = "postgres://postgres@localhost:5432/postgres?sslmode=disable"
+
 // Flags is a set of configuration parameters
 type Flags struct {
 	DBAdapter string
@@ -23,7 +25,7 @@ type Flags struct {
 func DefaultFlags() *Flags {
 	return &Flags{
 		DBAdapter: types.PostgresDB,
-		DBURL:     "postgres://user:pass@localhost:5432/vent?sslmode=disable",
+		DBURL:     DefaultPostgresDBURL,
 		DBSchema:  "vent",
 		GRPCAddr:  "localhost:10997",
 		HTTPAddr:  "0.0.0.0:8080",

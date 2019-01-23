@@ -15,7 +15,7 @@ contract EventsTest {
     function addEvent(string _name, string _description) external {
         events[_name] = _description;
         eventNames.push(_name);
-        emit UpdateTestEvents(TABLE_EVENTS_TEST, prefix32(_name), prefix32(_description));
+        emit UpdateTestEvents(prefix32(_name), TABLE_EVENTS_TEST, prefix32(_description));
     }
 
     function getNumberOfEvents() external view returns (uint size) {

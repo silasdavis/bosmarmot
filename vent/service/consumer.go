@@ -318,5 +318,7 @@ func (c *Consumer) Health() error {
 func (c *Consumer) Shutdown() {
 	c.Log.Info("msg", "Shutting down vent consumer...")
 	c.Closing = true
-	c.GRPCConnection.Close()
+	if c.GRPCConnection != nil {
+		c.GRPCConnection.Close()
+	}
 }
