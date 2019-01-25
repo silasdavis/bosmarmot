@@ -33,6 +33,7 @@ exports.createInstance = function (URL, account, options) {
  */
 function Burrow (URL, account, options) {
   this.URL = URL
+  this.tag = options.tag
 
   if (!account) {
     this.readonly = true

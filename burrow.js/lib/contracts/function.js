@@ -46,7 +46,7 @@ var encodeF = function (abi, args, bytecode) {
   }
 }
 
-var decodeF = function (abi, output, objectReturn) {
+var decodeF = function (abi, output) {
   if (!output) {
     return
   }
@@ -56,10 +56,6 @@ var decodeF = function (abi, output, objectReturn) {
 
   // Decode raw bytes to arguments
   var raw = convert.abiToBurrow(outputTypes, coder.rawDecode(outputTypes, output))
-
-  if (!objectReturn) {
-    return raw
-  }
 
   // If an object is wanted,
   var result = {raw: raw.slice()}
@@ -105,7 +101,6 @@ var SolidityFunction = function (abi) {
   var encode = function () {
     var args = Array.prototype.slice.call(arguments)
     return encodeF(abi, args, isCon ? this.code : null)
-    // return encodeF(abi, utils.burrowToWeb3(args), isCon ? this.code : null)
   }
 
   var decode = function (data) {
@@ -115,7 +110,9 @@ var SolidityFunction = function (abi) {
   var call = function () {
     var args = Array.prototype.slice.call(arguments)
     var isSim = args.shift()
+    var handler = args.shift() || function (result) { return result }
     var address = args.shift() || this.address
+
     if (isCon) { address = null }
 
     var callback
@@ -130,8 +127,9 @@ var SolidityFunction = function (abi) {
       var post = function (error, result) {
         if (error) return reject(error)
 
+        // Handle execution reversions
         if (result.Exception && result.Exception.Code === 16) {
-          // Execution was reverted
+          // Decode error message if there is one otherwise default
           if (result.Result.Return.length === 0) {
             error = new Error('Execution Reverted')
           } else {
@@ -142,16 +140,27 @@ var SolidityFunction = function (abi) {
           return reject(error)
         }
 
-        if (isCon) return resolve(result.Receipt.ContractAddress.toString('hex').toUpperCase())
-
-        var unpacked = null
-        try {
-          unpacked = decodeF(abi, result.Result.Return, self.objectReturn)
-          // unpacked = utils.web3ToBurrow(decodeF(abi, result.Result.Return, self.objectReturn))
-        } catch (e) {
-          return reject(e)
+        // Unpack return arguments
+        var returnObj = {}
+        if (!isCon) {
+          try {
+            returnObj = decodeF(abi, result.Result.Return, self.objectReturn)
+          } catch (e) {
+            return reject(e)
+          }
         }
-        return resolve(unpacked)
+
+        // Meta Data (address, caller, height, etc)
+        returnObj.contractAddress = result.Receipt.ContractAddress.toString('hex').toUpperCase()
+        returnObj.height = result.Height
+        returnObj.index = result.Index
+        returnObj.hash = result.TxHash.toString('hex').toUpperCase()
+        returnObj.type = result.TxType
+        returnObj.result = result.Result
+        returnObj.tx = result.Envelope
+        returnObj.caller = convert.recApply(result.Envelope.Signatories, convert.bytesTB)
+
+        return resolve(returnObj)
       }
 
       // Decide if to make a "call" or a "transaction"
@@ -170,10 +179,10 @@ var SolidityFunction = function (abi) {
     })
 
     if (callback) {
-      P.then((result) => { return callback(null, result) })
+      P.then(handler).then((result) => { return callback(null, result) })
         .catch((err) => { return callback(err) })
     } else {
-      return P
+      return P.then(handler)
     }
   }
 
