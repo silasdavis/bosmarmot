@@ -5,13 +5,13 @@ const test = require('../../lib/test')
 
 const Test = test.Test()
 
-describe('#42', function () {
-  before(Test.before({handlers: {call: function (result) { return {values: result.values, raw: result.raw} }}}))
+describe('#17', function () {
+  before(Test.before({handlers: {call: function (result) { return {super: result.values, man: result.raw} }}}))
   after(Test.after())
 
   this.timeout(10 * 1000)
 
-  it('#42', Test.it(function (burrow) {
+  it('#17 Testing Per-contract handler overwriting', Test.it(function (burrow) {
     const source = `
       pragma solidity ^0.4.21;
       contract Test {
@@ -35,7 +35,7 @@ describe('#42', function () {
     `
     let address
     const {abi, bytecode} = test.compile(source, ':Test')
-    return burrow.contracts.deploy(abi, bytecode).then((contract) => {
+    return burrow.contracts.deploy(abi, bytecode, {call: function (result) { return {values: result.values, raw: result.raw} }}).then((contract) => {
       address = contract.address
       return contract.getCombination()
     }).then((returnObject) => {

@@ -7,10 +7,33 @@
 
 var Contract = require('./contracts/contract')
 
+var defaultHandlers = {
+  call: function (result) {
+    // console.log(result)
+    return result.raw
+  },
+  con: function (result) {
+    // console.log(result)
+    return result.contractAddress
+  }
+}
+
+// var nullHandler = function (result) { return result }
+
 function ContractManager (burrow, options) {
   options = Object.assign({objectReturn: false}, options)
+  var handlers = Object.assign({}, defaultHandlers, options.handlers)
   this.burrow = burrow
-  this.objectReturn = options.objectReturn
+  this.handlers = handlers
+
+  // As of 0.24.0 change the default handler to use nullhandler by default
+  if (options.objectReturn) {
+    // this.handlers.call = nullHandler
+  } else {
+    console.log('DEPRECATION WARNING. As of 0.24.0 the default behaviour of contract calls will be to return the full result object (instead of an array of arguments)')
+    console.log('If you wish to keep this behaviour after 0.24.0 you can recreate it by using a handler function for calls.')
+    console.log('This can be done by passing {handlers: {call: function(result){return result.raw}} as an option to burrow object creation (new burrow(URL, account, options))')
+  }
 }
 
 /**
@@ -22,14 +45,20 @@ function ContractManager (burrow, options) {
  * @param {*} [contract] constructor param1 (optional)
  * @param {*} [contract] constructor param2 (optional)
  * @param {Function} callback (optional)
+ * @param {Object} Handlers (optional)
  * @returns {Contract} returns a promise if no callback provided
  */
 ContractManager.prototype.deploy = function () {
   // parse arguments
   var callback = null
+  var handlers = Object.assign({}, this.handlers)
 
   var args = Array.prototype.slice.call(arguments)
-  if (typeof args[args.length - 1] === 'function') {
+  if (args[args.length - 1] instanceof Object) {
+    handlers = Object.assign(handlers, args.pop())
+  }
+
+  if (args[args.length - 1] instanceof Function) {
     callback = args.pop()
   }
 
@@ -37,7 +66,7 @@ ContractManager.prototype.deploy = function () {
   var abi = args.shift()
   var byteCode = args.shift()
 
-  var contract = new Contract(abi, null, byteCode, this.burrow, this.objectReturn)
+  var contract = new Contract(abi, null, byteCode, this.burrow, handlers)
   var P = contract._constructor.apply(contract, args).then((address) => { contract.address = address; return contract })
 
   if (callback) {
@@ -57,8 +86,9 @@ ContractManager.prototype.deploy = function () {
  * @param {string} address - default contract address [can be null]
  * @returns {Contract} returns contract interface object
  */
-ContractManager.prototype.new = function (abi, byteCode, address) {
-  return new Contract(abi, address, byteCode, this.burrow, this.objectReturn)
+ContractManager.prototype.new = function (abi, byteCode, address, handlers) {
+  handlers = Object.assign({}, this.handlers, handlers)
+  return new Contract(abi, address, byteCode, this.burrow, handlers)
 }
 
 module.exports = ContractManager

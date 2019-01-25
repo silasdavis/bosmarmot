@@ -50,7 +50,7 @@ const Test = (options) => {
         }
 
         // Options overrules defaults
-        burrowOptions = Object.assign(burrowOptions, options)
+        // burrowOptions = Object.assign(burrowOptions, options)
 
         burrow = Burrow.createInstance(urlString, account.address, burrowOptions)
 
