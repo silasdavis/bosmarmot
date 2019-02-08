@@ -48,6 +48,9 @@ func runVentCmd(cmd *cobra.Command, args []string) {
 	consumer := service.NewConsumer(cfg, log, make(chan types.EventData))
 	server := service.NewServer(cfg, log, consumer)
 
+	if cfg.DBBlockTx {
+		log.Warn("msg", "Vent started with DBBlockTx option - but this behaviour is suppressed in this hotfix version of Vent")
+	}
 	parser, err := sqlsol.SpecLoader(cfg.SpecDir, cfg.SpecFile, cfg.DBBlockTx)
 	if err != nil {
 		log.Error("err", err)
