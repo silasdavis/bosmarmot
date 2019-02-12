@@ -57,11 +57,12 @@ func TestConsumer(t *testing.T) {
 	// test data stored in database for two different block ids
 	eventName := "EventTest"
 
+	expectedTables := 1
 	blockID := "2"
 	eventData, err := db.GetBlock(blockID)
 	require.NoError(t, err)
 	require.Equal(t, "2", eventData.Block)
-	require.Equal(t, 3, len(eventData.Tables))
+	require.Equal(t, expectedTables, len(eventData.Tables))
 
 	tblData := eventData.Tables[strings.ToLower(eventName)]
 	require.Equal(t, 1, len(tblData))
@@ -72,22 +73,12 @@ func TestConsumer(t *testing.T) {
 	eventData, err = db.GetBlock(blockID)
 	require.NoError(t, err)
 	require.Equal(t, "5", eventData.Block)
-	require.Equal(t, 3, len(eventData.Tables))
+	require.Equal(t, expectedTables, len(eventData.Tables))
 
 	tblData = eventData.Tables[strings.ToLower(eventName)]
 	require.Equal(t, 1, len(tblData))
 	require.Equal(t, "LogEvent", tblData[0].RowData["_eventtype"].(string))
 	require.Equal(t, "UpdateTestEvents", tblData[0].RowData["_eventname"].(string))
-
-	// block & tx raw data also persisted
-	if cfg.DBBlockTx {
-		tblData = eventData.Tables[types.SQLBlockTableName]
-		require.Equal(t, 1, len(tblData))
-
-		tblData = eventData.Tables[types.SQLTxTableName]
-		require.Equal(t, 1, len(tblData))
-		require.Equal(t, "B216CCD3919E82BE7206DFDFF08D3625E1F9E6B9", tblData[0].RowData["_txhash"].(string))
-	}
 
 	//Restore
 	ti := time.Now().Local().AddDate(10, 0, 0)

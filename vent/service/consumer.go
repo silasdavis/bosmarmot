@@ -8,7 +8,10 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/hyperledger/burrow/event"
+	"github.com/hyperledger/burrow/event/query"
 	"github.com/hyperledger/burrow/execution/evm/abi"
+	"github.com/hyperledger/burrow/execution/exec"
 	"github.com/hyperledger/burrow/rpc/rpcevents"
 	"github.com/hyperledger/burrow/rpc/rpcquery"
 	"github.com/monax/bosmarmot/vent/config"
@@ -41,6 +44,9 @@ func NewConsumer(cfg *config.Flags, log *logger.Logger, eChannel chan types.Even
 		EventsChannel: eChannel,
 	}
 }
+
+// Query to match only EVM log events server side (this hotfix of vent is using this to mitigate against large block size)
+var evmLogEventQuery = query.Must(query.NewBuilder().AndEquals(event.EventTypeKey, exec.TypeLog).Query())
 
 // Run connects to a grpc service and subscribes to log events,
 // then gets tables structures, maps them & parse event data.
@@ -137,10 +143,11 @@ func (c *Consumer) Run(parser *sqlsol.Parser, abiSpec *abi.AbiSpec, stream bool)
 
 		request := &rpcevents.BlocksRequest{
 			BlockRange: rpcevents.NewBlockRange(rpcevents.AbsoluteBound(startingBlock), end),
+			Query:      evmLogEventQuery.String(),
 		}
 
 		// gets blocks in given range based on last processed block taken from database
-		blocks, err := cli.GetBlocks(context.Background(), request)
+		exEvents, err := cli.GetEvents(context.Background(), request)
 		if err != nil {
 			doneCh <- errors.Wrapf(err, "Error connecting to block stream")
 			return
@@ -154,7 +161,7 @@ func (c *Consumer) Run(parser *sqlsol.Parser, abiSpec *abi.AbiSpec, stream bool)
 
 			c.Log.Debug("msg", "Waiting for blocks...")
 
-			resp, err := blocks.Recv()
+			resp, err := exEvents.Recv()
 			if err != nil {
 				if err == io.EOF {
 					c.Log.Debug("msg", "EOF stream received...")
@@ -170,7 +177,7 @@ func (c *Consumer) Run(parser *sqlsol.Parser, abiSpec *abi.AbiSpec, stream bool)
 				}
 			}
 
-			c.Log.Debug("msg", "Block received", "height", resp.Height, "num_txs", len(resp.TxExecutions))
+			c.Log.Debug("msg", "Block received", "height", resp.Height, "num_events", len(resp.Events))
 
 			// set new block number
 			fromBlock = fmt.Sprintf("%v", resp.Height)
@@ -181,62 +188,33 @@ func (c *Consumer) Run(parser *sqlsol.Parser, abiSpec *abi.AbiSpec, stream bool)
 			// update block info in structure
 			blockData.SetBlockID(fromBlock)
 
-			if c.Config.DBBlockTx {
-				blkRawData, err := buildBlkData(tables, resp)
-				if err != nil {
-					doneCh <- errors.Wrapf(err, "Error building block raw data")
-				}
-				// set row in structure
-				blockData.AddRow(types.SQLBlockTableName, blkRawData)
-			}
+			// get events for a given transaction
+			for _, event := range resp.Events {
 
-			// get transactions for a given block
-			for _, txe := range resp.TxExecutions {
+				taggedEvent := event.Tagged()
 
-				c.Log.Debug("msg", "Getting transaction", "TxHash", txe.TxHash, "num_events", len(txe.Events))
+				// see which spec filter matches with the one in event data
+				for _, spec := range eventSpec {
+					qry, err := spec.Query()
 
-				if c.Config.DBBlockTx {
-					txRawData, err := buildTxData(tables, txe)
 					if err != nil {
-						doneCh <- errors.Wrapf(err, "Error building tx raw data")
+						doneCh <- errors.Wrapf(err, "Error parsing query from filter string")
+						return
 					}
-					// set row in structure
-					blockData.AddRow(types.SQLTxTableName, txRawData)
-				}
 
-				// reverted transactions don't have to update event data tables
-				// so check that condition to filter them
-				if txe.Exception == nil {
+					// there's a matching filter, add data to the rows
+					if qry.Matches(taggedEvent) {
 
-					// get events for a given transaction
-					for _, event := range txe.Events {
+						c.Log.Info("msg", fmt.Sprintf("Matched event header: %v", event.Header), "filter", spec.Filter)
 
-						taggedEvent := event.Tagged()
-
-						// see which spec filter matches with the one in event data
-						for _, spec := range eventSpec {
-							qry, err := spec.Query()
-
-							if err != nil {
-								doneCh <- errors.Wrapf(err, "Error parsing query from filter string")
-								return
-							}
-
-							// there's a matching filter, add data to the rows
-							if qry.Matches(taggedEvent) {
-
-								c.Log.Info("msg", fmt.Sprintf("Matched event header: %v", event.Header), "filter", spec.Filter)
-
-								// unpack, decode & build event data
-								eventData, err := buildEventData(spec, parser, event, abiSpec, c.Log)
-								if err != nil {
-									doneCh <- errors.Wrapf(err, "Error building event data")
-								}
-
-								// set row in structure
-								blockData.AddRow(strings.ToLower(spec.TableName), eventData)
-							}
+						// unpack, decode & build event data
+						eventData, err := buildEventData(spec, parser, event, abiSpec, c.Log)
+						if err != nil {
+							doneCh <- errors.Wrapf(err, "Error building event data")
 						}
+
+						// set row in structure
+						blockData.AddRow(strings.ToLower(spec.TableName), eventData)
 					}
 				}
 			}
