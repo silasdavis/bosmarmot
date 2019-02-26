@@ -1,10 +1,24 @@
 'use strict'
-
-var grpc = require('grpc')
-var protobuf = require('protobufjs')
-var path = require('path')
+const path = require('path')
 
 const PROTO_PATH = path.join(__dirname, '../protobuf/')
+const PROTO_FILE = 'exec.proto'
+
+const protoLoader = require('@grpc/proto-loader')
+const grpc = require('grpc')
+
+const options = {
+  keepCase: true,
+  longs: String,
+  enums: String,
+  defaults: true,
+  oneofs: true,
+  includeDirs: [
+    PROTO_PATH
+  ]
+}
+
+const packageDefinition = protoLoader.loadSync(PROTO_FILE, options)
 
 function removeNested (object) {
   if (!object) return
@@ -70,14 +84,11 @@ function wrapGRPC (name) {
 }
 
 function Service (filePath, packageName, serviceName, URL) {
-  this.URL = URL
   this.packageName = packageName
   this.serviceName = serviceName
 
-  filePath = PROTO_PATH + filePath
-
-  this.service = grpc.load(filePath)
-  this.pbJSON = removeNested(protobuf.loadSync(filePath).toJSON())
+  this.service = grpc.loadPackageDefinition(packageDefinition)
+  this.pbJSON = removeNested(packageDefinition)
 
   this.client = new this.service[packageName][serviceName](URL, grpc.credentials.createInsecure())
 
