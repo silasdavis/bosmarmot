@@ -19,11 +19,16 @@ option (gogoproto.messagename_all) = true;
 
 message AccountPermissions {
     optional BasePermissions Base = 1 [(gogoproto.nullable) = false];
+    option (gogoproto.goproto_sizecache) = false;
+    option (gogoproto.goproto_unkeyed) = false;
+
     repeated string Roles = 2;
 }
 
 message BasePermissions {
     option (gogoproto.goproto_stringer) = false;
+    option (gogoproto.goproto_sizecache) = false;
+    option (gogoproto.goproto_unkeyed) = false;
     optional uint64 Perms = 1 [(gogoproto.casttype) = "PermFlag", (gogoproto.nullable) = false];
     optional uint64 SetBit = 2 [(gogoproto.casttype) = "PermFlag", (gogoproto.nullable) = false];
 }
@@ -31,8 +36,11 @@ message BasePermissions {
 message PermArgs {
     option (gogoproto.goproto_unrecognized) = false;
     option (gogoproto.goproto_stringer) = false;
-    optional uint64 PermFlag = 1 [(gogoproto.casttype) = "PermFlag", (gogoproto.nullable) = false];
-    optional bytes Address = 2 [(gogoproto.customtype) = "github.com/hyperledger/burrow/crypto.Address"];
+    // The permission function
+    optional uint64 Action = 1 [(gogoproto.casttype) = "PermFlag", (gogoproto.nullable) = false];
+    // The target of the action
+    optional bytes Target = 2 [(gogoproto.customtype) = "github.com/hyperledger/burrow/crypto.Address"];
+    // Possible arguments
     optional uint64 Permission = 3 [(gogoproto.casttype) = "PermFlag"];
     optional string Role = 4;
     optional bool Value = 5;
